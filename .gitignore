@@ -1,0 +1,15 @@
+.idea
+node_modules
+.pnpm-store
+.next
+.open-next
+.wrangler
+coverage
+playwright-report
+test-results
+.env
+.env.*
+!.env.example
+!**/.env.example
+.dev.vars
+.dev.vars.*

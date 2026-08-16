@@ -1,0 +1,17 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+autoInstallPeers: false
+
+overrides:
+  react: "19.2.8"
+  react-dom: "19.2.8"
+
+allowBuilds:
+  "@google/genai": true
+  esbuild: true
+  protobufjs: true
+  workerd: true
+
+minimumReleaseAge: 1440

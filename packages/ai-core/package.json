@@ -1,0 +1,15 @@
+{
+  "name": "@my-knowledge/ai-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "0.84.2",
+    "@my-knowledge/content": "workspace:*",
+    "@my-knowledge/skills": "workspace:*",
+    "zod": "4.4.3"
+  }
+}

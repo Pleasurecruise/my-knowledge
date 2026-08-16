@@ -1,0 +1,29 @@
+{
+  "name": "my-knowledge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @my-knowledge/web dev",
+    "build": "pnpm --filter @my-knowledge/web build:worker",
+    "preview": "pnpm --filter @my-knowledge/web preview",
+    "deploy": "pnpm --filter @my-knowledge/web deploy",
+    "d1:migrate:local": "pnpm --filter @my-knowledge/web exec wrangler d1 migrations apply DB --local --persist-to .wrangler/state --config wrangler.jsonc",
+    "d1:migrate:remote": "pnpm --filter @my-knowledge/web exec wrangler d1 migrations apply DB --remote --config wrangler.jsonc",
+    "skills:sync": "pnpm --filter @my-knowledge/skills sync",
+    "format": "vp fmt",
+    "lint": "vp lint",
+    "test": "vp test",
+    "test:e2e": "playwright test",
+    "check": "vp check && vp test && pnpm build"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "26.2.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "typescript": "7.0.2",
+    "vite-plus": "0.2.9"
+  },
+  "packageManager": "pnpm@11.22.0"
+}
