@@ -102,7 +102,8 @@ before adding storage layers or database abstractions.
 ## Release
 
 1. verify every configured resource and decide whether R2 is dedicated or intentionally shared;
-2. create any missing resources and initialize the Worker without production traffic;
+2. create any missing resources, initialize the Worker without production traffic, and configure
+   Workers Builds with root directory `apps/web` and build command `pnpm build:worker`;
 3. set the two variables, create the Google OAuth client, and upload the six secrets;
 4. review the numbered application and Better Auth SQL migrations;
 5. run `pnpm d1:migrate:local`, `pnpm check`, `pnpm test`, `pnpm build`, `pnpm dry-run`, and

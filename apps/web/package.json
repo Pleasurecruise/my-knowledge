@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm types && next dev",
-    "build": "next build --webpack",
-    "build:worker": "pnpm types && opennextjs-cloudflare build",
-    "preview": "pnpm types && opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "build": "pnpm types && next build --webpack",
+    "build:worker": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "seed:local": "node __test__/scripts/seed-local.ts",
     "test:mcp": "node __test__/scripts/mcp-contract.ts http://localhost:8787/api/mcp",
     "dry-run": "wrangler deploy --dry-run --config wrangler.json",
-    "deploy": "pnpm types && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "types": "wrangler types node_modules/.wrangler-types.d.ts --env-interface CloudflareEnv && next typegen"
   },
   "dependencies": {
