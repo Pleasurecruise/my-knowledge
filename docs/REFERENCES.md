@@ -4,9 +4,11 @@ These sources inform the project but are not automatically runtime dependencies:
 
 - [Obsidian Help](https://github.com/obsidianmd/obsidian-help): primary reference for portable
   Markdown, properties, nested tags, internal links, backlinks, and graph-based knowledge discovery;
-- [my-memos](https://github.com/Pleasurecruise/my-memos): implementation reference only for the
-  pnpm/Cloudflare project shape, D1/R2/KV boundaries, single-owner auth, stateless MCP, and the current
-  `custom-opencode` AI Gateway adapter;
+- [my-memos](https://github.com/Pleasurecruise/my-memos): source reference for the Notes index,
+  reading rails, heading hierarchy, and editor interaction, as well as the pnpm/Cloudflare shape,
+  single-owner auth, stateless MCP, and current AI Gateway adapter;
+- `my-profile` (owner-local repository): composition reference for the centered article axis, compact
+  header, table of contents, and reading controls; no source, font, or third-party asset is copied;
 - [docu.md](https://docu.md/): Markdown-first rich content and replaceable presentation;
 - [markdown-viewer/skills](https://github.com/markdown-viewer/skills): pinned Vega/Canvas design
   reference that is not bundled because its license file is missing;
@@ -49,6 +51,7 @@ hierarchical, links are explicit, backlinks are derived, and the graph is a navi
 application reimplements those ideas for a private-first cloud library; it does not embed Obsidian or
 copy its desktop vault architecture.
 
-`my-memos` defines only useful implementation constraints for a small personal Cloudflare product. It
-does not define the article schema, classification model, editor, routes, workflow, or visual design.
-When the references disagree, this project's long-form knowledge contract wins.
+`my-memos` defines the browser Notes composition and editor. This project keeps its Article routes,
+AI synchronization, Obsidian knowledge model, and D1/R2/KV/Vectorize boundaries. Its AGPL-3.0 license
+has been reviewed for the requested reuse; third-party-derived fragments and assets still require
+their own compatibility review.

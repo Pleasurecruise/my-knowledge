@@ -1,6 +1,6 @@
 # Skill registry and loading
 
-Status: Proposed; this is the only project skill registry
+Status: Implemented; this is the only project skill registry
 
 Remote use is supported. Agent Skills are instruction files, so Cloudflare can send them to the
 model like any other prompt. The constraint is that a Worker has no developer filesystem and should
@@ -8,12 +8,12 @@ not fetch mutable GitHub content during a request.
 
 ## Production skills
 
-| Skill       | Source        | Stage                           |
-| :---------- | :------------ | :------------------------------ |
-| `write`     | `tw93/Waza`   | Editorial rules for the body    |
-| `translate` | Project-owned | Produce the English edition     |
-| `vega`      | Project-owned | Quantitative charts             |
-| `canvas`    | Project-owned | Concept maps and knowledge maps |
+| Skill       | Source        | Stage                                                    |
+| :---------- | :------------ | :------------------------------------------------------- |
+| `write`     | `tw93/Waza`   | Editorial rules for the body                             |
+| `translate` | Project-owned | Produce each locale requested by the validated operation |
+| `vega`      | Project-owned | Quantitative charts                                      |
+| `canvas`    | Project-owned | Concept maps and knowledge maps                          |
 
 The deterministic `selectSkills` function reads short catalog descriptions and returns `write` plus
 zero or more visual skill IDs. It does not draft the article or become another prompt. The writing
@@ -27,9 +27,9 @@ deterministic TypeScript.
 ## Build-time acquisition
 
 `packages/skills/sources.lock.json` records repository, commit, path, declared license, content hash,
-and usage for each external file. The reviewed lock exists; the sync implementation and generated
-registry do not. Phase 1 must make `pnpm skills:sync` the only command that reads GitHub. It downloads
-only locked files, verifies hashes, updates attribution, and bundles only entries marked `runtime`.
+and usage for each external file. `pnpm skills:sync` is the only command that reads GitHub. It
+downloads only locked files, verifies hashes, updates attribution, and bundles only entries marked
+`runtime`.
 Project-owned skills live beside the loader and are reviewed as ordinary source.
 
 The Worker imports that generated registry as a normal module. A request performs an in-memory lookup:

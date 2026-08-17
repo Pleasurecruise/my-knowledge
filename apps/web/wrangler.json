@@ -1,0 +1,75 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "my-knowledge",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-16",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "workers_dev": false,
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "routes": [
+    {
+      "pattern": "knowledge.you-find.me",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "BETTER_AUTH_URL": "https://knowledge.you-find.me",
+    "CF_ACCOUNT_ID": "fb71c4eceaf623ae1b19b8b37d7a38cf"
+  },
+  "secrets": {
+    "required": [
+      "ALLOWED_EMAIL",
+      "BETTER_AUTH_SECRET",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "CF_AIG_TOKEN",
+      "MCP_API_KEY"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "my-knowledge",
+      "database_id": "36db48dc-d9d7-4754-992b-2df0ea0cf794",
+      "migrations_dir": "migrations",
+      "remote": true
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "KNOWLEDGE_BUCKET",
+      "bucket_name": "cherry-studio",
+      "remote": true
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "KNOWLEDGE_CACHE",
+      "id": "dc4f4d89276e40d2a82479cfc7867b5d",
+      "remote": true
+    }
+  ],
+  "vectorize": [
+    {
+      "binding": "KNOWLEDGE_INDEX",
+      "index_name": "my-knowledge",
+      "remote": true
+    }
+  ],
+  "ai": {
+    "binding": "AI",
+    "remote": true
+  },
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true
+    }
+  }
+}

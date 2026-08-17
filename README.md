@@ -1,6 +1,6 @@
 # my-knowledge
 
-A private-first, bilingual knowledge publication built from valuable AI conversations.
+A private-first, locale-extensible knowledge publication built from valuable AI conversations.
 
 Send useful conversation content through MCP. The application turns it into polished Markdown,
 creates a summary and a small set of nested tags, translates it, checks for similar knowledge, and
@@ -8,9 +8,11 @@ stores only the finished article. Every article starts private and becomes publi
 
 ## Status
 
-The product specification, workspace manifests, and dependency lock are ready. Application source,
-Cloudflare configuration, migrations, generated skill registry, and tests are not implemented yet;
-the repository cannot currently build or deploy.
+The complete local release is implemented. The generated OpenNext Worker serves the four documented
+web surfaces; D1/R2 storage, MCP CRUD, model-assisted creation, locale-extensible editions, discovery,
+rich Markdown, and allowed-email authentication are wired and verified locally. Production release
+now requires the owner-controlled Cloudflare resources, secrets, Google OAuth client, provider
+retention approval, remote migrations, live provider smoke, and deployment.
 
 ## Stack
 

@@ -1,176 +1,228 @@
-# Design system
+# Frontend design
 
-Status: Proposed foundation
+Status: Implemented
 
-## Intended feeling
+## Product character
 
-The product is a quiet Nordic reading room: calm, precise, warm enough for long reading, and free of
-visual performance. It should feel like a personal publication and library, not a SaaS dashboard or
-an Obsidian clone.
+This is one person's minimal knowledge blog. It should feel maintained, readable, and direct rather
+than promotional or application-like. The publication masthead, chronological writing, typography,
+hairline separators, and open space establish hierarchy. Blue is the only interaction accent.
 
-Use generous negative space, strong typographic rhythm, hairline boundaries, nearly flat surfaces,
-and one muted accent. Avoid gradients, glass effects, oversized shadows, excessive pills, ornamental
-animation, dense sidebars, and decorative graph movement.
+The shadcn Base UI Luma source contributes interaction behavior and accessibility, not its registry
+appearance. Project-owned tokens replace the registry font, palette, radii, shadows, and density.
+Reading surfaces stay flat; shadows belong to overlays and the graph's spatial canvas.
 
-## Three token layers
+## Composition rules
 
-Tokens have one source file and flow in one direction. Components never consume raw palette or
-spacing values directly.
+Marketing-template composition is prohibited. Do not introduce a centered hero, eyebrow slogan,
+oversized product promise, feature-card grid, metric strip, testimonial, decorative glow, paired
+conversion buttons, or repeated call to action. Do not present article metadata as dashboard widgets
+or use Card as the default container.
 
-| Layer     | Responsibility                                      | Examples                                        |
-| :-------- | :-------------------------------------------------- | :---------------------------------------------- |
-| Reference | Raw color ramps, type scales, spacing, radius, time | `pine700`, `stone50`, `space4`, `durationFast`  |
-| Semantic  | Meaning shared by all themes and components         | `bgPage`, `textMuted`, `borderSubtle`, `accent` |
-| Component | Local contracts composed only from semantic tokens  | `articleMeasure`, `navHeight`, `calloutBorder`  |
+Prefer this order of tools:
 
-The reference layer may change without component edits. Light and dark themes remap semantic tokens;
-they do not fork component CSS. A component token is added only when a repeated component decision
-cannot be expressed clearly with an existing semantic token.
+1. typography and a readable measure;
+2. spacing and alignment;
+3. separators and indentation;
+4. a bounded surface only when the object or interaction genuinely needs one.
 
-## Color
+Secondary controls should consume only the space needed to identify and operate them. Search belongs
+to Home. Articles and Graph do not repeat search, filter, scope, relation, depth, or grouping controls.
 
-The initial palette combines warm paper neutrals with a muted Nordic pine accent:
+Cards are appropriate for an AI answer, selected graph node, or similarly bounded object. Article
+rows, navigation, filters, prose, relationships, and missing-page content remain flat.
 
-- light page: warm off-white rather than pure white;
-- light surface: a small luminance step above the page;
-- primary text: charcoal rather than black;
-- dark page: blue-charcoal rather than pure black;
-- dark surface: one restrained raised tone;
-- accent: desaturated pine green for links, focus, selection, and active state;
-- status colors: muted red, amber, and blue used only for meaning.
+### Explicit avoid list
 
-The working reference values are deliberately few:
+Treat these as review failures, not loose preferences:
 
-| Token          | Light     | Dark      |
-| :------------- | :-------- | :-------- |
-| `page`         | `#F7F6F2` | `#171B1A` |
-| `surface`      | `#FCFBF8` | `#1E2421` |
-| `text`         | `#242827` | `#E8ECE7` |
-| `textMuted`    | `#68706C` | `#A5AEA8` |
-| `borderSubtle` | `#D8DCD6` | `#38413C` |
-| `accent`       | `#456B5A` | `#84AA95` |
+- Do not add a hero, splash viewport, centered sales headline, product promise, slogan badge, or
+  uppercase eyebrow such as “PRIVATE-FIRST” or “MULTILINGUAL”.
+- Do not use gradients, blurred color orbs, spotlight backgrounds, glass panels, decorative grids,
+  floating mockups, or illustration merely to fill empty space.
+- Do not add “Get started”, “Learn more”, “Explore”, “Discover”, “Join”, or paired primary/secondary
+  CTA patterns. Navigation labels name destinations; actions name the operation they perform.
+- Do not turn Home into a feed, portal, or landing page. It contains search only; Articles owns all
+  browsing and chronology.
+- Do not turn Articles into a card gallery. It is a compact year/month/day writing index with one
+  title per row and restrained metadata.
+- Do not wrap filters, article relations, TOC, progress, empty states, or 404 copy in elevated cards.
+  Use flat flow, a disclosure, or a hairline boundary.
+- Do not add statistics, trending sections, featured posts, category tiles, author promotion,
+  newsletter capture, social proof, or footer link columns.
+- Do not use a dashboard sidebar, command center, dense toolbar, or mobile drawer for the three
+  primary destinations. The visible three-tab masthead is the complete global navigation.
+- Do not use oversized display type outside an article title. Standard page headings remain compact
+  and left aligned.
+- Do not use continuous ambient animation, parallax, scroll choreography, or decorative 3D. Motion
+  explains a control state; spatial depth is reserved for Graph and explicit JSON Canvas content.
+- Do not duplicate a component with ad hoc markup when an installed Base UI-backed shadcn component
+  provides the required semantics.
 
-These text, muted-text, and accent pairs clear AA contrast against the proposed page backgrounds;
-component states still require fixture-level verification. The accent never fills large reading
-surfaces. Body copy, code, tables, graphs, focus rings, and every interactive state must meet WCAG
-2.2 AA in both themes. Final approved values live only in reference tokens.
+## Foundation and ownership
 
-## Typography
+Tailwind CSS v4 processes the shared CSS entrypoint through the official Next.js
+`@tailwindcss/postcss` integration. `apps/web/postcss.config.js` contains that plugin only; v3-era
+`postcss-import`, `autoprefixer`, and a JavaScript Tailwind config are absent. The current shadcn CLI
+installs `base-luma` components backed by Base UI into `packages/ui`; application code consumes those
+source components through `@my-knowledge/ui/components/*`. Lucide React provides named,
+tree-shaken icons through the UI package icon entrypoint.
 
-- UI and metadata: Geist Sans with a system sans fallback.
-- English long-form body: Source Serif 4 with a system serif fallback.
-- Chinese long-form body: system Song/Ming stack first; evaluate Source Han Serif only after font
-  size, license, subset, and Worker delivery costs are measured.
-- Code: Geist Mono with a system monospace fallback.
+The CSS ownership is intentionally small:
 
-Chinese and English use separate line-height, punctuation, and measure rules. Article width targets
-approximately 68 Latin characters or 34 Chinese characters per line. Font files are self-hosted and
-pinned when adopted; rendering must remain usable before fonts load and when they fail.
+```text
+packages/ui/src/styles/index.css      Tailwind imports, source scan, and theme mapping
+packages/ui/src/styles/tokens.css     Reference and semantic tokens for both themes
+packages/ui/src/styles/base.css       Shared browser defaults and theme-transition behavior
+packages/ui/src/styles/markdown.css   Portable article-content presentation
+apps/web/app/styles/graph.css         SVG edges and perspective behavior only
+```
 
-## Spatial and shape rules
+Ordinary layouts use Tailwind utilities at the component. Do not create a stylesheet for one page or
+component when utilities express the rule clearly.
 
-- Use a four-pixel reference grid with a deliberately sparse semantic spacing scale.
-- Reading pages use large vertical intervals; controls remain compact.
-- Default radius is small. Fully rounded shapes are reserved for tags or true binary state.
-- Shadows indicate overlays only. Cards use spacing and borders before elevation.
-- Motion explains state change, lasts briefly, and is removed under reduced-motion preference.
+## Tokens and themes
 
-## UI selection policy
+`tokens.css` is the sole color source. A small project-owned OKLCH reference layer defines the cold,
+low-chroma Nordic palette. Semantic shadcn variables map those references to surface, text,
+interaction, boundary, and status roles. Tailwind exposes semantic values to components;
+Markdown and Graph consume the same semantic variables directly rather than maintaining compatibility
+aliases or a second palette. CSS files do not use Tailwind `@apply`; components own Tailwind utility
+composition, while the shared stylesheets contain ordinary CSS for their documented boundaries.
 
-Tailwind CSS implements token-backed styles. Radix primitives supply behavior for dialogs, menus,
-tooltips, and other interaction-heavy controls. shadcn/ui is a source of selected component patterns,
-not an installed visual identity: copied components are reduced to project tokens and conventions.
-Lucide provides icons. No second component library is introduced for convenience.
+Light mode uses a cold frost page, paper surfaces, blue-charcoal ink, and a restrained fjord blue.
+Dark mode uses a low-chroma night blue with subtly separated surfaces and a pale glacial blue for
+interaction. Charts stay within cyan, steel, blue, and blue-violet rather than introducing an
+unrelated green scale. The accent does not fill reading surfaces. Red is reserved for destructive
+meaning.
 
-The minimum primitive set is link, button, icon button, input, select, dialog, menu, tooltip,
-separator, skeleton, and focus ring. Article-specific components are callout, code block, table, math,
-Mermaid, Vega-Lite, citation, table of contents, related list, and locale switcher.
+The theme action follows the compact interaction used by `my-memos`: an icon button applies the saved
+light/dark choice and uses a circular View Transition when supported. The implementation is owned
+here and does not copy assets or source. System preference is the specified initial state when no
+saved choice exists; reduced motion disables decorative transition.
 
-## Pages and information hierarchy
+## Type, spacing, and shape
 
-### Application shell
+- Interface, headings, and metadata use a deliberately narrow native grotesk stack led by Avenir
+  Next and Helvetica Neue. The project does not inherit the registry's Geist default and does not
+  download or copy an unreviewed font asset.
+- Article prose uses the same narrow native grotesk family as `my-memos`, with locale-aware browser
+  shaping and compact line height. Code retains the dedicated monospace stack.
+- Code uses SF Mono, Menlo, Monaco, then Consolas.
+- Standard page headings stay compact. Article section headings remain close to body scale and rely
+  on spacing and medium weight rather than oversized type or decorative rules.
+- Prose targets a `650px` maximum measure; the wider publication shell is shared by the masthead and
+  page layouts.
+- Phone gutters are at least `16px`, and interactive controls retain accessible target size.
+- Ordinary controls and overlays use deliberately small corners. Full pills are reserved for
+  intrinsically circular objects such as avatars, switches, progress, and status indicators. Content
+  rows remain square and separated by hairlines.
+- Ordinary cards are bordered and flat. A single restrained overlay shadow is shared by menus and
+  dialogs; stronger depth is reserved for Graph and explicit JSON Canvas content.
 
-Public pages use one quiet header. The wordmark sits at the left; Articles and Graph are the only
-primary destinations. Locale, theme, and Sign in sit at the right as compact actions. After
-authentication, Sign in becomes a small account menu with Sign out; it does not open an owner area.
-The header has a hairline bottom border, never floats over content, and does not grow into a dashboard
-sidebar. On phones, Articles and Graph move into one menu while authentication remains directly
-available.
+## Shared shell
 
-### Public page blueprints
+The header is a publication masthead within the same measure as the main pages. It uses a cropped
+square from the supplied cat image, the `my knowledge` wordmark, and a compact localized subtitle.
+Home, Articles, and Graph are the only three primary tabs. Home is explicit rather than being hidden
+behind the wordmark; the wordmark still links home as a conventional shortcut. The active tab uses a
+quiet secondary treatment. Interface language, theme, and account are compact actions. On small
+screens the three tabs occupy their own row while the global actions remain directly available.
 
-- Home is a centered search hero inspired by the directness of `my-memos`. A quiet wordmark and one
-  short sentence sit above one large input. For anonymous visitors it accepts only keywords or tags
-  and performs deterministic public search. After the allowed owner signs in, an AI mode appears next
-  to Keyword and the same input can accept a knowledge question. Before a query, the page shows only a
-  few recent articles and stable top-level tag paths below the fold. There is no marketing carousel,
-  statistics strip, or dashboard chrome.
-- An owner-only AI result appears directly below the hero as a readable answer grounded only in
-  authorized articles. Inline citations and a small set of linked article cards show the title,
-  one-sentence summary, matching excerpt, and tags. A refusal/empty result says that the knowledge base
-  lacks enough evidence; it does not answer from general model knowledge. Anonymous visitors never
-  receive the AI control or invoke its endpoint. Keyword and tag search returns deterministic article
-  results using the same cards.
-- Articles is the complete chronological library. A single toolbar provides keyword search,
-  public/private scope when signed in, and a collapsible hierarchical tag filter. Results are quiet
-  rows showing title, summary, updated date, visibility when signed in, and no more than three tag
-  paths. There is no separate Tags or Search page.
-- Article centers a single reading column. The title, summary, date, tag paths, locale switch, and
-  private/public status when visible to the owner form a compact header. The signed-in owner also sees
-  one Delete action in the overflow menu; there are no Edit or Publish actions. A table of contents
-  occupies a quiet right rail only on wide screens; it becomes a disclosure above the body at smaller
-  widths. Backlinks and semantically related articles appear after the body as two clearly labeled
-  text lists.
-- Graph gives most of the surface to a bounded canvas. A slim toolbar controls local/library scope,
-  link type, tag grouping, and depth. Selecting a node opens a small detail panel with title, summary,
-  tags, and an article link. An equivalent ordered relationship list follows the canvas for keyboard
-  and screen-reader access.
+Authentication mirrors the compact avatar/popover rhythm of `my-memos`: anonymous users see a sign-in
+popover, while the allowed owner sees identity and sign-out. There is no owner dashboard or marketing
+navigation.
 
-### Density and responsive behavior
+## Language
 
-Reading content has a maximum measure of about `720px`; rich tables, charts, and diagrams may expand
-into a wider breakout region without widening prose. The desktop shell uses a maximum page width near
-`1200px`. At narrower widths, secondary rails disappear before type or touch targets shrink. At phone
-widths, page gutters remain at least `16px`, controls are at least `44px` high, and search result cards
-become a single column.
+- The masthead language action cycles through the registered interface locales in registry order.
+  Its visible code states the current locale, while its accessible label names the next locale. A
+  secure same-site cookie stores the choice and the Server Action re-renders the current route.
+- `apps/web/src/i18n/registry.ts` is the interface-locale registry; `messages/zh.ts`, `en.ts`, and
+  `ja.ts` hold complete typed dictionaries. Each registry entry owns a BCP 47 code and native label.
+  Chinese, English, and Japanese are currently registered; adding a locale adds one complete message
+  module and one registry entry rather than changing an environment list.
+- The same masthead action selects the compatible stored edition on an Article route; the Article
+  header does not repeat a language control. If an optional edition is absent, the required Chinese
+  edition is used. Missing or unsupported interface cookies also resolve to `zh-CN`.
 
-Article lists use dividers and whitespace instead of bordered cards. Empty states state what is absent
-and offer one relevant action. Loading preserves page geometry with at most a few skeleton lines.
-Errors appear beside the action or field that failed; toasts confirm completed background-free
-mutations but never carry the only explanation.
+Placeholders and operational error messages remain English so diagnostics are stable across locale
+changes. Visible interface labels are translated.
 
-Private articles are visible only in an allowed-email session and remain `noindex`. Public metadata,
-caches, anonymous search, and anonymous graphs contain public articles only.
+## Page composition
 
-## Component character
+Next.js route loading and error boundaries remain inside the publication shell. Loading uses a
+restrained title-and-content skeleton with reduced-motion support; runtime errors use the Nordic
+typography, boundary, localized recovery copy, Retry, and Home actions instead of the framework's
+default error page.
 
-Buttons are text-first, compact, and rectangular with a small radius. The filled accent treatment is
-reserved for one primary action in a region; secondary actions use a subtle border or plain text.
-Tags display their full hierarchical path and use a quiet tinted background only when interactive.
-Inputs use visible labels, calm borders, and the same surface as the page unless grouping needs a
-surface step.
+### Home
 
-Icons support labels instead of replacing unfamiliar actions. Dividers, indentation, type weight,
-and spacing establish hierarchy before containers do. The graph is the only intentionally spatial
-surface; the rest of the product remains typographic and linear.
+Home is the narrow search surface. Its title block is the same component and pixel alignment as the
+Articles title block. Anonymous search is keyword/tag only.
+The owner additionally receives an AI-question tab; its answer appears directly below the field as one
+bounded result. Home does not repeat recent articles, topics, or any content from the Articles tab.
 
-## Content versus presentation
+### Articles
 
-The Waza-backed writing step selects semantic forms and returns portable Markdown: prose, lists,
-tables, code, math, Mermaid, Vega-Lite, and callouts. It never stores React, page HTML, CSS,
-screenshots, or rendered SVG/canvas.
+Articles is the narrow chronological index and copies the `my-memos` Notes composition: compact serif
+title with a short accent rule, one-line description, New action for the owner, then the
+year/month/day list at the same spacing. It contains no search, tag, or visibility controls. Each row
+contains day, title, and one restrained hierarchical tag.
 
-The Next.js frontend parses and sanitizes Markdown, maps approved AST nodes to React components,
-renders code and structured blocks, and owns typography, themes, responsiveness, accessibility, and
-visual regression. This is the docu.md-inspired boundary: durable rich content with replaceable
-presentation.
+### Article
 
-## Quality gate
+Article is a document first and follows the `my-memos` Notes reading surface: one centered 650px axis,
+the same title hierarchy and reading statistics, then prose. On phones, Previous page, All articles,
+and owner-only Edit are a compact button group. On wide screens, the same navigation actions,
+owner-only Edit, and reading progress form the fixed right rail. Previous page follows browser history
+without a route fallback; All articles always links to `/articles`. Delete appears only while editing.
+Prose H1/H2 styling follows the Notes renderer.
 
-Every core page is checked with Chinese and English fixtures, phone and desktop widths, light and
-dark themes, keyboard-only navigation, visible focus, reduced motion, and long code/table/diagram
-overflow. AST coverage tests prove that content was not silently dropped; screenshot and automated
-accessibility checks prove the rendered surface independently.
+Named code fences are compiled server-side with the fine-grained Shiki pipeline defined in
+[Content](CONTENT.md). GitHub light/dark token variables switch with the application theme; code
+surfaces, borders, typography, and errors still consume the shared semantic CSS tokens. Wide tables
+use the Markdown-owned scroll wrapper rather than page utilities.
 
-Kami informs restraint, composition, and visual QA. Its palette, fonts, templates, and assets are
-not copied.
+Public Article routes generate 1200×630 social cards through Next.js `ImageResponse`. The composition
+adapts the `my-memos` memo card to this project's cold Nordic palette: a paper surface on frost, thin
+boundary, short fjord accent, compact site identity, editorial title, at most three tags, source, and
+updated date. The renderer uses fixed standalone colors because browser CSS variables are unavailable
+inside image generation; it does not introduce another design palette for application components.
+
+On wide screens the fixed left TOC copies the Notes collapsed bars, delayed text reveal, heading
+indentation, active marker, and smooth navigation. It is hidden on smaller screens. Neither rail
+participates in the document grid. The owner editor copies the Notes save/cancel/delete rhythm and
+keeps Markdown canonical; summary and translations synchronize when Save completes.
+
+### Graph
+
+Graph is the wide page, while its title uses the same typography and rule as Articles. It has no
+top-right controls. The bounded canvas uses perspective, node elevation, and explicit edges. The
+desktop side rail reserves a fixed row for the selected article, so the bounded relationship list
+starts at a stable position regardless of summary height. Graph removes wide-page bottom padding and
+fits its canvas to the available viewport instead of creating a permanent scrollbar.
+
+### Not found
+
+The 404 page is a quiet missing-document state: a small cropped mark, status line, concise explanation,
+and understated links to Home and Articles. It does not use a centered product card, decorative glow,
+or conversion-style CTA pair.
+
+## Content boundary
+
+Content skills produce semantic Markdown only: prose, lists, tables, code, math, Mermaid, Vega-Lite,
+JSON Canvas, links, and callouts. They never persist React, page HTML, CSS, rendered SVG, or
+screenshots. The Next.js frontend parses and sanitizes the AST, maps approved nodes to UI renderers,
+and owns typography, theme, responsiveness, and accessibility.
+
+Private articles remain `noindex` and are returned only to the allowed-email session. Public lists,
+anonymous search, caches, and graphs contain public metadata only.
+
+## Visual verification
+
+Verify Home, Articles, Article, Graph, and 404 in the generated OpenNext Worker at desktop and phone
+widths. Cover all registered interface languages, a Japanese article edition, light and dark themes,
+reduced motion, keyboard navigation, visible focus, long code/table overflow, graph interaction, and a
+clean console. Screenshots belong under `.agents/evidence`; they are execution evidence, not product
+documentation.

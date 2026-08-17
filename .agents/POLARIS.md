@@ -5,9 +5,10 @@ without manual organization.
 
 ## Outcomes
 
-- Capture: one MCP call produces one valid bilingual article or a useful duplicate result.
+- Capture: one MCP call produces one valid locale-keyed article or a useful duplicate result.
 - Retrieval: the owner can find knowledge through tags, links, graph, keywords, and grounded AI search.
-- Publication: public articles read like a calm long-form knowledge library.
+- Publication: public articles read like a calm long-form knowledge library and produce complete,
+  recognizable link previews.
 - Simplicity: the personal application keeps the fewest stores, fields, routes, and operations needed.
 
 ## Hard measures

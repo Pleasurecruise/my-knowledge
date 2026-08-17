@@ -1,15 +1,15 @@
 # Documentation
 
-Status: Current index; product behavior remains proposed until verified by implementation
+Status: Current index for the implemented local release
 
 Read only the document that owns the question:
 
 - [Product](PRODUCT.md): users, product outcome, content model, and release boundary.
 - [Architecture](ARCHITECTURE.md): technical stack, modules, data authority, security, and runtime.
-- [Content](CONTENT.md): article DTO, bilingual Markdown, frontmatter, and supported source forms.
+- [Content](CONTENT.md): locale-keyed article DTO, Markdown, frontmatter, and supported source forms.
 - [Database](DATABASE.md): D1 schema, R2 keys, normalization, indexes, and mutation order.
 - [Workflows](WORKFLOWS.md): direct creation, comparison, MCP CRUD, and web discovery.
-- [Design](DESIGN.md): visual direction, three token layers, typography, components, and accessibility.
+- [Design](DESIGN.md): visual direction, tokens, page composition, components, and accessibility.
 - [Engineering](ENGINEERING.md): coding rules, naming, boundaries, security, and verification.
 - [Testing](TESTING.md): unit, integration, contract, E2E, evaluation, and release evidence.
 - [Skills](SKILLS.md): the runtime skill registry and exact loading behavior.

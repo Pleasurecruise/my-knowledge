@@ -72,9 +72,13 @@ regressed.
 - R2 owns Markdown; D1 indexes metadata and visibility; KV and Vectorize are derived.
 - Submitted conversations, AI search questions, retrieved context, and generated answers are not
   stored.
-- Every generated article starts private. Visibility changes use MCP only.
-- The web has Home, Articles, Article, and Graph only; its sole mutation is authenticated deletion.
+- Every generated article starts private. Visibility changes require the MCP credential or the
+  allowed-email browser session.
+- The web has Home, Articles, Article, and Graph only. The allowed-email owner may create, edit,
+  publish, withdraw, and delete Articles from those existing surfaces; there is no owner dashboard.
 - Anonymous users receive keyword/tag search only. AI search requires the allowed-email session.
+- Article metadata, social images, robots, and sitemap use anonymous authorization and never expose
+  private titles, tags, timestamps, or bodies.
 - Content skills produce semantic Markdown; the Next.js frontend owns presentation.
 - Project names are concise camelCase. Foreign naming stops at adapters.
 

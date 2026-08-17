@@ -8,16 +8,19 @@
     "build": "pnpm --filter @my-knowledge/web build:worker",
     "preview": "pnpm --filter @my-knowledge/web preview",
     "deploy": "pnpm --filter @my-knowledge/web deploy",
-    "d1:migrate:local": "pnpm --filter @my-knowledge/web exec wrangler d1 migrations apply DB --local --persist-to .wrangler/state --config wrangler.jsonc",
-    "d1:migrate:remote": "pnpm --filter @my-knowledge/web exec wrangler d1 migrations apply DB --remote --config wrangler.jsonc",
+    "dry-run": "pnpm --filter @my-knowledge/web dry-run",
+    "d1:migrate:local": "pnpm --filter @my-knowledge/web exec wrangler d1 migrations apply DB --local --persist-to .wrangler/state --config wrangler.json",
+    "d1:migrate:remote": "pnpm --filter @my-knowledge/web exec wrangler d1 migrations apply DB --remote --config wrangler.json",
     "skills:sync": "pnpm --filter @my-knowledge/skills sync",
     "format": "vp fmt",
     "lint": "vp lint",
     "test": "vp test",
-    "test:e2e": "playwright test",
-    "check": "vp check && vp test && pnpm build"
+    "test:mcp": "pnpm --filter @my-knowledge/web test:mcp",
+    "test:e2e": "pnpm build && playwright test",
+    "check": "pnpm --filter @my-knowledge/web types && vp check"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.62.1",
     "@types/node": "26.2.0",
     "@types/react": "19.2.18",

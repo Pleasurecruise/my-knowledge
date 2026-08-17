@@ -1,0 +1,125 @@
+@import "katex/dist/katex.min.css";
+@import "@my-knowledge/ui/styles.css";
+@import "./styles/graph.css";
+
+@layer components {
+  .tiptap {
+    min-height: 52vh;
+    padding: 1rem;
+    color: var(--foreground);
+    font-family: var(--type-prose);
+    font-size: 1rem;
+    line-height: 1.65;
+    outline: none;
+    overflow-wrap: break-word;
+  }
+
+  .tiptap > :first-child {
+    margin-top: 0;
+  }
+
+  .tiptap p,
+  .tiptap ul,
+  .tiptap ol,
+  .tiptap blockquote,
+  .tiptap pre,
+  .tiptap table {
+    margin-block: 1em;
+  }
+
+  .tiptap h1,
+  .tiptap h2,
+  .tiptap h3,
+  .tiptap h4,
+  .tiptap h5,
+  .tiptap h6 {
+    margin-top: 2em;
+    margin-bottom: 0.6em;
+    font-family: var(--type-heading);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .tiptap h1 {
+    font-size: 1.75em;
+  }
+  .tiptap h2 {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.3em;
+    font-size: 1.375em;
+  }
+  .tiptap h3 {
+    font-size: 1.2em;
+  }
+  .tiptap ul,
+  .tiptap ol {
+    padding-left: 1.6em;
+  }
+  .tiptap li {
+    margin: 0.4em 0;
+    line-height: 1.75;
+  }
+  .tiptap ul {
+    list-style: disc;
+  }
+  .tiptap ol {
+    list-style: decimal;
+  }
+  .tiptap blockquote {
+    border-left: 2px solid var(--muted-foreground);
+    padding-left: 1.25em;
+    color: var(--muted-foreground);
+  }
+  .tiptap pre {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--muted);
+    padding: 1rem;
+  }
+  .tiptap code {
+    font-family: var(--type-mono);
+    font-size: 0.875em;
+  }
+  .tiptap :not(pre) > code {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--muted);
+    padding: 0.15em 0.4em;
+  }
+  .tiptap table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    margin: 1.5em 0;
+  }
+  .tiptap th,
+  .tiptap td {
+    border: 1px solid var(--border);
+    padding: 0.5em 0.75em;
+    text-align: left;
+    vertical-align: top;
+  }
+  .tiptap th {
+    background: var(--muted);
+    font-weight: 600;
+  }
+  .tiptap hr {
+    margin: 2.5em 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+  .tiptap .is-editor-empty:first-child::before {
+    float: left;
+    height: 0;
+    color: var(--muted-foreground);
+    content: attr(data-placeholder);
+    pointer-events: none;
+  }
+
+  @media (min-width: 640px) {
+    .tiptap {
+      padding: 1.25rem;
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "name": "fixed-zh-en",
+  "corpusVersion": 2,
+  "writing": [
+    { "id": "writing-technology", "schemaSuccess": true, "tags": ["engineering/architecture"] },
+    { "id": "writing-politics", "schemaSuccess": true, "tags": ["society/policy"] },
+    { "id": "writing-economics", "schemaSuccess": true, "tags": ["economics/markets"] },
+    { "id": "writing-mixed", "schemaSuccess": true, "tags": ["technology/ai", "economics/labor"] }
+  ],
+  "translations": [
+    {
+      "id": "translation-en",
+      "schemaSuccess": true,
+      "tags": ["technology/ai"],
+      "links": ["source-article"],
+      "blocks": ["heading", "code", "callout"]
+    },
+    {
+      "id": "translation-ja",
+      "schemaSuccess": false,
+      "tags": [],
+      "links": [],
+      "blocks": []
+    }
+  ],
+  "duplicates": [
+    { "id": "duplicate", "score": 0.95 },
+    { "id": "near-duplicate", "score": 0.91 },
+    { "id": "related", "score": 0.75 },
+    { "id": "unrelated", "score": 0.2 }
+  ],
+  "answers": [
+    {
+      "id": "answerable",
+      "schemaSuccess": true,
+      "refused": false,
+      "citations": ["public-source"],
+      "claims": [{ "text": "The source supports the answer.", "sourceIds": ["public-source"] }]
+    },
+    {
+      "id": "unanswerable",
+      "schemaSuccess": true,
+      "refused": true,
+      "citations": [],
+      "claims": []
+    }
+  ]
+}

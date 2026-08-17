@@ -1,6 +1,6 @@
 # Engineering rules
 
-Status: Proposed
+Status: Active implementation rules
 
 ## Hard rules
 
@@ -17,6 +17,10 @@ A fallback must be deliberate, named, observable, tested product behavior. Ident
 secrets, bindings, canonical content, and publication completeness fail closed.
 Never catch an error and return empty data, default permission, stale success, or a fake published
 state.
+`catch` and nullish coalescing are fallback mechanisms, not neutral syntax. Catch only at a boundary
+that can map the failure to an explicit domain or user-visible result. Use `??` only when the left
+side is intentionally optional and the right side is its specified product value; never use it to
+hide missing required content, configuration, persisted data, or provider output.
 
 ### Do not use assertions casually
 
@@ -44,6 +48,8 @@ needs isolation, tests, explanation, and a removal condition.
 ## Boundaries
 
 - Validate HTTP, MCP, AI output, configuration, persisted JSON, and provider responses once.
+- A constraint has one owning schema. Consumers import or derive from that schema instead of
+  restating the same Zod shape, regular expression, or parser at another boundary.
 - Routes authenticate, validate, call an application operation, and map the result.
 - Cloudflare types stay in app adapters.
 - Model prompts and output schemas stay versioned beside the module that owns the operation; provider
@@ -75,6 +81,10 @@ needs isolation, tests, explanation, and a removal condition.
 - Keep generics narrow and meaningful. Prefer a concrete domain type over a reusable abstraction with
   only one caller.
 - Generated Cloudflare binding types are authoritative and are never edited by hand.
+- Wrangler writes binding and runtime declarations to the ignored
+  `apps/web/node_modules/.wrangler-types.d.ts`, then `next typegen` generates route-aware `PageProps`
+  and `RouteContext` declarations before checks and Worker builds. Generated Cloudflare environment
+  declarations do not live in or get committed from the source tree.
 
 ## Dependencies
 
@@ -117,13 +127,76 @@ runner. `vp fmt` formats, `vp lint` performs linting, `vp check` includes format
 linting, and type checking, and `vp test` runs unit tests. Next.js and OpenNext continue to own the
 application and Worker builds.
 
-Phase 1 adds root commands for:
+The root exposes these quality commands:
 
 ```text
-format | lint | typecheck | unit | integration | MCP contract
-privacy matrix | OpenNext build | Worker smoke | docs links | diff check
+format | lint | test | check | build | dry-run | test:mcp | test:e2e
 ```
 
 [Testing](TESTING.md) owns test layers, fixtures, model evaluation, browser coverage, and release
 evidence. Report only commands actually run; a mock unit test does not prove deployment or the real
 Worker entrypoint.
+
+## Module boundaries
+
+`apps/web/src` uses vertical domain slices. React composition belongs in `components/`, use-case
+coordination in `application/`, and Cloudflare or Drizzle access in `persistence/`. Shared DTOs live
+in the owning domain's `types.ts`; substantial component props live in an adjacent
+`<component>.types.ts`. Avoid global type files, prop barrels, optional property bags, unsafe casts,
+and state introduced only to force rendering. Prefer discriminated unions for real UI and operation
+states and validate untrusted values at their boundary.
+
+Persistence separates D1 queries, R2/KV documents, Vectorize lookup, relation assembly, row mapping,
+and mutation coordination. A domain entrypoint serves external consumers; code inside the domain
+imports concrete siblings directly and never imports its own barrel. Web application and Web test
+code use `@/` across domains or app/test boundaries, while files within one domain use relative
+imports. Package tests use relative imports to sibling source because package aliases are not
+defined.
+
+Transport modules keep authentication and protocol mapping separate from operations. Route Handlers
+authenticate, validate, invoke an application operation, and map its result; ranking, citation
+assembly, and storage coordination stay outside routes. Package entrypoints export public contracts
+only, package internals split by domain responsibility, and consumers do not deep-import them.
+
+CSS follows the same ownership rule. Shared palette, semantic tokens, browser defaults, and Markdown
+presentation live in `@my-knowledge/ui`. Tailwind utilities own ordinary page composition. A separate
+application stylesheet is justified only for behavior that becomes less clear as utilities, such as
+the graph's SVG edges and perspective stage; do not create one stylesheet per component or page.
+Components consume semantic tokens rather than raw color, radius, font, or timing values.
+
+## Documentation
+
+Product documents describe current behavior, durable boundaries, and release evidence. They do not
+serve as a file-by-file implementation inventory or preserve superseded proposals. When behavior
+changes, revise the owning statement and remove the obsolete one; do not add a second explanation in
+another document. Status labels distinguish locally verified work from production-account work.
+
+## Component source
+
+- Install or refresh shadcn components with the CLI from `apps/web`; do not hand-copy registry files.
+- Keep `apps/web/components.json` and `packages/ui/components.json` aligned on `base-luma`, Base UI,
+  Tailwind CSS variables, and Lucide.
+- Reusable primitives live in `packages/ui/src/components` and are imported through
+  `@my-knowledge/ui/components/*`. Application code composes them and does not recreate buttons,
+  selects, dialogs, popovers, tooltips, tabs, switches, progress, or cards with ad hoc markup.
+- `packages/ui/src/styles/tokens.css` is the only color and semantic-token source. The Tailwind theme
+  maps those values to shadcn utilities; generated component classes never own palette values.
+- Lucide React belongs to `@my-knowledge/ui`. Import only named icons through its icon entrypoint so
+  application code stays tree-shakable and the dependency has one owner.
+- Registry components are open source under MIT; changes are allowed, but unused third-party
+  libraries and parallel primitives are not retained.
+
+## Internationalization
+
+- `apps/web/src/i18n/registry.ts` is the single interface-locale registry. Complete typed
+  dictionaries live in `messages/zh.ts`, `messages/en.ts`, and `messages/ja.ts`. The Chinese filename
+  is intentionally concise; its registry code remains the precise BCP 47 value `zh-CN`.
+- Do not scatter locale unions, add an `ARTICLE_LOCALES` environment variable, or maintain a second
+  menu list. A new interface locale adds one complete message module and one registry entry;
+  incomplete dictionaries fail type checking.
+- The interface cookie is validated against that registry. Only the documented default may replace an
+  absent or unsupported interface choice; article content has no analogous fallback.
+- Interface locale and article edition locale stay independent. The article selector is derived from
+  stored edition keys at render time.
+- User-facing interface labels may be translated. Placeholders, operational errors, protocol errors,
+  and thrown diagnostics remain English.

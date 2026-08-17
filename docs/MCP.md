@@ -1,6 +1,6 @@
 # MCP tools
 
-Status: Proposed
+Status: Implemented and locally contract-tested
 
 Expose one authenticated `POST /api/mcp` endpoint with the official MCP TypeScript server package.
 One high-entropy Bearer key represents the owner. Tools call the same application operations as the
@@ -16,8 +16,9 @@ web read layer; `deleteArticle` is also used by the one authenticated browser mu
 
 ## `createArticle`
 
-Input: `{ content: string }`. It deliberately has no visibility, tags, model, skill, or provider
-override.
+Input: `{ content: string; locales: string[] }`. `locales` contains canonicalizable BCP 47 tags, must
+include `zh` and `en`, and may add languages such as `ja`. The request deliberately has no visibility,
+tags, model, skill, or provider override.
 
 Runs skill selection, writing, translation, similarity, and private persistence. Returns either:
 
@@ -32,7 +33,7 @@ configured model provider.
 
 ## `getArticle`
 
-Input: `{ id: string }`. Returns the authorized metadata plus Chinese and English Markdown. A missing
+Input: `{ id: string }`. Returns authorized metadata plus the locale-keyed documents. A missing
 or unauthorized ID produces the same not-found result.
 
 Annotations: read-only, non-destructive, idempotent, closed-world.
@@ -48,11 +49,14 @@ Annotations: read-only, non-destructive, idempotent, closed-world.
 
 ## `updateArticle`
 
-Input: `{ id: string; expectedHash: string; zhMarkdown: string; enMarkdown: string }`. Frontmatter
-contains title, summary, and tags. The operation validates both documents, refreshes the article-row
+Input: `{ id: string; expectedHash: string; documents: Record<string, string> }`. The map requires
+`zh` and `en` and accepts canonical additional locales such as `ja`. Frontmatter contains title,
+summary, and tags. The operation validates all documents, refreshes the article-row
 projections and vector, and rejects a stale hash without overwriting newer content.
 
 It does not call the model or silently retranslate content.
+The expected hash is checked before embedding so stale requests do not spend provider work; the D1
+update still repeats the hash condition to close the concurrency race.
 
 Annotations: not read-only, not destructive, idempotent for the same expected hash and content,
 closed-world.
@@ -76,8 +80,9 @@ Workers AI.
 
 ## `listTags`
 
-Input: `{ parent?: string }`. Returns the owner's hierarchical tag tree with direct and descendant
-article counts. Anonymous tag counts belong to the public web query, not the authenticated MCP tool.
+Input: `{ parent?: string }`. Returns the owner's canonical hierarchical tag paths and article
+counts, optionally scoped by a parent path. Anonymous tag counts belong to the public web query, not
+the authenticated MCP tool.
 
 Annotations: read-only, non-destructive, idempotent, closed-world.
 
@@ -96,6 +101,7 @@ prompt, or raw skill tools. Skills are an internal implementation detail of `cre
 
 ## Verification
 
-Contract tests cover modern discovery and direct calls, legacy initialize, Bearer authentication,
-required headers, schemas, annotations, duplicate results, stale updates, forced-private creation,
-nested tags, destructive deletion, and private non-disclosure against real clients.
+The local contract covers modern discovery and direct reads, legacy initialize, Bearer authentication,
+required headers, schemas, annotations, locale-keyed documents, nested tags, stale writes, visibility
+changes, and private non-disclosure against the generated Worker. Duplicate creation, vector-backed
+updates, and destructive cleanup require the owner's live AI and Vectorize bindings at release smoke.

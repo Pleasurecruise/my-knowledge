@@ -1,18 +1,17 @@
 # Database and persistence
 
-Status: Proposed implementation contract
+Status: Implemented locally; production resources await owner setup
 
-Reuse only the proven Cloudflare boundary from `my-memos`: D1 is a small query index, R2 owns
-Markdown, KV is disposable cache, and Drizzle is only a typed D1 query layer. The content model remains
-Obsidian-like: frontmatter properties, nested tag paths, wiki links, backlinks, and graph views. There
-is no Prisma, database server, connection pool, schema generator, or runtime migrator.
+D1 is the query index, R2 owns Markdown, KV is a disposable derived cache, and Drizzle is the typed D1
+query layer. The content model keeps frontmatter properties, nested tag paths, wiki links, backlinks,
+and graph views without adding a database server or normalized relation tables.
 
 ## D1
 
 The application owns one table, `articles`:
 
 - `id`, `slug`, `contentHash`;
-- `metaJson`: Chinese and English title and summary;
+- `metaJson`: locale-keyed title and summary projections with required `zh` and `en`;
 - `tagsJson`: normalized tag paths;
 - `linksJson`: referenced wiki-link slugs;
 - `visibility`, `createdAt`, `updatedAt`.
@@ -24,27 +23,35 @@ Make `id` the primary key and `slug` and `contentHash` unique. Add only one proj
 `(visibility, updatedAt)`. Store timestamps as UTC ISO strings. Generate IDs with
 `crypto.randomUUID()` and keep slugs stable after creation.
 
-For this personal corpus, query tag counts and nested paths with SQLite `json_each(tagsJson)`. Resolve
-wiki links and backlinks by joining `json_each(linksJson)` to `articles.slug`; use those links with
-Vectorize neighbors for graph views. This keeps Obsidian behavior while reusing `my-memos`'s compact
-JSON projection technique. Normalize into more tables only after a measured D1 bottleneck.
+Tag counts use one recursive SQLite query over `json_each(tagsJson)`. It expands every hierarchical
+prefix and counts an article once per prefix; anonymous execution filters public rows inside the same
+query. Wiki links and backlinks join `json_each(linksJson)` to `articles.slug`; Graph combines those
+links with re-authorized Vectorize neighbors. Normalize into more tables only after a measured D1
+bottleneck.
 
 ## R2 and KV
 
-R2 stores the canonical pair:
+R2 stores the canonical locale set:
 
 ```text
-articles/{articleId}/{contentHash}/zh.md
-articles/{articleId}/{contentHash}/en.md
+knowledge/{primaryTagPath?}/{articleSlug}/{locale}.md
 ```
 
-The keys are derived, so D1 does not store them. Canonical Markdown uses LF line endings, one final
-newline, and frontmatter ordered as `title`, `summary`, then `tags`. `contentHash` is lowercase
-SHA-256 over the UTF-8 bytes of Chinese Markdown, one NUL byte, then English Markdown.
+The complete first tag is the optional folder path, so `engineering/frontend` produces nested
+folders; an untagged article begins directly with its stable slug. Changing the first tag moves the
+locale set. Keys remain derived from existing D1 projections, so D1 does not store a path or category
+field. Hashes never appear in R2 paths. Canonical Markdown uses LF line endings, one final newline,
+and frontmatter ordered as `title`, `summary`, then `tags`. `contentHash` remains lowercase SHA-256
+over each canonical locale name, one NUL byte, its Markdown bytes, and one NUL byte, with locales
+sorted lexicographically. It is concurrency metadata for D1, KV, and Vectorize rather than a folder
+name.
 
-D1 `metaJson`, `tagsJson`, and `linksJson` are parsed projections used for lists and filters, avoiding
-an R2 read for every row. KV may cache only compiled public articles by article ID, hash, and locale.
-Do not cache article lists or use KV as an authorization source.
+D1 `metaJson`, `tagsJson`, and `linksJson` are parsed projections used for lists, filters, backlinks,
+and Graph, avoiding an R2 read for every row. KV caches only parsed public article editions under
+`articles/{articleId}/{contentHash}/{locale}.json` with a 24-hour TTL. A public read first authorizes
+the D1 row, then checks KV, reads canonical R2 Markdown on a miss, validates it, and writes the parsed
+edition back to KV. Private articles never read from or write to KV. Invalid or unavailable cache
+data is observable and falls back to canonical R2; KV never authorizes access.
 
 ## Writes
 
@@ -52,17 +59,22 @@ Cloudflare stores do not share a transaction.
 
 Create or update in this order:
 
-1. validate and canonicalize both Markdown documents;
-2. write the new R2 pair;
-3. upsert Vectorize ID `{articleId}:{contentHash}`;
-4. insert the D1 row, or update it with `WHERE id = ? AND contentHash = expectedHash`;
-5. after success, remove the previous R2/vector version and invalidate KV.
+1. validate and canonicalize every locale document, including required `zh` and `en`;
+2. read the current R2 locale set and ETags for an update;
+3. conditionally write the new locale set: an unchanged path must match its previous ETag and a moved
+   or new path must not already exist;
+4. upsert Vectorize ID `{articleId}:{contentHash}`;
+5. insert the D1 row, or update it with `WHERE id = ? AND contentHash = expectedHash`;
+6. after success, invalidate the previous KV/vector version and delete superseded locale paths.
 
-If the D1 write fails, delete only the new R2/vector version. Vector results must match both the
-current D1 article ID and hash, so an orphan is never visible.
+If a later write fails, restore overwritten objects with the ETags returned by the conditional write,
+delete newly created paths, and remove the new vector. A conflicting object write fails rather than
+overwriting another update. Vector results must match both the current D1 article ID and hash, so an
+orphan is never visible.
 
-Delete by first setting D1 visibility to `private`, then invalidating KV and deleting R2/Vectorize,
-then deleting the D1 row. If external cleanup fails, the private row remains for a retry. Public reads
+Delete snapshots the current R2 ETags, sets D1 visibility to `private`, then deletes unchanged
+KV/R2/Vectorize objects before deleting the D1 row. If external cleanup fails, the private row remains
+for a retry. Public reads
 always check D1 visibility before KV or R2.
 
 ## Migrations

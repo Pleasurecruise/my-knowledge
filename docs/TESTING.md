@@ -1,6 +1,6 @@
 # Testing and evaluation
 
-Status: Proposed implementation contract
+Status: Implemented local gates; live provider and production smoke remain release gates
 
 Tests must prove domain correctness, privacy, protocol compatibility, rendered behavior, and the
 quality of model-assisted results. A large test count is not evidence by itself. Each layer owns a
@@ -21,15 +21,28 @@ White-box tests cover internal rules and store coordination. Black-box tests exe
 HTTP contracts. Do not call a unit test an end-to-end test or use mocked bindings as deployment
 evidence.
 
+All test code, fixtures, contract scripts, and browser journeys live under a dedicated `__test__/`
+directory owned by their package or domain. Test files are never colocated with implementation files.
+Web unit tests live in `apps/web/__test__/unit/<domain>/`, browser journeys in
+`apps/web/__test__/e2e/`, shared inputs in `apps/web/__test__/fixtures/`, and executable contract or
+seed programs in `apps/web/__test__/scripts/`. Package tests live in `packages/<package>/__test__/`,
+sibling to `src/`; the model evaluation keeps its frozen corpus and runner together under
+`packages/ai-core/evaluation/__test__/`.
+Repository-owned tests, setup programs, and contract programs use TypeScript. Markdown, SQL, JSON,
+and other data fixtures keep the extension of the format they exercise.
+
 ## Unit and property tests
 
 Use Vite Plus tests for:
 
 - frontmatter parsing, canonical Markdown, hashes, stable slugs, and wiki-link extraction;
+- long-form rendering through decoded code entities, the fixed Shiki language/alias bundle, dual
+  themes, plain-text fallback, structured-fence exclusion, heading anchors, and table overflow;
 - tag normalization, hierarchy, existing-tag preference, and the five-tag/one-new-leaf limits;
-- article visibility predicates and anonymous result filtering;
+- article visibility predicates, anonymous result filtering, hierarchical tag SQL, and vector ID
+  parsing;
 - similarity threshold boundaries and stale-hash concurrency checks;
-- model-output schemas, bilingual structural parity, and citation validation;
+- model-output schemas, cross-edition structural parity, and citation validation;
 - prompt construction that disables payload logging and never accepts client visibility overrides;
 - concise camelCase domain names and exhaustive error mapping where behavior is security-sensitive.
 
@@ -52,7 +65,8 @@ numbered SQL migrations from an empty database and from the immediately previous
 - MCP tests use real clients for both supported protocol versions and cover discovery, Bearer auth,
   schemas, annotations, duplicate results, stale updates, and destructive deletion.
 - HTTP tests cover the complete anonymous/allowed-email matrix for Home, Articles, Article, Graph,
-  AI search, and deletion. Unauthorized private resources return not found.
+  AI search, browser authoring, visibility changes, and deletion. Unauthorized private resources
+  return not found.
 - Provider tests replay recorded response shapes without real secrets, then run a small opt-in live
   smoke against AI Gateway before release. They verify headers, no payload logging/cache, timeouts,
   schema failures, and citation rejection.
@@ -62,19 +76,33 @@ numbered SQL migrations from an empty database and from the immediately previous
 ## Browser end-to-end tests
 
 Playwright runs against the generated OpenNext Worker, not only `next dev`. Maintain two browser
-contexts: anonymous and an allowed-email session created through supported Better Auth test setup;
-never add a production test-login route or hand-build an auth cookie.
+contexts: anonymous and an allowed-email session whose D1 token and signed cookie are generated from
+the same fixture through Better Auth's public cryptographic API. Never add a production test-login
+route, use an unsigned cookie, or let the browser fixture diverge from D1. Run the projects with one
+Playwright worker because every viewport shares one local Worker and one mutable D1/R2/KV fixture;
+parallel projects would make the owner journey and first-load render evidence order-dependent.
 
 The core journey set is intentionally small:
 
-1. anonymous keyword and tag search returns only public article cards;
+1. anonymous keyword and tag search returns only public article rows;
 2. anonymous users cannot see AI mode, private articles, or Delete;
 3. the signed-in owner receives a grounded AI answer with working article citations;
-4. Articles filters by nested tags and visibility without losing pagination state;
-5. Article renders both locales and rich blocks, then confirmed deletion removes it;
-6. Graph opens linked articles and has an equivalent keyboard-accessible relationship list.
+4. Articles has the Notes chronological composition and exposes no search or filter controls;
+5. the owner can open New/Edit, use the Markdown editor, and explicitly save, publish, withdraw, or
+   delete while anonymous users cannot reach those mutations;
+6. Article follows the Header locale, renders rich blocks, exposes the Notes TOC/action rails, and
+   publishes canonical metadata plus a renderable dynamic social image only when public;
+7. Graph has no filter controls, opens linked articles, and keeps its keyboard-accessible relationship
+   list at a stable desktop position;
+8. the Header language action changes interface copy and the compatible article edition together in
+   Chinese, English, and Japanese, falling back to Chinese when an optional edition is absent;
+9. robots and sitemap metadata routes advertise only public surfaces and articles;
+10. unknown paths render the quiet branded 404 surface with working Home and Articles recovery
+    actions.
 
-Run these at phone and desktop widths. Add screenshot assertions only for the shared shell, search
+Run these at phone and desktop widths. Exercise the Header language cycle action, theme View
+Transition with its reduced-motion path, signed-in
+avatar popover, and anonymous sign-in popover. Add screenshot assertions only for the shared shell, search
 states, article typography, rich blocks, and graph layout; avoid snapshots of volatile dates or model
 prose. Automated accessibility checks, keyboard navigation, reduced motion, dark mode, long tables,
 and code overflow are release requirements.
@@ -89,7 +117,7 @@ Keep synthetic or explicitly approved test corpora for:
 
 - long-form writing across technology, politics, economics, and mixed-domain articles;
 - tag reuse and new-leaf decisions;
-- Chinese-to-English structure, links, code, and claim preservation;
+- Chinese-to-configured-locale structure, links, code, and claim preservation;
 - labeled duplicate, near-duplicate, related, and unrelated article pairs;
 - answerable and unanswerable knowledge questions with expected source articles.
 
@@ -118,6 +146,25 @@ deployment merely to claim ADLC adoption. Promote an experiment only when it is 
 cheaper than the required local/preview path and has an explicit teardown procedure.
 
 ## Gates and evidence
+
+The local release evidence is reproducible: Vite Plus covers the domain suites and frozen model
+evaluation; the numbered D1 migration replays against local state; and the generated OpenNext Worker
+builds. The MCP suite covers both protocol generations plus real D1 visibility changes. Playwright
+uses a Better Auth session generated through its public cryptographic API and checks anonymous and
+owner surfaces at desktop and phone widths, light and dark themes, reduced motion, accessibility,
+the rich Japanese article, and expected browser errors only.
+
+Wrangler cannot execute Vectorize locally. The owner deletion journey therefore proves that a failed
+vector cleanup returns the active locale's error and leaves the private article retryable; successful live
+cleanup is not replaced by a mock. Live embedding/similarity, grounded AI answers, successful
+create/update/delete cleanup, Google OAuth, provider behavior, and deployment smoke remain
+production-account gates. Deterministic evaluation leaves latency and cost as `null` until the opt-in
+live Gateway run supplies real measurements.
+
+Every pull request and push to `main` runs the my-memos-style `Commit-CI` workflow: frozen dependency
+installation, `pnpm check`, `pnpm test`, the generated OpenNext Worker build, and `pnpm dry-run`.
+The final command executes `wrangler deploy --dry-run` against the built Worker, validates its strict
+JSON configuration and bundle without authentication, and never deploys.
 
 Every change runs formatting, lint, types, affected unit tests, and diff checks. Storage, auth, MCP,
 rendering, or routing changes also run their integration/contract suites. Release candidates run the

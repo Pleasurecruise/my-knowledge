@@ -7,6 +7,9 @@ node_modules
 coverage
 playwright-report
 test-results
+.agents/evidence
+*.tsbuildinfo
+apps/web/__test__/.auth
 .env
 .env.*
 !.env.example

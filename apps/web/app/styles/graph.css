@@ -1,0 +1,80 @@
+.graph-stage {
+  height: min(62vh, 38rem);
+  background:
+    radial-gradient(
+      circle at 50% 20%,
+      color-mix(in oklch, var(--primary) 12%, transparent),
+      transparent 45%
+    ),
+    radial-gradient(var(--border) 0.75px, transparent 0.75px), var(--card);
+  background-size:
+    auto,
+    20px 20px,
+    auto;
+  perspective: 1000px;
+}
+
+.graph-canvas {
+  height: 100%;
+  width: 100%;
+  transform: rotateX(3deg) rotateY(-1.5deg) scale(0.98);
+  transform-origin: center;
+  transform-style: preserve-3d;
+}
+
+.graph-edge {
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.graph-edge--link {
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+
+.graph-edge--tag {
+  stroke-dasharray: 5 5;
+}
+
+.graph-node {
+  cursor: pointer;
+  outline: none;
+}
+
+.graph-node circle {
+  fill: var(--card);
+  stroke: var(--primary);
+  stroke-width: 2;
+  transition:
+    fill 120ms ease,
+    stroke-width 120ms ease;
+}
+
+.graph-node text {
+  fill: var(--foreground);
+  font-family: var(--type-interface);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.graph-node:hover circle,
+.graph-node:focus circle {
+  fill: var(--accent);
+  stroke-width: 4;
+}
+
+@media (max-width: 48rem) {
+  .graph-stage {
+    height: 24rem;
+  }
+
+  .graph-canvas {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-node circle {
+    transition: none;
+  }
+}

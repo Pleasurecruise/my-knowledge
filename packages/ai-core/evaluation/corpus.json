@@ -1,0 +1,68 @@
+{
+  "version": 2,
+  "synthetic": true,
+  "writing": [
+    {
+      "id": "writing-technology",
+      "domain": "technology",
+      "existingTags": ["engineering/architecture", "knowledge/i18n"],
+      "requiredReusedTag": "engineering/architecture",
+      "maxNewTags": 1
+    },
+    {
+      "id": "writing-politics",
+      "domain": "politics",
+      "existingTags": ["society/policy"],
+      "requiredReusedTag": "society/policy",
+      "maxNewTags": 1
+    },
+    {
+      "id": "writing-economics",
+      "domain": "economics",
+      "existingTags": ["economics/markets"],
+      "requiredReusedTag": "economics/markets",
+      "maxNewTags": 1
+    },
+    {
+      "id": "writing-mixed",
+      "domain": "mixed",
+      "existingTags": ["technology/ai", "economics/labor"],
+      "requiredReusedTag": "technology/ai",
+      "maxNewTags": 1
+    }
+  ],
+  "translations": [
+    {
+      "id": "translation-en",
+      "targetLocale": "en",
+      "requiredTags": ["technology/ai"],
+      "requiredLinks": ["source-article"],
+      "requiredBlocks": ["heading", "code", "callout"]
+    },
+    {
+      "id": "translation-ja",
+      "targetLocale": "ja",
+      "requiredTags": ["technology/ai"],
+      "requiredLinks": ["source-article"],
+      "requiredBlocks": ["heading", "code", "callout"]
+    }
+  ],
+  "duplicates": [
+    { "id": "duplicate", "label": true },
+    { "id": "near-duplicate", "label": false },
+    { "id": "related", "label": false },
+    { "id": "unrelated", "label": false }
+  ],
+  "answers": [
+    {
+      "id": "answerable",
+      "allowedIds": ["public-source"],
+      "expectedRefusal": false
+    },
+    {
+      "id": "unanswerable",
+      "allowedIds": [],
+      "expectedRefusal": true
+    }
+  ]
+}
