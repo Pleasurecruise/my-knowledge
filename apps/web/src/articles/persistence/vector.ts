@@ -4,7 +4,7 @@ import type { Principal } from "@/auth/types";
 
 import type { RankedArticle } from "../types";
 import { getArticleRow } from "./document";
-import { articleObjectKey, articleSummary, parseArticleVectorId } from "./record";
+import { articleObjectKey, articleSummary, articleVectorMetadataSchema } from "./record";
 
 export async function findVectorArticles(
   env: CloudflareEnv,
@@ -14,14 +14,14 @@ export async function findVectorArticles(
 ): Promise<RankedArticle[]> {
   const matches = await env.KNOWLEDGE_INDEX.query(embedding, {
     topK: limit,
-    returnMetadata: true,
+    returnMetadata: "all",
     returnValues: false,
   });
   const ranked: RankedArticle[] = [];
   for (const match of matches.matches) {
-    const vectorId = parseArticleVectorId(match.id);
-    if (!vectorId) continue;
-    const { id, hash } = vectorId;
+    const metadata = articleVectorMetadataSchema.safeParse(match.metadata);
+    if (!metadata.success) continue;
+    const { articleId: id, contentHash: hash } = metadata.data;
     const row = await getArticleRow(env, principal, "id", id);
     if (!row || row.contentHash !== hash) continue;
     const summary = articleSummary(row);

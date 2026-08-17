@@ -32,7 +32,7 @@ type Article = {
 canonical BCP 47 keys so existing multilingual articles remain readable until their next update;
 creation, display, search, and mutation use Chinese only. `createArticle` receives no locale choice.
 AI understands the source conversation in whatever language it uses and writes Simplified Chinese.
-`ArticleSummary` omits every Markdown body. List, search, citation, related, and graph responses use
+`ArticleSummary` omits every Markdown body. List, search, related, and graph responses use
 summaries unless the caller requests one article. Timestamps are UTC ISO strings. The slug is created
 from the Chinese title, made unique once, and never changes during updates.
 

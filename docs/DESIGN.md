@@ -29,8 +29,8 @@ Prefer this order of tools:
 Secondary controls should consume only the space needed to identify and operate them. Search belongs
 to Home. Articles and Graph do not repeat search, filter, scope, relation, depth, or grouping controls.
 
-Cards are appropriate for an AI answer, selected graph node, or similarly bounded object. Article
-rows, navigation, filters, prose, relationships, and missing-page content remain flat.
+Cards are appropriate for a selected graph node or similarly bounded object. Article rows,
+navigation, filters, prose, relationships, and missing-page content remain flat.
 
 ### Explicit avoid list
 
@@ -160,15 +160,15 @@ default error page.
 
 Home is the narrow search surface. Its title block is the same component and pixel alignment as the
 Articles title block. Anonymous search is keyword/tag only.
-The owner additionally receives an AI-question tab; its answer appears directly below the field as one
-bounded result. Home does not repeat recent articles, topics, or any content from the Articles tab.
+The owner uses the same keyword/tag form across authorized public and private rows. Home does not
+repeat recent articles, topics, or any content from the Articles tab.
 
 ### Articles
 
 Articles is the narrow chronological index and copies the `my-memos` Notes composition: compact serif
-title with a short accent rule, one-line description, New action for the owner, then the
-year/month/day list at the same spacing. It contains no search, tag, or visibility controls. Each row
-contains day, title, and one restrained hierarchical tag.
+title with a short accent rule, one-line description, New action for the owner only while the Chinese
+interface is selected, then the year/month/day list at the same spacing. It contains no search, tag,
+or visibility controls. Each row contains day, title, and one restrained hierarchical tag.
 
 ### Article
 
@@ -194,8 +194,10 @@ On wide screens the fixed left TOC copies the Notes collapsed bars, delayed text
 indentation, active marker, and smooth navigation. It is hidden on smaller screens. Neither rail
 participates in the document grid. The owner editor copies the Notes save/cancel/delete rhythm and
 keeps Markdown canonical; the Chinese summary regenerates when Save completes.
-The new-article editor uses the wide publication shell so its metadata and editing surface share the
-available measure. Existing-article editing keeps its compact metadata measure above the wide editor.
+Wide-page title edges align with the Header content edges while the page body may use the larger
+canvas. The new-article editor uses that Header-aligned wide shell, always presents Chinese editing
+copy, and lets its metadata and editing surface share the available measure. Existing-article editing
+keeps its compact metadata measure above the wide editor.
 
 ### Graph
 

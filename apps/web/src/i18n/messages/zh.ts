@@ -21,7 +21,7 @@ export const zh = {
   },
   home: {
     title: "搜索",
-    introduction: "通过关键词或标签查找文章；登录后可以在已授权的知识中提问。",
+    introduction: "通过关键词或标签查找当前可访问的文章。",
   },
   articles: {
     title: "文章",
@@ -31,18 +31,9 @@ export const zh = {
     newArticle: "新建",
   },
   search: {
-    modes: "搜索模式",
-    keyword: "关键词",
-    ai: "AI 问答",
     articleLabel: "搜索文章",
-    questionLabel: "向知识库提问",
     submit: "搜索",
-    ask: "提问",
-    searching: "搜索中…",
     articlePlaceholder: "搜索标题、摘要或标签…",
-    questionPlaceholder: "仅根据此知识库提问…",
-    unavailable: "知识搜索暂时不可用，请稍后再试。",
-    insufficientEvidence: "知识库中没有足够的证据回答这个问题。",
     results: "搜索结果",
     noResults: "没有找到匹配的文章。",
   },

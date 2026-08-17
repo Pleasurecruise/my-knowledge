@@ -110,7 +110,7 @@ before adding storage layers or database abstractions.
 5. run `pnpm d1:migrate:local`, `pnpm check`, `pnpm test`, `pnpm build`, `pnpm dry-run`, and
    `pnpm preview`;
 6. apply `pnpm d1:migrate:remote`, deploy, then verify login, MCP mutations, authenticated deletion,
-   public search, owner-only AI search, and private non-disclosure.
+   public search, owner-authorized private search, and private non-disclosure.
 
 Migrations remain backward-compatible for one Worker rollback window. Roll back application code with
 Cloudflare Worker versions and repair data with a new forward migration.

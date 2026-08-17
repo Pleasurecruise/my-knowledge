@@ -1,6 +1,6 @@
 {
   "name": "multilingual-pipeline-chinese-output",
-  "corpusVersion": 3,
+  "corpusVersion": 1,
   "writing": [
     { "id": "writing-technology", "schemaSuccess": true, "tags": ["engineering/architecture"] },
     { "id": "writing-politics", "schemaSuccess": true, "tags": ["society/policy"] },
@@ -12,21 +12,5 @@
     { "id": "near-duplicate", "score": 0.91 },
     { "id": "related", "score": 0.75 },
     { "id": "unrelated", "score": 0.2 }
-  ],
-  "answers": [
-    {
-      "id": "answerable",
-      "schemaSuccess": true,
-      "refused": false,
-      "citations": ["public-source"],
-      "claims": [{ "text": "The source supports the answer.", "sourceIds": ["public-source"] }]
-    },
-    {
-      "id": "unanswerable",
-      "schemaSuccess": true,
-      "refused": true,
-      "citations": [],
-      "claims": []
-    }
   ]
 }

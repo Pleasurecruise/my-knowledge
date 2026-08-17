@@ -21,7 +21,7 @@ export const en = {
   },
   home: {
     title: "Search",
-    introduction: "Find articles by keyword or tag. Sign in to ask the authorized knowledge base.",
+    introduction: "Find accessible articles by keyword or tag.",
   },
   articles: {
     title: "Articles",
@@ -31,18 +31,9 @@ export const en = {
     newArticle: "New",
   },
   search: {
-    modes: "Search mode",
-    keyword: "Keyword",
-    ai: "AI question",
     articleLabel: "Search articles",
-    questionLabel: "Ask the knowledge base",
     submit: "Search",
-    ask: "Ask",
-    searching: "Searching…",
     articlePlaceholder: "Search titles, summaries, or tags…",
-    questionPlaceholder: "Ask using only this knowledge base…",
-    unavailable: "Knowledge search is temporarily unavailable. Please try again later.",
-    insufficientEvidence: "The knowledge base does not contain enough evidence.",
     results: "Search results",
     noResults: "No matching articles found.",
   },

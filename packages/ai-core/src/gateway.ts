@@ -15,8 +15,7 @@ export function gatewayEndpoint(configInput: GatewayConfig): string {
 export function gatewayHeaders(configInput: GatewayConfig) {
   const config = gatewayConfigSchema.parse(configInput);
   return {
-    authorization: null,
-    "x-api-key": null,
+    "content-type": "application/json",
     "cf-aig-authorization": `Bearer ${config.token}`,
     "cf-aig-collect-log-payload": "false",
     "cf-aig-skip-cache": "true",

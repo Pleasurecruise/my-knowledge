@@ -18,9 +18,6 @@ describe("frozen model and retrieval evaluation", () => {
       tagReuse: 1,
       duplicatePrecision: 1,
       duplicateRecall: 1,
-      citationPrecision: 1,
-      unsupportedClaimRate: 0,
-      refusalCorrectness: 1,
       hardInvariantFailures: 0,
       latencyMs: null,
       costUsd: null,
@@ -35,9 +32,6 @@ describe("frozen model and retrieval evaluation", () => {
       tagReuse: 1,
       duplicatePrecision: 1,
       duplicateRecall: 1,
-      citationPrecision: 1,
-      unsupportedClaimRate: 0,
-      refusalCorrectness: 1,
       hardInvariantFailures: 0,
       latencyMs: null,
       costUsd: null,
@@ -47,9 +41,9 @@ describe("frozen model and retrieval evaluation", () => {
   it("rejects missing per-example results", async () => {
     const corpus = await readJson("corpus");
     const candidate = await readJson("candidate");
-    candidate.answers = candidate.answers.slice(0, 1);
+    candidate.writing = candidate.writing.slice(0, 3);
     expect(() => evaluateFrozenCorpus(corpus, candidate)).toThrow(
-      "Answer evaluation result count does not match the corpus",
+      "Writing evaluation result count does not match the corpus",
     );
   });
 });

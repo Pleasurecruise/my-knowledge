@@ -35,8 +35,8 @@ Exit: one MCP request returns one complete private Chinese article and only the 
 
 ## 4. Similarity and discovery — complete, live Vectorize smoke pending
 
-Workers AI embeddings, the Vectorize duplicate threshold, owner-only AI answers, public keyword/tag
-search, related articles, and the bounded graph view are implemented.
+Workers AI embeddings, the Vectorize duplicate threshold, authorized keyword/tag search, related
+articles, and the bounded graph view are implemented.
 
 Exit: duplicates do not write, search respects visibility, and related knowledge is useful.
 

@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 1,
   "synthetic": true,
   "writing": [
     {
@@ -36,17 +36,5 @@
     { "id": "near-duplicate", "label": false },
     { "id": "related", "label": false },
     { "id": "unrelated", "label": false }
-  ],
-  "answers": [
-    {
-      "id": "answerable",
-      "allowedIds": ["public-source"],
-      "expectedRefusal": false
-    },
-    {
-      "id": "unanswerable",
-      "allowedIds": [],
-      "expectedRefusal": true
-    }
   ]
 }

@@ -122,7 +122,7 @@ test("keeps the three public tabs searchable, localized, and keyboard reachable"
     "page",
   );
   await expect(page.getByRole("heading", { name: "搜索" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "AI 问答" })).toHaveCount(0);
+  await expect(page.getByRole("tab")).toHaveCount(0);
   await expect(page.getByText("最近文章", { exact: true })).toHaveCount(0);
 
   const robotsResponse = await page.request.get("/robots.txt");
@@ -161,6 +161,13 @@ test("keeps the three public tabs searchable, localized, and keyboard reachable"
   await expect(page).toHaveURL(/\/articles$/u);
   await page.goto("/graph");
   await expect(page.locator(".graph-node")).toHaveCount(2);
+  const [graphTitleBox, headerBox] = await Promise.all([
+    page.locator("main header").boundingBox(),
+    page.getByRole("banner").locator(":scope > div").boundingBox(),
+  ]);
+  if (!graphTitleBox || !headerBox) throw new Error("Wide title layout was not measurable");
+  expect(graphTitleBox.x).toBeCloseTo(headerBox.x, 0);
+  expect(graphTitleBox.x + graphTitleBox.width).toBeCloseTo(headerBox.x + headerBox.width, 0);
   await expect(
     page.locator('[aria-live="polite"]').getByText("可扩展的知识边界", {
       exact: true,

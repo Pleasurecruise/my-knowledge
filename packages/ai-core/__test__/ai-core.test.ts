@@ -1,42 +1,62 @@
-import { describe, expect, it } from "vite-plus/test";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-import {
-  DUPLICATE_THRESHOLD,
-  gatewayEndpoint,
-  gatewayHeaders,
-  isDuplicateScore,
-  parseGroundedAnswer,
-} from "../src";
+import { DUPLICATE_THRESHOLD, gatewayEndpoint, gatewayHeaders, isDuplicateScore } from "../src";
+import { runModel } from "../src/model";
 
 const gateway = { accountId: "account", token: "secret" };
 
 describe("AI boundary", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it("routes through the configured Gateway and disables payload collection and caching", () => {
     expect(gatewayEndpoint(gateway)).toBe(
       "https://gateway.ai.cloudflare.com/v1/account/default/custom-opencode/v1",
     );
     expect(gatewayHeaders(gateway)).toEqual({
-      authorization: null,
-      "x-api-key": null,
+      "content-type": "application/json",
       "cf-aig-authorization": "Bearer secret",
       "cf-aig-collect-log-payload": "false",
       "cf-aig-skip-cache": "true",
     });
   });
 
-  it("rejects citations outside the authorized retrieval set", () => {
-    expect(parseGroundedAnswer('{"answer":"Known","citations":["one"]}', ["one"])).toEqual({
-      answer: "Known",
-      citations: ["one"],
-    });
-    expect(() =>
-      parseGroundedAnswer('{"answer":"Leaked","citations":["private"]}', ["public"]),
-    ).toThrow("unauthorized citation");
-    expect(() =>
-      parseGroundedAnswer('{"answer":"Repeated","citations":["one","one"]}', ["one"]),
-    ).toThrow("Citations must be unique");
-    expect(() => parseGroundedAnswer('{"answer":"Missing citations"}', ["one"])).toThrow();
-    expect(() => parseGroundedAnswer("not json", ["one"])).toThrow(SyntaxError);
+  it("uses one non-streaming completion and validates its response", async () => {
+    const request = vi.fn(() =>
+      Promise.resolve(
+        Response.json({
+          choices: [{ message: { content: " 中文结果 " } }],
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", request);
+
+    await expect(runModel(gateway, "system", "prompt")).resolves.toBe("中文结果");
+    expect(request).toHaveBeenCalledWith(
+      "https://gateway.ai.cloudflare.com/v1/account/default/custom-opencode/v1/chat/completions",
+      expect.objectContaining({
+        method: "POST",
+        headers: gatewayHeaders(gateway),
+        body: JSON.stringify({
+          model: "deepseek-v4-flash",
+          messages: [
+            { role: "system", content: "system" },
+            { role: "user", content: "prompt" },
+          ],
+          max_tokens: 12_000,
+          temperature: 0.2,
+          stream: false,
+        }),
+      }),
+    );
+  });
+
+  it("rejects malformed completion responses without a fallback", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(Response.json({ choices: [] }))),
+    );
+
+    await expect(runModel(gateway, "system", "prompt")).rejects.toThrow();
   });
 
   it("keeps the duplicate decision stable at its threshold", () => {

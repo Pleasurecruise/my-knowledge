@@ -2,10 +2,11 @@ import type { PageLayoutProps } from "./page-layout.types";
 
 export function PageLayout({ action, children, description, title, view }: PageLayoutProps) {
   const width = view === "narrow" ? "max-w-180" : "max-w-none";
+  const titleWidth = view === "narrow" ? "max-w-180" : "max-w-240";
   const bottom = view === "narrow" ? "pb-24" : "pb-0";
   return (
     <div className={`mx-auto max-w-280 px-4 pt-7 sm:px-8 ${bottom}`}>
-      <header className={`mx-auto mb-8 ${width}`}>
+      <header className={`mx-auto mb-8 ${titleWidth}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="relative inline-block">
             <h1 className="font-serif text-7 leading-none font-semibold text-foreground">

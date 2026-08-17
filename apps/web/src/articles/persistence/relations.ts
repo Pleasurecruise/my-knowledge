@@ -9,7 +9,7 @@ import { articles } from "@/db/schema";
 import type { ArticleRelations, RankedArticleSummary } from "../types";
 import { getArticleRow } from "./document";
 import { authorizedCondition } from "./query";
-import { articleSummary, articleVectorId, parseArticleVectorId } from "./record";
+import { articleSummary, articleVectorId, articleVectorMetadataSchema } from "./record";
 
 export async function getArticleRelations(
   env: CloudflareEnv,
@@ -54,7 +54,7 @@ export async function getArticleRelations(
   try {
     matches = await env.KNOWLEDGE_INDEX.query(source.values, {
       topK: limit + 1,
-      returnMetadata: true,
+      returnMetadata: "all",
       returnValues: false,
     });
   } catch {
@@ -66,9 +66,9 @@ export async function getArticleRelations(
 
   const related: RankedArticleSummary[] = [];
   for (const match of matches.matches) {
-    const vectorId = parseArticleVectorId(match.id);
-    if (!vectorId) continue;
-    const { id, hash } = vectorId;
+    const metadata = articleVectorMetadataSchema.safeParse(match.metadata);
+    if (!metadata.success) continue;
+    const { articleId: id, contentHash: hash } = metadata.data;
     if (id === article.id || match.score >= DUPLICATE_THRESHOLD) continue;
     const row = await getArticleRow(env, principal, "id", id);
     if (!row || row.contentHash !== hash) continue;

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { listArticles } from "@/articles";
 import { ArticleList } from "@/articles/components/article-list";
 import { getPrincipal } from "@/auth/owner";
+import { defaultInterfaceLocale } from "@/i18n/registry";
 import { getInterfaceI18n } from "@/i18n/server";
 import { PageLayout } from "@/shell/page-layout";
 
@@ -30,7 +31,7 @@ export default async function ArticlesPage() {
   return (
     <PageLayout
       action={
-        principal === "owner" ? (
+        principal === "owner" && i18n.code === defaultInterfaceLocale ? (
           <Link
             aria-label={i18n.messages.articles.newArticle}
             className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 transition-colors hover:text-muted-foreground"

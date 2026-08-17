@@ -22,7 +22,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       title={i18n.messages.home.title}
       view="narrow"
     >
-      <SearchForm isOwner={principal === "owner"} messages={i18n.messages.search} query={query} />
+      <SearchForm messages={i18n.messages.search} query={query} />
       {query ? (
         <section aria-label={i18n.messages.search.results} className="mt-8">
           <ArticleList

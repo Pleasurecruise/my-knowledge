@@ -1,6 +1,6 @@
 {
   "name": "chinese-only-pipeline",
-  "corpusVersion": 3,
+  "corpusVersion": 1,
   "writing": [
     {
       "id": "writing-technology",
@@ -24,21 +24,5 @@
     { "id": "near-duplicate", "score": 0.91 },
     { "id": "related", "score": 0.75 },
     { "id": "unrelated", "score": 0.2 }
-  ],
-  "answers": [
-    {
-      "id": "answerable",
-      "schemaSuccess": true,
-      "refused": false,
-      "citations": ["public-source"],
-      "claims": [{ "text": "The source supports the answer.", "sourceIds": ["public-source"] }]
-    },
-    {
-      "id": "unanswerable",
-      "schemaSuccess": true,
-      "refused": true,
-      "citations": [],
-      "claims": []
-    }
   ]
 }

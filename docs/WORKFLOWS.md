@@ -40,7 +40,8 @@ nothing.
 Compute the canonical Chinese `contentHash`, embed the title, summary, and body, and query
 Vectorize. An exact hash or a score above the duplicate threshold returns the closest authorized
 article and stores nothing. Lower-scoring neighbors become article-page semantic relationships at
-read time.
+read time. Vector IDs stay within the provider's 64-byte boundary; complete authorization fields live
+in validated metadata and are checked against D1.
 
 ### 4. Save
 
@@ -54,19 +55,18 @@ Return the finished private article directly. There is no background job or poll
 
 Home matches normalized keywords and tags against D1 projections over authorized rows; body full-text
 search is outside the first release. Articles is a chronological index and has no search or filter
-controls. Anonymous discovery never calls a model. The signed-in owner may switch Home to AI mode,
-which retrieves at most eight authorized articles and returns an answer with validated citations.
-
-Web questions, retrieved context, and generated answers remain request-only and are not stored. This
-read flow does not run article-writing skills or alter similarity data.
+controls. Web discovery never calls a model. The owner searches the same fields across public and
+private rows; anonymous readers search public rows only.
 
 ## Browser authoring
 
-The allowed-email owner can create or edit canonical Chinese Markdown from the Article surface. A
-save regenerates its one-sentence Chinese summary, validates the document, and replaces the version
-through the existing R2, Vectorize, and D1 write order. Updating a legacy multilingual article removes
-its superseded editions. New articles start private. Publish, withdraw, and delete remain explicit
-operations guarded by the current content hash.
+The allowed-email owner can create or edit canonical Chinese Markdown from the Article surface. The
+New action appears only with the Chinese interface, and the new-article editor always uses Chinese
+labels; direct route access remains owner-authorized. A save regenerates its one-sentence Chinese
+summary, validates the document, and replaces the version through the existing R2, Vectorize, and D1
+write order. Updating a legacy multilingual article removes its superseded editions. New articles
+start private. Publish, withdraw, and delete remain explicit operations guarded by the current
+content hash.
 
 ## MCP mutations, reads, and search
 

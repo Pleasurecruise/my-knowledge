@@ -33,18 +33,9 @@ export type InterfaceMessages = {
     newArticle: string;
   };
   search: {
-    modes: string;
-    keyword: string;
-    ai: string;
     articleLabel: string;
-    questionLabel: string;
     submit: string;
-    ask: string;
-    searching: string;
     articlePlaceholder: string;
-    questionPlaceholder: string;
-    unavailable: string;
-    insufficientEvidence: string;
     results: string;
     noResults: string;
   };

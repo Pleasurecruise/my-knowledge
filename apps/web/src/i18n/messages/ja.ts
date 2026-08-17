@@ -22,8 +22,7 @@ export const ja = {
   },
   home: {
     title: "検索",
-    introduction:
-      "キーワードやタグで記事を検索します。ログイン後は許可された知識庫に質問できます。",
+    introduction: "キーワードやタグでアクセス可能な記事を検索します。",
   },
   articles: {
     title: "記事",
@@ -33,18 +32,9 @@ export const ja = {
     newArticle: "新規",
   },
   search: {
-    modes: "検索モード",
-    keyword: "キーワード",
-    ai: "AI 質問",
     articleLabel: "記事を検索",
-    questionLabel: "知識庫に質問",
     submit: "検索",
-    ask: "質問",
-    searching: "検索中…",
     articlePlaceholder: "タイトル、要約、タグを検索…",
-    questionPlaceholder: "この知識庫だけを使って質問…",
-    unavailable: "知識検索は一時的に利用できません。後でもう一度お試しください。",
-    insufficientEvidence: "この質問に答えるための十分な根拠が知識庫にありません。",
     results: "検索結果",
     noResults: "一致する記事が見つかりませんでした。",
   },

@@ -63,14 +63,16 @@ Create or update in this order:
 2. read the current R2 document set and ETags for an update, including legacy editions;
 3. conditionally write the Chinese document: an unchanged path must match its previous ETag and a moved
    or new path must not already exist;
-4. upsert Vectorize ID `{articleId}:{contentHash}`;
+4. upsert a 64-byte Vectorize ID made from the hyphenless article UUID, a separator, and the first 31
+   hash characters; store the complete article ID and content hash in vector metadata;
 5. insert the D1 row, or update it with `WHERE id = ? AND contentHash = expectedHash`;
 6. after success, invalidate the previous KV/vector version and delete superseded edition paths.
 
 If a later write fails, restore overwritten objects with the ETags returned by the conditional write,
 delete newly created paths, and remove the new vector. A conflicting object write fails rather than
-overwriting another update. Vector results must match both the current D1 article ID and hash, so an
-orphan is never visible.
+overwriting another update. Vector reads validate the complete metadata and must match both the
+current D1 article ID and hash, so the shortened provider ID never authorizes a result and an orphan
+is never visible.
 
 Delete snapshots the current R2 ETags, sets D1 visibility to `private`, then deletes unchanged
 KV/R2/Vectorize objects before deleting the D1 row. If external cleanup fails, the private row remains

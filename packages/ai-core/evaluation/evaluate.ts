@@ -12,17 +12,11 @@ const writingCaseSchema = z.object({
   maxNewTags: z.number().int().min(0),
 });
 const duplicateCaseSchema = z.object({ id: idSchema, label: z.boolean() });
-const answerCaseSchema = z.object({
-  id: idSchema,
-  allowedIds: stringListSchema,
-  expectedRefusal: z.boolean(),
-});
 const corpusSchema = z.object({
   version: z.number().int().positive(),
   synthetic: z.literal(true),
   writing: z.array(writingCaseSchema).min(4),
   duplicates: z.array(duplicateCaseSchema).min(4),
-  answers: z.array(answerCaseSchema).min(2),
 });
 
 const evaluationSchema = z.object({
@@ -38,19 +32,6 @@ const evaluationSchema = z.object({
     .refine((entries) => new Set(entries.map((entry) => entry.id)).size === entries.length, {
       message: "Duplicate result IDs must be unique",
     }),
-  answers: z
-    .array(
-      z.object({
-        id: idSchema,
-        schemaSuccess: z.boolean(),
-        refused: z.boolean(),
-        citations: stringListSchema,
-        claims: z.array(z.object({ text: z.string().min(1), sourceIds: stringListSchema })),
-      }),
-    )
-    .refine((entries) => new Set(entries.map((entry) => entry.id)).size === entries.length, {
-      message: "Answer result IDs must be unique",
-    }),
 });
 
 export type EvaluationSummary = {
@@ -59,9 +40,6 @@ export type EvaluationSummary = {
   tagReuse: number;
   duplicatePrecision: number;
   duplicateRecall: number;
-  citationPrecision: number;
-  unsupportedClaimRate: number;
-  refusalCorrectness: number;
   hardInvariantFailures: number;
   latencyMs: null;
   costUsd: null;
@@ -79,8 +57,6 @@ export function evaluateFrozenCorpus(
     throw new Error("Writing evaluation result count does not match the corpus");
   if (evaluation.duplicates.length !== corpus.duplicates.length)
     throw new Error("Duplicate evaluation result count does not match the corpus");
-  if (evaluation.answers.length !== corpus.answers.length)
-    throw new Error("Answer evaluation result count does not match the corpus");
 
   let schemaSuccesses = 0;
   let schemaTotal = 0;
@@ -89,11 +65,6 @@ export function evaluateFrozenCorpus(
   let truePositives = 0;
   let falsePositives = 0;
   let falseNegatives = 0;
-  let authorizedCitations = 0;
-  let citationTotal = 0;
-  let supportedClaims = 0;
-  let claimTotal = 0;
-  let correctRefusals = 0;
   let hardInvariantFailures = 0;
 
   for (const expected of corpus.writing) {
@@ -117,30 +88,10 @@ export function evaluateFrozenCorpus(
     if (!predicted && expected.label) falseNegatives += 1;
   }
 
-  for (const expected of corpus.answers) {
-    const result = evaluation.answers.find((entry) => entry.id === expected.id);
-    if (!result) throw new Error(`Answer evaluation result is missing: ${expected.id}`);
-    schemaTotal += 1;
-    if (result.schemaSuccess) schemaSuccesses += 1;
-    const allowed = new Set(expected.allowedIds);
-    const citationsAuthorized = result.citations.every((id) => allowed.has(id));
-    citationTotal += result.citations.length;
-    authorizedCitations += result.citations.filter((id) => allowed.has(id)).length;
-    for (const claim of result.claims) {
-      claimTotal += 1;
-      if (claim.sourceIds.length > 0 && claim.sourceIds.every((id) => allowed.has(id)))
-        supportedClaims += 1;
-    }
-    if (result.refused === expected.expectedRefusal) correctRefusals += 1;
-    if (!result.schemaSuccess || !citationsAuthorized) hardInvariantFailures += 1;
-  }
-
   const predictedDuplicates = truePositives + falsePositives;
   const labeledDuplicates = truePositives + falseNegatives;
   if (predictedDuplicates === 0) throw new Error("Evaluation has no predicted duplicate");
   if (labeledDuplicates === 0) throw new Error("Evaluation has no labeled duplicate");
-  if (citationTotal === 0) throw new Error("Evaluation has no citations to score");
-  if (claimTotal === 0) throw new Error("Evaluation has no claims to score");
 
   return {
     schemaSuccess: schemaSuccesses / schemaTotal,
@@ -148,9 +99,6 @@ export function evaluateFrozenCorpus(
     tagReuse: tagReuse / corpus.writing.length,
     duplicatePrecision: truePositives / predictedDuplicates,
     duplicateRecall: truePositives / labeledDuplicates,
-    citationPrecision: authorizedCitations / citationTotal,
-    unsupportedClaimRate: 1 - supportedClaims / claimTotal,
-    refusalCorrectness: correctRefusals / corpus.answers.length,
     hardInvariantFailures,
     latencyMs: null,
     costUsd: null,

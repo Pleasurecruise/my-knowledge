@@ -41,8 +41,9 @@ Use Vite Plus tests for:
 - tag normalization, hierarchy, existing-tag preference, and the five-tag/one-new-leaf limits;
 - article visibility predicates, anonymous result filtering, hierarchical tag SQL, and vector ID
   parsing;
-- similarity threshold boundaries and stale-hash concurrency checks;
-- model-output schemas, cross-edition structural parity, and citation validation;
+- similarity threshold boundaries, the 64-byte Vectorize ID boundary, validated authorization
+  metadata, and stale-hash concurrency checks;
+- model-output schemas and cross-edition structural parity;
 - prompt construction that disables payload logging and never accepts client visibility overrides;
 - concise camelCase domain names and exhaustive error mapping where behavior is security-sensitive.
 
@@ -65,11 +66,11 @@ numbered SQL migrations from an empty database and from the immediately previous
 - MCP tests use real clients for both supported protocol versions and cover discovery, Bearer auth,
   schemas, annotations, duplicate results, stale updates, and destructive deletion.
 - HTTP tests cover the complete anonymous/allowed-email matrix for Home, Articles, Article, Graph,
-  AI search, browser authoring, visibility changes, and deletion. Unauthorized private resources
-  return not found.
+  browser authoring, visibility changes, and deletion. Unauthorized private resources return not
+  found, and the removed AI-search route remains absent.
 - Provider tests replay recorded response shapes without real secrets, then run a small opt-in live
-  smoke against AI Gateway before release. They verify headers, no payload logging/cache, timeouts,
-  schema failures, and citation rejection.
+  smoke against AI Gateway before release. They verify headers, no payload logging/cache,
+  non-streaming completion, timeouts, and schema failures.
 - Renderer tests parse every supported Markdown fixture and prove that unsupported raw HTML and unsafe
   URLs cannot reach the DOM.
 
@@ -85,9 +86,9 @@ parallel projects would make the owner journey and first-load render evidence or
 The core journey set is intentionally small:
 
 1. anonymous keyword and tag search returns only public article rows;
-2. anonymous users cannot see AI mode, private articles, or Delete;
-3. the signed-in owner receives a grounded AI answer with working article citations;
-4. Articles has the Notes chronological composition and exposes no search or filter controls;
+2. the signed-in owner uses the same search surface across public and private article rows;
+3. Articles has the Notes chronological composition and exposes no search or filter controls;
+4. the Chinese owner interface exposes New while other interface locales do not;
 5. the owner can open New/Edit, use the Markdown editor, and explicitly save, publish, withdraw, or
    delete while anonymous users cannot reach those mutations;
 6. Article follows the Header locale, renders rich blocks, exposes the Notes TOC/action rails, and
@@ -119,13 +120,11 @@ Keep synthetic or explicitly approved test corpora for:
 - tag reuse and new-leaf decisions;
 - Chinese output from source conversations across languages;
 - labeled duplicate, near-duplicate, related, and unrelated article pairs;
-- answerable and unanswerable knowledge questions with expected source articles.
 
-Measure schema success, tag-limit compliance, tag reuse, duplicate precision/recall, citation
-precision, unsupported-claim rate, refusal correctness, latency, and model cost. Hard invariants must
-never regress. A subjective writing change requires blinded owner
-review; an aggregate score cannot override privacy, schema, or citation failures. Store evaluation
-fixtures and summaries, not production conversations or full provider traces.
+Measure schema success, tag-limit compliance, tag reuse, duplicate precision/recall, latency, and
+model cost. Hard invariants must never regress. A subjective writing change requires blinded owner
+review; an aggregate score cannot override privacy or schema failures. Store evaluation fixtures and
+summaries, not production conversations or full provider traces.
 
 ## Cloudflare ADLC experiment
 
@@ -156,8 +155,8 @@ the rich Japanese article, and expected browser errors only.
 
 Wrangler cannot execute Vectorize locally. The owner deletion journey therefore proves that a failed
 vector cleanup returns the active locale's error and leaves the private article retryable; successful live
-cleanup is not replaced by a mock. Live embedding/similarity, grounded AI answers, successful
-create/update/delete cleanup, Google OAuth, provider behavior, and deployment smoke remain
+cleanup is not replaced by a mock. Live embedding/similarity, successful create/update/delete
+cleanup, Google OAuth, provider behavior, and deployment smoke remain
 production-account gates. Deterministic evaluation leaves latency and cost as `null` until the opt-in
 live Gateway run supplies real measurements.
 

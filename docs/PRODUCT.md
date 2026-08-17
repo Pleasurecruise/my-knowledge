@@ -17,7 +17,7 @@ the owner to rewrite, summarize, classify, tag, or compare it manually.
 
 1. Send conversation content to `createArticle`.
 2. Receive one finished Chinese article or a similar-article conflict.
-3. Find it through AI answers, keywords, tags, links, or the graph.
+3. Find it through keywords, tags, links, the graph, or authenticated MCP search.
 4. Review and edit it in the browser, then publish it from the browser or MCP when ready.
 
 ## Surface and access
@@ -28,9 +28,9 @@ not a fourth tab.
 
 | Surface              | Anonymous                                      | Signed-in owner                          |
 | :------------------- | :--------------------------------------------- | :--------------------------------------- |
-| `/`                  | Public keyword and tag search                  | AI, keyword, and tag search across all   |
-| `/articles`          | Public chronological list                      | Full chronological list and New action   |
-| `/articles/new`      | Not found                                      | Create a private article                 |
+| `/`                  | Public keyword and tag search                  | Keyword and tag search across all        |
+| `/articles`          | Public chronological list                      | Full list; New in the Chinese interface  |
+| `/articles/new`      | Not found                                      | Create a private article in Chinese      |
 | `/articles/[slug]`   | Public article or not found                    | Any article, with edit action            |
 | `/graph`             | Bounded public graph                           | Bounded graph including private articles |
 | `/api/auth/[...all]` | Google sign-in callback                        | Session operations                       |
@@ -76,8 +76,7 @@ The first release is complete when:
 - MCP can list, read, update, delete, search, tag, link, and change article visibility;
 - the web UI contains exactly three primary tabs—Home, Articles, and Graph—plus Article detail and
   header language, theme, and authentication actions;
-- Home supports public keyword and tag search; only the signed-in owner can use AI answers grounded in
-  authorized articles;
+- Home supports keyword and tag search over the caller's authorized articles;
 - browser saves regenerate the one-sentence Chinese summary before replacing an article version;
 - private articles never appear on anonymous pages, search, feeds, metadata, or graph views;
 - public articles expose canonical article metadata, dynamic social images, and sitemap entries

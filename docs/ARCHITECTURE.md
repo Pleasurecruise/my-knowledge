@@ -29,7 +29,7 @@ KV, Vectorize, auth, and transport. Domain packages never import from `apps/web`
 | Worker build     | `@opennextjs/cloudflare` and Wrangler                |
 | Package manager  | pnpm workspaces                                      |
 | Toolchain        | Vite Plus for format, lint, types, and unit tests    |
-| Model runtime    | `@earendil-works/pi-ai` OpenAI-compatible completion |
+| Model runtime    | Strict non-streaming OpenAI-compatible completion    |
 | Model route      | Cloudflare AI Gateway `custom-opencode` provider     |
 | Validation       | Zod at MCP, model-output, and storage boundaries     |
 | Persistence      | Numbered SQL migrations and typed Drizzle queries    |
@@ -58,9 +58,11 @@ primitives locally.
 Interface i18n is application composition, not a content-package concern. The web layout reads the
 validated `my-knowledge:locale` cookie and passes one complete registered dictionary into Server and
 Client Components. The language action writes that cookie through a Server Action, which re-renders
-the current App Router route. This changes interface labels only; Article, list, search, citation, and
-Graph content always use the canonical Chinese document. AI handles the source conversation's
-language during article creation rather than exposing content locales to the application.
+the current App Router route. This changes interface labels only; Article, list, search, and Graph
+content always use the canonical Chinese document. AI handles the source conversation's
+language during article creation rather than exposing content locales to the application. The New
+action is shown only for the Chinese interface, and the owner-authorized new-article route keeps its
+editor labels in Chinese; editing an existing article still follows the selected interface locale.
 
 ## Model provider
 
@@ -76,6 +78,8 @@ omits upstream `Authorization` and `x-api-key`; Cloudflare AI Gateway injects th
 for the `custom-opencode` provider. Every content request also sends
 `cf-aig-collect-log-payload: false` and `cf-aig-skip-cache: true`, so the Gateway keeps neither prompt
 and response bodies in logs nor a response cache entry. Metadata-only operational logging is allowed.
+The Worker requests a non-streaming completion and validates the complete JSON response with Zod;
+upstream wait time therefore does not consume Worker CPU parsing incremental stream events.
 
 Upstream provider retention is a separate provider policy and must be verified when the provider is
 configured. `packages/ai-core` owns this compatibility contract. Application code asks it to run a
@@ -89,12 +93,6 @@ MCP createArticle
   -> packages/ai-core calls the custom provider
   -> Vectorize compares the finished article
   -> apps/web stores the private result in R2 and D1
-
-Signed-in Home AI search
-  -> authorize the allowed-email session
-  -> Vectorize retrieves a bounded set and D1 re-authorizes it
-  -> packages/ai-core answers only from retrieved articles
-  -> apps/web validates citations and stores nothing
 ```
 
 The input exists only in request memory. There is no Cloudflare Workflow, job table, staging bucket,
@@ -154,10 +152,9 @@ persistence separates D1 query, R2/KV document, Vectorize, relation, row-mapping
 responsibilities rather than mixing all reads in one repository file.
 
 `shell/` owns the shared page layout and primary navigation. MCP separates Bearer authentication,
-tool operations, and HTTP transport. Search keeps answer ranking and citation assembly in its
-application layer, leaving the Route Handler as a transport adapter. Storage files may coordinate the
-Cloudflare stores but never import React or Next.js UI concerns.
+tool operations, and HTTP transport. Search is a deterministic authorized D1 read. Storage files may
+coordinate the Cloudflare stores but never import React or Next.js UI concerns.
 
 Shared packages follow the same boundary: `content` separates schema, document, tag, link, locale,
-and hash behavior; `ai-core` separates Gateway configuration, model execution, article generation,
-and grounded answers. Their `index.ts` files are public package contracts.
+and hash behavior; `ai-core` separates Gateway configuration, model execution, and article
+generation. Their `index.ts` files are public package contracts.

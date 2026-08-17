@@ -154,8 +154,8 @@ imports. Package tests use relative imports to sibling source because package al
 defined.
 
 Transport modules keep authentication and protocol mapping separate from operations. Route Handlers
-authenticate, validate, invoke an application operation, and map its result; ranking, citation
-assembly, and storage coordination stay outside routes. Package entrypoints export public contracts
+authenticate, validate, invoke an application operation, and map its result; ranking and storage
+coordination stay outside routes. Package entrypoints export public contracts
 only, package internals split by domain responsibility, and consumers do not deep-import them.
 
 CSS follows the same ownership rule. Shared palette, semantic tokens, browser defaults, and Markdown

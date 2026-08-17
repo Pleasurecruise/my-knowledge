@@ -29,21 +29,24 @@ test.afterEach(async ({ page }, testInfo) => {
   expect(errors).toEqual([]);
 });
 
-test("shows owner-only search, visibility, private content, and deletion controls", async ({
-  page,
-}) => {
+test("shows owner-only knowledge, visibility, and deletion controls", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("tab", { name: "AI 问答" })).toBeVisible();
+  await expect(page.getByRole("tab")).toHaveCount(0);
+  await page.getByRole("searchbox", { name: "搜索文章" }).fill("私密删除");
+  await page.getByRole("button", { name: "搜索" }).click();
+  await expect(page.getByRole("link", { name: "私密删除夹具" })).toBeVisible();
 
   await page.goto("/articles");
   await expect(page.getByRole("combobox")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "新建" })).toBeVisible();
   await expect(page.getByRole("link", { name: "私密删除夹具" })).toBeVisible();
+  await page.getByRole("button", { name: "切换语言: English" }).click();
+  await expect(page.getByRole("heading", { name: "Articles" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "New" })).toHaveCount(0);
 
   await page.goto("/articles/private-deletion-fixture");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/u);
   await expect(page.locator('meta[property="og:image"]')).toHaveCount(0);
-  await page.getByRole("button", { name: "切换语言: English" }).click();
   await expect(page.getByRole("heading", { name: "私密删除夹具" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Delete" })).toHaveCount(0);
   await page.getByRole("link", { name: "Edit" }).click();
@@ -61,11 +64,16 @@ test("opens the owner editor, uses a slash command, and discards the draft", asy
   await page.goto("/articles/new");
   const toolbar = page.getByRole("toolbar", { name: "格式工具" });
   await expect(toolbar).toBeVisible();
-  const [tagsBox, toolbarBox] = await Promise.all([
+  const [editorBox, headerBox, tagsBox, toolbarBox] = await Promise.all([
+    page.getByRole("region", { name: "正文" }).boundingBox(),
+    page.getByRole("banner").locator(":scope > div").boundingBox(),
     page.getByLabel("标签").boundingBox(),
     toolbar.boundingBox(),
   ]);
-  if (!tagsBox || !toolbarBox) throw new Error("New article layout was not measurable");
+  if (!editorBox || !headerBox || !tagsBox || !toolbarBox)
+    throw new Error("New article layout was not measurable");
+  expect(editorBox.x).toBeCloseTo(headerBox.x, 0);
+  expect(editorBox.x + editorBox.width).toBeCloseTo(headerBox.x + headerBox.width, 0);
   expect(tagsBox.x + tagsBox.width).toBeGreaterThan(toolbarBox.x + toolbarBox.width - 2);
   await page.getByLabel("标题").fill("编辑器流程草稿");
   await page.getByLabel("标签").fill("engineering/editor");
