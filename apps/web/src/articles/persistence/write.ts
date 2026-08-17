@@ -11,7 +11,7 @@ import {
   articleObjectKey,
   articleSummary,
   articleVectorId,
-  requiredEdition,
+  requiredChineseEdition,
 } from "./record";
 import type { StoredArticleDocument, WrittenArticleDocument } from "./types";
 import { articles } from "@/db/schema";
@@ -136,7 +136,7 @@ export async function createArticle(
   embedding: number[],
 ): Promise<Article> {
   const id = crypto.randomUUID();
-  const slug = await allocateArticleSlug(env, requiredEdition(document, "zh").title);
+  const slug = await allocateArticleSlug(env, requiredChineseEdition(document).title);
   const timestamp = new Date().toISOString();
   const row: typeof articles.$inferInsert = {
     id,

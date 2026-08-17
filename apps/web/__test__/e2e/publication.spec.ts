@@ -21,14 +21,12 @@ test.afterEach(async ({ page }) => {
   expect(errorsByPage.get(page)).toEqual([]);
 });
 
-test("renders the Japanese rich article in the unified publication shell", async ({
-  page,
-}, testInfo) => {
+test("renders the Chinese rich article under a Japanese interface", async ({ page }, testInfo) => {
   await page.goto("/articles/extensible-knowledge-boundaries");
   await page.getByRole("button", { name: "切换语言: English" }).click();
   await page.getByRole("button", { name: "Change language: 日本語" }).click();
 
-  await expect(page).toHaveTitle(/拡張可能な知識の境界/u);
+  await expect(page).toHaveTitle(/可扩展的知识边界/u);
   await expect(page.locator('meta[property="og:type"]')).toHaveAttribute("content", "article");
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
     "content",
@@ -46,7 +44,7 @@ test("renders the Japanese rich article in the unified publication shell", async
   );
   expect(openGraphResponse.status()).toBe(200);
   expect(openGraphResponse.headers()["content-type"]).toContain("image/png");
-  await expect(page.locator("article")).toHaveAttribute("lang", "ja");
+  await expect(page.locator("article")).toHaveAttribute("lang", "zh-CN");
   await expect(
     page.getByRole("navigation", { name: "メインナビゲーション" }).getByRole("link"),
   ).toHaveCount(3);
@@ -154,17 +152,17 @@ test("keeps the three public tabs searchable, localized, and keyboard reachable"
   await expect(page.getByRole("heading", { name: "Articles" })).toBeVisible();
   await expect(page.getByRole("search")).toHaveCount(0);
   await expect(page.getByRole("combobox")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Extensible Knowledge Boundaries" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Related Practice" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "可扩展的知识边界" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "相关实践" })).toBeVisible();
   await expect(page.getByText("Private", { exact: true })).toHaveCount(0);
-  await page.getByRole("link", { name: "Extensible Knowledge Boundaries" }).click();
+  await page.getByRole("link", { name: "可扩展的知识边界" }).click();
   await expect(page).toHaveURL(/\/articles\/extensible-knowledge-boundaries$/u);
   await page.getByRole("button", { name: "Previous page" }).click();
   await expect(page).toHaveURL(/\/articles$/u);
   await page.goto("/graph");
   await expect(page.locator(".graph-node")).toHaveCount(2);
   await expect(
-    page.locator('[aria-live="polite"]').getByText("Extensible Knowledge Boundaries", {
+    page.locator('[aria-live="polite"]').getByText("可扩展的知识边界", {
       exact: true,
     }),
   ).toBeVisible();

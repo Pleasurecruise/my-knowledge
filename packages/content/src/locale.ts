@@ -35,11 +35,3 @@ export function resolveLocale(
   const normalizedDefault = normalizeLocale(defaultLocale);
   return available.get(normalizedDefault);
 }
-
-export function parseArticleLocales(values: readonly string[]): string[] {
-  const locales = [...new Set(values.map(normalizeLocale))];
-  if (!locales.includes("zh") || !locales.includes("en"))
-    throw new Error("Article locales require zh and en");
-  if (locales.length > 8) throw new Error("At most eight article locales are supported");
-  return locales;
-}

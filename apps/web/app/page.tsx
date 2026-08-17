@@ -29,7 +29,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             articles={results}
             empty={i18n.messages.search.noResults}
             entryUnit={i18n.messages.articles.entryUnit}
-            locale={i18n.code}
           />
         </section>
       ) : null}

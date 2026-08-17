@@ -77,7 +77,7 @@ export const zh = {
     tagsLabel: "标签",
     tagsHint: "用逗号分隔，最多 5 个层级标签",
     summaryLabel: "一句话摘要",
-    summaryGenerated: "保存时由 AI 自动生成并同步翻译。",
+    summaryGenerated: "保存时由 AI 自动生成中文摘要。",
     writePlaceholder: "写下这篇文章…",
     save: "保存",
     saving: "AI 同步中…",

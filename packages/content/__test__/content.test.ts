@@ -6,7 +6,6 @@ import {
   extractHeadings,
   extractWikiLinks,
   hashArticle,
-  parseArticleLocales,
   parseArticleDocument,
   parseArticleDocuments,
   resolveLocale,
@@ -50,8 +49,8 @@ describe("article documents", () => {
     const padded = zh.replace("---\n#", "---\n\n\n#");
     const compact = zh.replace("---\n#", "---\n#");
     expect(parseArticleDocument(padded).markdown).toBe(parseArticleDocument(compact).markdown);
-    expect((await parseArticleDocuments({ zh: padded, en })).contentHash).toBe(
-      (await parseArticleDocuments({ zh: compact, en })).contentHash,
+    expect((await parseArticleDocuments({ zh: padded })).contentHash).toBe(
+      (await parseArticleDocuments({ zh: compact })).contentHash,
     );
   });
 
@@ -97,14 +96,14 @@ describe("article documents", () => {
     ).toThrow("json-canvas");
   });
 
-  it("rejects mismatched bilingual structure", async () => {
+  it("rejects mismatched legacy edition structure", async () => {
     await expect(
       parseArticleDocuments({ zh, en: en.replace("[[已有文章|context]]", "[[另一篇|context]]") }),
     ).rejects.toThrow("wiki-link targets");
   });
 
-  it("produces the canonical bilingual hash", async () => {
-    const article = await parseArticleDocuments({ zh, en });
+  it("produces the canonical Chinese hash", async () => {
+    const article = await parseArticleDocuments({ zh });
     expect(article.contentHash).toHaveLength(64);
     await expect(
       hashArticle(
@@ -113,6 +112,13 @@ describe("article documents", () => {
         ),
       ),
     ).resolves.toBe(article.contentHash);
+  });
+
+  it("requires only the canonical Chinese edition", async () => {
+    await expect(parseArticleDocuments({ zh })).resolves.toMatchObject({
+      editions: { zh: { title: "确定性系统" } },
+    });
+    await expect(parseArticleDocuments({ en })).rejects.toThrow("require a zh edition");
   });
 
   it("accepts additional canonical locales without changing the article shape", async () => {
@@ -139,11 +145,6 @@ describe("article documents", () => {
     expect(resolveLocale(["zh", "en"], "fr")).toBe("zh");
     expect(resolveLocale(["de"], undefined)).toBeUndefined();
     expect(resolveLocale(["zh", "en"], "not_a_locale")).toBeUndefined();
-  });
-
-  it("validates and deduplicates an explicit article locale set", () => {
-    expect(parseArticleLocales(["zh", "en", "ja", "JA"])).toEqual(["zh", "en", "ja"]);
-    expect(() => parseArticleLocales(["zh", "ja"])).toThrow("require zh and en");
   });
 });
 

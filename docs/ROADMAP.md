@@ -17,21 +17,21 @@ Exit: the real generated Worker serves the four web surfaces and allowed-email a
 
 ## 2. Article CRUD — complete locally, live Vectorize cleanup smoke pending
 
-D1/R2/KV, Better Auth, allowed-email authorization, locale-keyed article records, default-private
+D1/R2/KV, Better Auth, allowed-email authorization, Chinese article records, default-private
 creation, MCP CRUD, public/private reads, and authenticated browser create/edit/visibility/delete are
 implemented.
 
 Exit: MCP manages a private article; the signed-in owner can create, edit, publish, withdraw, and
 delete from the Notes-derived Article surface; anonymous routes reveal nothing private. Successful
-AI synchronization and cross-store cleanup remain live account gates.
+AI summary generation and cross-store cleanup remain live account gates.
 
 ## 3. Content creation — complete, live provider smoke pending
 
-The custom provider adapter, pinned Waza and project-owned rich-content skills, translation, MCP
+The custom provider adapter, pinned Waza and project-owned rich-content skills, Chinese writing, MCP
 `createArticle`, tags, wiki links, and the rule that submitted content is never persisted are
 implemented.
 
-Exit: one MCP request returns one complete private locale-keyed article and only the result is stored.
+Exit: one MCP request returns one complete private Chinese article and only the result is stored.
 
 ## 4. Similarity and discovery — complete, live Vectorize smoke pending
 
@@ -43,8 +43,8 @@ Exit: duplicates do not write, search respects visibility, and related knowledge
 ## 5. Publication surface — complete locally
 
 The three-tab personal publication masthead, Home search, chronological article index, document
-reader, wide graph, Home-only search, Notes-derived Markdown editor and rendering, one global
-interface/article language control, project-owned Nordic tokens, and responsive design are
+reader, wide graph, Home-only search, Notes-derived Markdown editor and rendering, interface language
+control, project-owned Nordic tokens, and responsive design are
 implemented. Final browser screenshots and owner-flow evidence remain before archive.
 
 Exit: public reading is polished and private articles remain absent from every anonymous surface.

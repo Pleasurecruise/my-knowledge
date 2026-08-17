@@ -12,9 +12,7 @@ import { z } from "zod";
 import { articles } from "@/db/schema";
 
 const editionMetaSchema = z.object({ title: z.string(), summary: z.string() });
-const metaSchema = z
-  .object({ zh: editionMetaSchema, en: editionMetaSchema })
-  .catchall(editionMetaSchema);
+const metaSchema = z.object({ zh: editionMetaSchema }).catchall(editionMetaSchema);
 const stringArraySchema = z.array(z.string());
 
 export type ArticleRow = typeof articles.$inferSelect;
@@ -74,10 +72,8 @@ export function articleDocumentMeta(document: ArticleDocumentSet) {
   );
 }
 
-export function requiredEdition(document: ArticleDocumentSet, locale: "zh" | "en") {
-  const value = document.editions[locale];
-  if (!value) throw new Error(`Article document requires ${locale}`);
-  return value;
+export function requiredChineseEdition(document: ArticleDocumentSet) {
+  return document.editions.zh;
 }
 
 export async function allocateArticleSlug(env: CloudflareEnv, title: string): Promise<string> {

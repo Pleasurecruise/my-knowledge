@@ -77,7 +77,7 @@ export const en = {
     tagsLabel: "Tags",
     tagsHint: "Comma separated, up to 5 hierarchical tags",
     summaryLabel: "One-sentence summary",
-    summaryGenerated: "AI regenerates this and synchronizes translations when you save.",
+    summaryGenerated: "AI regenerates this Chinese summary when you save.",
     writePlaceholder: "Write this article…",
     save: "Save",
     saving: "Synchronizing with AI…",

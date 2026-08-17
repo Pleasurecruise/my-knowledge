@@ -1,8 +1,4 @@
-import {
-  canonicalizeTags,
-  parseArticleDocuments,
-  parseArticleLocales,
-} from "@my-knowledge/content";
+import { canonicalizeTags, parseArticleDocuments } from "@my-knowledge/content";
 import { z } from "zod";
 
 import {
@@ -45,16 +41,13 @@ function notFound(): McpError {
 
 export const createArticleInput = z.object({
   content: z.string().min(1).max(500_000),
-  locales: z.array(z.string().min(1)).min(2).max(8),
 });
 
 export async function createArticleOperation(
   env: CloudflareEnv,
   input: z.infer<typeof createArticleInput>,
 ) {
-  return result(
-    await createArticleFromContent(env, input.content, parseArticleLocales(input.locales)),
-  );
+  return result(await createArticleFromContent(env, input.content));
 }
 
 export const getArticleInput = z.object({ id: z.string().uuid() });
@@ -91,7 +84,7 @@ export async function listArticlesOperation(
 export const updateArticleInput = z.object({
   id: z.string().uuid(),
   expectedHash: z.string().regex(/^[a-f0-9]{64}$/u),
-  documents: z.record(z.string().min(1), z.string().min(1)),
+  document: z.string().min(1),
 });
 
 export async function updateArticleOperation(
@@ -99,7 +92,7 @@ export async function updateArticleOperation(
   input: z.infer<typeof updateArticleInput>,
 ) {
   if (!(await hasArticleVersion(env, input.id, input.expectedHash))) return notFound();
-  const document = await parseArticleDocuments(input.documents);
+  const document = await parseArticleDocuments({ zh: input.document });
   const embedding = await embedText(env, embeddingInput(document.editions.zh));
   const article = await updateArticle(env, input.id, input.expectedHash, document, embedding);
   return article ? result(article) : notFound();

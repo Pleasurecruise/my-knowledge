@@ -1,5 +1,4 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { resolveLocale } from "@my-knowledge/content";
 import type { Metadata } from "next";
 
 import { listGraphArticles } from "@/articles";
@@ -42,21 +41,13 @@ export default async function GraphPage() {
           : [],
       ),
   );
-  const nodes = visibleArticles.flatMap((article) => {
-    const locale = resolveLocale(Object.keys(article.editions), i18n.code);
-    const edition = locale ? article.editions[locale] : undefined;
-    return edition
-      ? [
-          {
-            id: article.id,
-            slug: article.slug,
-            title: edition.title,
-            summary: edition.summary,
-            tags: article.tags,
-          },
-        ]
-      : [];
-  });
+  const nodes = visibleArticles.map((article) => ({
+    id: article.id,
+    slug: article.slug,
+    title: article.editions.zh.title,
+    summary: article.editions.zh.summary,
+    tags: article.tags,
+  }));
 
   return (
     <KnowledgeGraph

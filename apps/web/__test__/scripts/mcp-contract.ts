@@ -124,10 +124,13 @@ if (!deleteTool) throw new Error("deleteArticle was not discovered");
 assert.equal(deleteTool.annotations.destructiveHint, true);
 const createTool = toolsBody.result.tools.find((tool) => tool.name === "createArticle");
 if (!createTool) throw new Error("createArticle was not discovered");
-assert.deepEqual(createTool.inputSchema.required, ["content", "locales"]);
+assert.deepEqual(createTool.inputSchema.required, ["content"]);
+const updateTool = toolsBody.result.tools.find((tool) => tool.name === "updateArticle");
+if (!updateTool) throw new Error("updateArticle was not discovered");
+assert.deepEqual(updateTool.inputSchema.required, ["id", "expectedHash", "document"]);
 
 const fixtureId = "11111111-1111-4111-8111-111111111111";
-const fixtureHash = "b36db387ecdc4d66d69d007d121a9fddc8b1df4de14daded9106d782e203c45c";
+const fixtureHash = "99565281b97b58653d28bb2a051ccc2ff0be870cd2f1f2116f9a45b5c6c071b5";
 const listed = await callTool(4, "listArticles", { limit: 10 }, articleListResultSchema);
 assert.deepEqual(
   listed.structuredContent.articles.map((article) => article.id),
@@ -141,6 +144,8 @@ const firstArticle = listed.structuredContent.articles.at(0);
 if (!firstArticle) throw new Error("The article fixture list is empty");
 assert.equal(firstArticle.visibility, "private");
 const fetched = await callTool(5, "getArticle", { id: fixtureId }, articleResultSchema);
+const chineseEdition = fetched.structuredContent.editions.zh;
+if (!chineseEdition) throw new Error("The Chinese fixture edition is missing");
 const japaneseEdition = fetched.structuredContent.editions.ja;
 if (!japaneseEdition) throw new Error("The Japanese fixture edition is missing");
 assert.equal(japaneseEdition.title, "拡張可能な知識の境界");
@@ -174,12 +179,7 @@ const staleUpdate = await callTool(
   {
     id: fixtureId,
     expectedHash: "0".repeat(64),
-    documents: Object.fromEntries(
-      Object.entries(fetched.structuredContent.editions).map(([locale, edition]) => [
-        locale,
-        edition.markdown,
-      ]),
-    ),
+    document: chineseEdition.markdown,
   },
   toolResultSchema,
 );
@@ -206,7 +206,11 @@ const hidden = await callTool(
   visibilityResultSchema,
 );
 assert.equal(hidden.structuredContent.visibility, "private");
-assert.equal((await fetch(`${origin}/articles/extensible-knowledge-boundaries`)).status, 404);
+const privatePage = await fetch(`${origin}/articles/extensible-knowledge-boundaries`).then(
+  (response) => response.text(),
+);
+assert.match(privatePage, /<meta name="robots" content="noindex/u);
+assert.doesNotMatch(privatePage, /可扩展的知识边界/u);
 const restored = await callTool(
   10,
   "setVisibility",

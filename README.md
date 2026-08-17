@@ -1,53 +1,56 @@
 # my-knowledge
 
-A private-first, locale-extensible knowledge publication built from valuable AI conversations.
+A private-first personal knowledge publication. It lets AI understand conversation content in any
+language and turn it into a finished Chinese Markdown article with a summary, nested tags, and
+similarity checks. New articles are always private until the owner explicitly publishes them.
 
-Send useful conversation content through MCP. The application turns it into polished Markdown,
-creates a summary and a small set of nested tags, translates it, checks for similar knowledge, and
-stores only the finished article. Every article starts private and becomes public only through MCP.
+## Connect with MCP
 
-## Status
+Connect an MCP client using Streamable HTTP:
 
-The complete local release is implemented. The generated OpenNext Worker serves the four documented
-web surfaces; D1/R2 storage, MCP CRUD, model-assisted creation, locale-extensible editions, discovery,
-rich Markdown, and allowed-email authentication are wired and verified locally. Production release
-now requires the owner-controlled Cloudflare resources, secrets, Google OAuth client, provider
-retention approval, remote migrations, live provider smoke, and deployment.
+```json
+{
+  "mcpServers": {
+    "my-knowledge": {
+      "type": "streamable-http",
+      "url": "https://knowledge.you-find.me/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MCP_API_KEY}"
+      }
+    }
+  }
+}
+```
 
-## Stack
+Set `MCP_API_KEY` in the environment used to start the client. Some clients use a different syntax for
+environment-variable expansion; in that case, follow the client's secret configuration format while
+keeping the same endpoint and `Authorization: Bearer …` header. Keep the key secret because it grants
+owner-level article access. The server accepts requests through `POST /api/mcp`. See
+[MCP tools](docs/MCP.md) for the available operations and [Deployment](docs/DEPLOYMENT.md) for
+configuring the key and Cloudflare resources.
 
-- pnpm monorepo with Next.js 16.3+, TypeScript 7, and small shared packages
-- Vite Plus as the repository formatter, linter, type checker, and unit-test runner
-- Cloudflare Workers through OpenNext
-- D1 metadata, R2 Markdown, KV cache, and Vectorize similarity search
-- OpenCode Go custom provider through Cloudflare AI Gateway
-- Better Auth, Google OAuth, and one allowed owner email
-- Markdown-first publication inspired by docu.md
+`createArticle` runs the writing model, embeddings, Vectorize lookup, and storage writes. On a free
+Cloudflare plan, call it serially and wait for one creation to finish before starting the next; bursts
+or concurrent creations can exhaust provider or platform allowances quickly. Check the current limits
+in the Cloudflare dashboard because this repository does not pin changing quota numbers. To test the
+connection without spending AI or Vectorize allowance, call `listTags` or `listArticles`; do not use
+`createArticle` as a health check.
+
+## Local development
+
+```text
+pnpm install
+cp apps/web/.env.example apps/web/.env.local
+pnpm dev
+```
+
+Fill the local environment file before starting. For the production-like Worker workflow, migrations,
+verification, and deployment, follow [Deployment](docs/DEPLOYMENT.md).
 
 ## Documentation
 
-Start with [the documentation index](docs/README.md), then read:
-
-- [Product](docs/PRODUCT.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Content contract](docs/CONTENT.md)
-- [Database](docs/DATABASE.md)
-- [Simple content flow](docs/WORKFLOWS.md)
-- [Skill loading](docs/SKILLS.md)
-- [Design system](docs/DESIGN.md)
-- [Engineering rules](docs/ENGINEERING.md)
-- [Testing and evaluation](docs/TESTING.md)
-
-External projects and reuse rules are listed in [References](docs/REFERENCES.md).
-
-## Reference projects
-
-- [Obsidian Help](https://github.com/obsidianmd/obsidian-help)
-- [my-memos](https://github.com/Pleasurecruise/my-memos)
-- [docu.md](https://docu.md/)
-- [markdown-viewer/skills](https://github.com/markdown-viewer/skills)
-- [tw93/Waza](https://github.com/tw93/Waza)
-- [tw93/Kami](https://github.com/tw93/Kami)
+Start with the [documentation index](docs/README.md). Product behavior, architecture, content,
+workflows, design, testing, and release instructions live under `docs/`.
 
 ## License
 

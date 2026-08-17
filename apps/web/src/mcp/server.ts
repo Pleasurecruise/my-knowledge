@@ -31,7 +31,7 @@ function serverFor(env: CloudflareEnv) {
     "createArticle",
     {
       description:
-        "Create one finished private article in an explicit BCP 47 locale set that includes zh and en.",
+        "Create one finished private Chinese article from conversation content in any language.",
       inputSchema: createArticleInput,
       annotations: {
         readOnlyHint: false,
@@ -46,7 +46,7 @@ function serverFor(env: CloudflareEnv) {
   server.registerTool(
     "getArticle",
     {
-      description: "Read one owner-authorized locale-keyed article.",
+      description: "Read one owner-authorized article.",
       inputSchema: getArticleInput,
       annotations: {
         readOnlyHint: true,
@@ -76,7 +76,7 @@ function serverFor(env: CloudflareEnv) {
   server.registerTool(
     "updateArticle",
     {
-      description: "Replace the complete canonical locale set using optimistic concurrency.",
+      description: "Replace the canonical Chinese Markdown using optimistic concurrency.",
       inputSchema: updateArticleInput,
       annotations: {
         readOnlyHint: false,

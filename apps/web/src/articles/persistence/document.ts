@@ -53,9 +53,8 @@ export async function readArticle(env: CloudflareEnv, row: ArticleRow): Promise<
   );
   const editions = Object.fromEntries(entries);
   const zh = editions.zh;
-  const en = editions.en;
-  if (!zh || !en) throw new Error(`Canonical zh and en Markdown is missing for article ${row.id}`);
-  return { ...summary, editions: { ...editions, zh, en } };
+  if (!zh) throw new Error(`Canonical Chinese Markdown is missing for article ${row.id}`);
+  return { ...summary, editions: { ...editions, zh } };
 }
 
 export async function getArticleRow(

@@ -49,7 +49,6 @@ export default async function ArticlesPage() {
         articles={page.articles}
         empty={i18n.messages.articles.empty}
         entryUnit={i18n.messages.articles.entryUnit}
-        locale={i18n.code}
       />
     </PageLayout>
   );

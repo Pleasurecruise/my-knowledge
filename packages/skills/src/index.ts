@@ -1,9 +1,8 @@
 import { generatedSkills } from "./generated/registry";
 import { canvasSkill } from "./project/canvas";
-import { translateSkill } from "./project/translate";
 import { vegaSkill } from "./project/vega";
 
-export type SkillId = "write" | "translate" | "vega" | "canvas";
+export type SkillId = "write" | "vega" | "canvas";
 
 export type RuntimeSkill = {
   id: SkillId;
@@ -18,14 +17,6 @@ export const skillRegistry = new Map<SkillId, RuntimeSkill>([
       id: "write",
       description: "Editorial rules for evidence-minded long-form Chinese prose.",
       instructions: generatedSkills.write,
-    },
-  ],
-  [
-    "translate",
-    {
-      id: "translate",
-      description: "Preserve the complete article while producing another locale edition.",
-      instructions: translateSkill,
     },
   ],
   [

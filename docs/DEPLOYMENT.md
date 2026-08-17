@@ -90,7 +90,7 @@ static-generation workers from creating Wrangler platform proxies during a produ
 
 The application is designed for Cloudflare's free plan: direct bindings, one project D1 table,
 paginated list queries, bounded Vectorize results, no database server, and no cached list blobs. KV
-caches only versioned public article editions, while R2 remains canonical.
+caches only versioned public Chinese articles, while R2 remains canonical.
 
 Do not copy numeric platform quotas into this repository because Cloudflare changes them. Before each
 release, run `pnpm build` followed by `pnpm dry-run` and confirm Wrangler's compressed upload remains
@@ -103,7 +103,8 @@ before adding storage layers or database abstractions.
 
 1. verify every configured resource and decide whether R2 is dedicated or intentionally shared;
 2. create any missing resources, initialize the Worker without production traffic, and configure
-   Workers Builds with root directory `apps/web` and build command `pnpm build:worker`;
+   Workers Builds with root directory `apps/web`, build command `pnpm build:worker`, and deploy
+   command `pnpm exec opennextjs-cloudflare deploy`;
 3. set the two variables, create the Google OAuth client, and upload the six secrets;
 4. review the numbered application and Better Auth SQL migrations;
 5. run `pnpm d1:migrate:local`, `pnpm check`, `pnpm test`, `pnpm build`, `pnpm dry-run`, and

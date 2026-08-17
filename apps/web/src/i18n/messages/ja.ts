@@ -79,7 +79,7 @@ export const ja = {
     tagsLabel: "タグ",
     tagsHint: "カンマ区切り、階層タグは最大 5 件",
     summaryLabel: "一文の要約",
-    summaryGenerated: "保存時に AI が再生成し、翻訳を同期します。",
+    summaryGenerated: "保存時に AI が中国語の要約を再生成します。",
     writePlaceholder: "記事を書く…",
     save: "保存",
     saving: "AI で同期中…",

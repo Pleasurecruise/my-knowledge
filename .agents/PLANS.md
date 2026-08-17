@@ -1,7 +1,5 @@
 # Active plans
 
-No active plan.
-
 Add new plans at the top as:
 
 ```text

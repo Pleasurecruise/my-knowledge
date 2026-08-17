@@ -44,7 +44,7 @@ test("shows owner-only search, visibility, private content, and deletion control
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/u);
   await expect(page.locator('meta[property="og:image"]')).toHaveCount(0);
   await page.getByRole("button", { name: "切换语言: English" }).click();
-  await expect(page.getByRole("heading", { name: "Private deletion fixture" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "私密删除夹具" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Delete" })).toHaveCount(0);
   await page.getByRole("link", { name: "Edit" }).click();
   await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
@@ -59,7 +59,14 @@ test("opens the owner editor, uses a slash command, and discards the draft", asy
   );
 
   await page.goto("/articles/new");
-  await expect(page.getByRole("toolbar", { name: "格式工具" })).toBeVisible();
+  const toolbar = page.getByRole("toolbar", { name: "格式工具" });
+  await expect(toolbar).toBeVisible();
+  const [tagsBox, toolbarBox] = await Promise.all([
+    page.getByLabel("标签").boundingBox(),
+    toolbar.boundingBox(),
+  ]);
+  if (!tagsBox || !toolbarBox) throw new Error("New article layout was not measurable");
+  expect(tagsBox.x + tagsBox.width).toBeGreaterThan(toolbarBox.x + toolbarBox.width - 2);
   await page.getByLabel("标题").fill("编辑器流程草稿");
   await page.getByLabel("标签").fill("engineering/editor");
   const editor = page.locator(".tiptap");

@@ -1,6 +1,6 @@
 {
-  "name": "explicit-locale-map",
-  "corpusVersion": 2,
+  "name": "chinese-only-pipeline",
+  "corpusVersion": 3,
   "writing": [
     {
       "id": "writing-technology",
@@ -17,22 +17,6 @@
       "id": "writing-mixed",
       "schemaSuccess": true,
       "tags": ["technology/ai", "economics/labor"]
-    }
-  ],
-  "translations": [
-    {
-      "id": "translation-en",
-      "schemaSuccess": true,
-      "tags": ["technology/ai"],
-      "links": ["source-article"],
-      "blocks": ["heading", "code", "callout"]
-    },
-    {
-      "id": "translation-ja",
-      "schemaSuccess": true,
-      "tags": ["technology/ai"],
-      "links": ["source-article"],
-      "blocks": ["heading", "code", "callout"]
     }
   ],
   "duplicates": [

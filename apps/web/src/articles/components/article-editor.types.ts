@@ -17,7 +17,6 @@ export type ExistingArticleEditor = {
 };
 
 export type ArticleEditorProps = {
-  locale: string;
   messages: InterfaceMessages["article"];
 } & ({ mode: "create" } | { mode: "edit"; article: ExistingArticleEditor });
 

@@ -10,31 +10,29 @@ async function readJson(name: "baseline" | "candidate" | "corpus") {
 }
 
 describe("frozen model and retrieval evaluation", () => {
-  it("scores the former fixed-locale baseline without hiding its Japanese failure", async () => {
+  it("scores the former multilingual pipeline's Chinese output", async () => {
     const summary = evaluateFrozenCorpus(await readJson("corpus"), await readJson("baseline"));
     expect(summary).toEqual({
-      schemaSuccess: 0.875,
+      schemaSuccess: 1,
       tagCompliance: 1,
       tagReuse: 1,
-      translationStructure: 0.5,
       duplicatePrecision: 1,
       duplicateRecall: 1,
       citationPrecision: 1,
       unsupportedClaimRate: 0,
       refusalCorrectness: 1,
-      hardInvariantFailures: 1,
+      hardInvariantFailures: 0,
       latencyMs: null,
       costUsd: null,
     });
   });
 
-  it("accepts the explicit locale-map candidate with no deterministic regression", async () => {
+  it("accepts the Chinese-only candidate with no deterministic regression", async () => {
     const summary = evaluateFrozenCorpus(await readJson("corpus"), await readJson("candidate"));
     expect(summary).toEqual({
       schemaSuccess: 1,
       tagCompliance: 1,
       tagReuse: 1,
-      translationStructure: 1,
       duplicatePrecision: 1,
       duplicateRecall: 1,
       citationPrecision: 1,

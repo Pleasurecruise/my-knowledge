@@ -16,11 +16,11 @@ web read layer; `deleteArticle` is also used by the one authenticated browser mu
 
 ## `createArticle`
 
-Input: `{ content: string; locales: string[] }`. `locales` contains canonicalizable BCP 47 tags, must
-include `zh` and `en`, and may add languages such as `ja`. The request deliberately has no visibility,
-tags, model, skill, or provider override.
+Input: `{ content: string }`. The content may use any language; AI always produces one finished
+Chinese article. The request deliberately has no locale, visibility, tags, model, skill, or provider
+override.
 
-Runs skill selection, writing, translation, similarity, and private persistence. Returns either:
+Runs skill selection, Chinese writing, similarity, and private persistence. Returns either:
 
 ```ts
 type CreateArticleResult =
@@ -31,10 +31,17 @@ type CreateArticleResult =
 Annotations: not read-only, non-destructive, non-idempotent, and open-world because it calls the
 configured model provider.
 
+Each call uses the writing provider, embedding inference, Vectorize, D1, and R2. Free-plan clients
+should serialize creation and wait for a result before sending the next call. The server has no batch
+queue, and concurrent bursts can exhaust current provider or Cloudflare allowances; consult the
+account dashboard for current limits rather than relying on numbers copied into this repository. Use
+`listTags` or `listArticles` for a connection check because neither invokes the writing pipeline;
+`createArticle` is not a health-check operation.
+
 ## `getArticle`
 
-Input: `{ id: string }`. Returns authorized metadata plus the locale-keyed documents. A missing
-or unauthorized ID produces the same not-found result.
+Input: `{ id: string }`. Returns the authorized article and its Chinese Markdown. A missing or
+unauthorized ID produces the same not-found result.
 
 Annotations: read-only, non-destructive, idempotent, closed-world.
 
@@ -49,12 +56,12 @@ Annotations: read-only, non-destructive, idempotent, closed-world.
 
 ## `updateArticle`
 
-Input: `{ id: string; expectedHash: string; documents: Record<string, string> }`. The map requires
-`zh` and `en` and accepts canonical additional locales such as `ja`. Frontmatter contains title,
-summary, and tags. The operation validates all documents, refreshes the article-row
-projections and vector, and rejects a stale hash without overwriting newer content.
+Input: `{ id: string; expectedHash: string; document: string }`. The Chinese Markdown frontmatter
+contains title, summary, and tags. The operation validates the document, refreshes article-row
+projections and the vector, removes superseded legacy editions, and rejects a stale hash without
+overwriting newer content.
 
-It does not call the model or silently retranslate content.
+It does not call the model or silently rewrite content.
 The expected hash is checked before embedding so stale requests do not spend provider work; the D1
 update still repeats the hash condition to close the concurrency race.
 
@@ -102,6 +109,6 @@ prompt, or raw skill tools. Skills are an internal implementation detail of `cre
 ## Verification
 
 The local contract covers modern discovery and direct reads, legacy initialize, Bearer authentication,
-required headers, schemas, annotations, locale-keyed documents, nested tags, stale writes, visibility
+required headers, Chinese document schemas, annotations, nested tags, stale writes, visibility
 changes, and private non-disclosure against the generated Worker. Duplicate creation, vector-backed
 updates, and destructive cleanup require the owner's live AI and Vectorize bindings at release smoke.

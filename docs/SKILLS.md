@@ -8,17 +8,17 @@ not fetch mutable GitHub content during a request.
 
 ## Production skills
 
-| Skill       | Source        | Stage                                                    |
-| :---------- | :------------ | :------------------------------------------------------- |
-| `write`     | `tw93/Waza`   | Editorial rules for the body                             |
-| `translate` | Project-owned | Produce each locale requested by the validated operation |
-| `vega`      | Project-owned | Quantitative charts                                      |
-| `canvas`    | Project-owned | Concept maps and knowledge maps                          |
+| Skill    | Source        | Stage                           |
+| :------- | :------------ | :------------------------------ |
+| `write`  | `tw93/Waza`   | Chinese editorial rules         |
+| `vega`   | Project-owned | Quantitative charts             |
+| `canvas` | Project-owned | Concept maps and knowledge maps |
 
 The deterministic `selectSkills` function reads short catalog descriptions and returns `write` plus
 zero or more visual skill IDs. It does not draft the article or become another prompt. The writing
 call receives the project article contract, pinned Waza material, and only the selected project-owned
-rich-content skills.
+rich-content skills. There is no translation skill or translation stage; the writing model
+understands source content in any language and emits Chinese.
 
 Summary, hierarchical tags, and proposed wiki links are outputs of the writing call. They are not
 separate skills. Embedding, similarity, CRUD, indexing, authorization, and rendering remain

@@ -4,5 +4,4 @@ export type ArticleRelationListProps = {
   articles: ArticleSummary[];
   empty: string;
   heading: string;
-  locale: string;
 };

@@ -20,4 +20,8 @@ describe("skill selection", () => {
       expect(skillRegistry.get(id)?.instructions.length).toBeGreaterThan(20);
     }
   });
+
+  it("exposes no translation stage", () => {
+    expect([...skillRegistry.keys()]).toEqual(["write", "vega", "canvas"]);
+  });
 });

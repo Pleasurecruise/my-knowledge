@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { extractHeadings, parseArticleDocument, resolveLocale } from "@my-knowledge/content";
+import { extractHeadings, parseArticleDocument } from "@my-knowledge/content";
 import { Markdown } from "@my-knowledge/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -18,18 +18,14 @@ import { getInterfaceI18n } from "@/i18n/server";
 export async function generateMetadata({
   params,
 }: PageProps<"/articles/[slug]">): Promise<Metadata> {
-  const [{ slug }, { env }, principal, i18n] = await Promise.all([
+  const [{ slug }, { env }, principal] = await Promise.all([
     params,
     getCloudflareContext({ async: true }),
     getPrincipal(),
-    getInterfaceI18n(),
   ]);
   const article = await getArticleBySlug(env, principal, slug);
   if (!article) return { title: "Article not found", robots: { index: false, follow: false } };
-  const locale = resolveLocale(Object.keys(article.editions), i18n.code);
-  if (!locale) return { title: "Article not found", robots: { index: false, follow: false } };
-  const edition = article.editions[locale];
-  if (!edition) return { title: "Article not found", robots: { index: false, follow: false } };
+  const edition = article.editions.zh;
   if (article.visibility === "private") {
     return {
       title: edition.title,
@@ -84,10 +80,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
   ]);
   const article = await getArticleBySlug(env, principal, slug);
   if (!article) notFound();
-  const locale = resolveLocale(Object.keys(article.editions), i18n.code);
-  if (!locale) notFound();
-  const text = article.editions[locale];
-  if (!text) notFound();
+  const text = article.editions.zh;
   if (principal === "owner" && query.edit === "1") {
     const document = parseArticleDocument(text.markdown);
     return (
@@ -103,7 +96,6 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
             title: text.title,
             visibility: article.visibility,
           }}
-          locale={locale}
           messages={i18n.messages.article}
           mode="edit"
         />
@@ -117,7 +109,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
       <article
         className="mx-auto mt-6 min-w-0 w-full max-w-162.5 sm:mt-8"
         id="article"
-        lang={locale}
+        lang="zh-CN"
       >
         <ArticleHeader
           actions={
@@ -135,11 +127,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
           title={text.title}
         />
         {headings.length > 0 ? (
-          <ArticleToc
-            headings={headings}
-            key={locale}
-            label={i18n.messages.article.tableOfContents}
-          />
+          <ArticleToc headings={headings} key="zh" label={i18n.messages.article.tableOfContents} />
         ) : null}
         <Markdown
           labels={{
@@ -159,7 +147,6 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
             articles={relations.backlinks}
             empty={i18n.messages.article.noBacklinks}
             heading={i18n.messages.article.backlinks}
-            locale={locale}
           />
           <ArticleRelationList
             articles={
@@ -173,7 +160,6 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
                 : i18n.messages.article.relationsUnavailable
             }
             heading={i18n.messages.article.related}
-            locale={locale}
           />
         </div>
       </article>

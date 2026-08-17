@@ -58,9 +58,9 @@ primitives locally.
 Interface i18n is application composition, not a content-package concern. The web layout reads the
 validated `my-knowledge:locale` cookie and passes one complete registered dictionary into Server and
 Client Components. The language action writes that cookie through a Server Action, which re-renders
-the current App Router route. On an Article route the same validated locale selects the compatible
-locale-keyed R2 edition. When an optional matching edition is absent, resolution uses the required
-Chinese edition; the web never creates or substitutes stored content.
+the current App Router route. This changes interface labels only; Article, list, search, citation, and
+Graph content always use the canonical Chinese document. AI handles the source conversation's
+language during article creation rather than exposing content locales to the application.
 
 ## Model provider
 
@@ -105,8 +105,8 @@ temporary transcript object, or background cleanup process.
 | Store     | Purpose                                            |
 | :-------- | :------------------------------------------------- |
 | D1        | One article index row plus Better Auth tables      |
-| R2        | Final locale-keyed Markdown with YAML frontmatter  |
-| KV        | Disposable hash-keyed public article-edition cache |
+| R2        | Final Chinese Markdown with YAML frontmatter       |
+| KV        | Disposable hash-keyed public article cache         |
 | Vectorize | Rebuildable similarity and semantic-search vectors |
 
 D1 is authoritative for existence and visibility. R2 is authoritative for Markdown, title, summary,
@@ -126,8 +126,8 @@ defined once in [Database](DATABASE.md).
 - Vector results are filtered through D1 before titles or bodies are returned.
 - Create/update conditionally writes the human-readable R2 paths using object ETags, then writes the
   vector before switching the D1 row hash; a failed switch restores the prior Markdown.
-- Update invalidates the previous hash-keyed KV entries; making an article private or deleting it
-  invalidates every locale entry for the current version.
+- Update invalidates the previous hash-keyed KV entry; making an article private or deleting it
+  invalidates the current version.
 - Delete makes the D1 row private before removing KV, R2, Vectorize, and finally the row.
 - Repeating a completed delete returns not found and performs no further write.
 - Failed generation stores nothing.

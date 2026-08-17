@@ -53,9 +53,7 @@ export const articleTextSchema = z.object({
   markdown: z.string().min(1),
 });
 
-const articleEditionsSchema = z
-  .object({ zh: articleTextSchema, en: articleTextSchema })
-  .catchall(articleTextSchema);
+const articleEditionsSchema = z.object({ zh: articleTextSchema }).catchall(articleTextSchema);
 
 export const articleSchema = z.object({
   id: z.string().uuid(),
@@ -82,10 +80,7 @@ export type ArticleText = z.infer<typeof articleTextSchema>;
 export type Article = z.infer<typeof articleSchema>;
 type ArticleEditionSummary = Omit<ArticleText, "markdown">;
 export type ArticleSummary = Omit<Article, "editions"> & {
-  editions: { zh: ArticleEditionSummary; en: ArticleEditionSummary } & Record<
-    string,
-    ArticleEditionSummary
-  >;
+  editions: { zh: ArticleEditionSummary } & Record<string, ArticleEditionSummary>;
 };
 
 export type ParsedArticleDocument = {
@@ -98,10 +93,7 @@ export type ParsedArticleDocument = {
 };
 
 export type ArticleDocumentSet = {
-  editions: { zh: ParsedArticleDocument; en: ParsedArticleDocument } & Record<
-    string,
-    ParsedArticleDocument
-  >;
+  editions: { zh: ParsedArticleDocument } & Record<string, ParsedArticleDocument>;
   tags: string[];
   links: string[];
   contentHash: string;

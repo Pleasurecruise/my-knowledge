@@ -105,7 +105,7 @@ needs isolation, tests, explanation, and a removal condition.
 - Numbered SQL migrations are authoritative; the Drizzle schema mirrors them for typed queries. Do
   not add a migration generator, schema push, or a runtime migration endpoint.
 - Every mutation declares its write order, idempotency, and cleanup behavior.
-- Compare content hashes before replacing translations or vectors to prevent stale writes.
+- Compare content hashes before replacing Chinese Markdown or vectors to prevent stale writes.
 - Time, IDs, randomness, models, and external services enter through explicit boundaries so critical
   logic is deterministic in tests.
 
@@ -196,7 +196,7 @@ another document. Status labels distinguish locally verified work from productio
   incomplete dictionaries fail type checking.
 - The interface cookie is validated against that registry. Only the documented default may replace an
   absent or unsupported interface choice; article content has no analogous fallback.
-- Interface locale and article edition locale stay independent. The article selector is derived from
-  stored edition keys at render time.
+- Interface locale affects labels only. Article content always renders and saves the Chinese edition;
+  legacy extra editions remain a storage compatibility detail until the next article update.
 - User-facing interface labels may be translated. Placeholders, operational errors, protocol errors,
   and thrown diagnostics remain English.

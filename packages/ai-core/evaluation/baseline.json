@@ -1,27 +1,11 @@
 {
-  "name": "fixed-zh-en",
-  "corpusVersion": 2,
+  "name": "multilingual-pipeline-chinese-output",
+  "corpusVersion": 3,
   "writing": [
     { "id": "writing-technology", "schemaSuccess": true, "tags": ["engineering/architecture"] },
     { "id": "writing-politics", "schemaSuccess": true, "tags": ["society/policy"] },
     { "id": "writing-economics", "schemaSuccess": true, "tags": ["economics/markets"] },
     { "id": "writing-mixed", "schemaSuccess": true, "tags": ["technology/ai", "economics/labor"] }
-  ],
-  "translations": [
-    {
-      "id": "translation-en",
-      "schemaSuccess": true,
-      "tags": ["technology/ai"],
-      "links": ["source-article"],
-      "blocks": ["heading", "code", "callout"]
-    },
-    {
-      "id": "translation-ja",
-      "schemaSuccess": false,
-      "tags": [],
-      "links": [],
-      "blocks": []
-    }
   ],
   "duplicates": [
     { "id": "duplicate", "score": 0.95 },

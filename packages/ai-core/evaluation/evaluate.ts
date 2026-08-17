@@ -11,13 +11,6 @@ const writingCaseSchema = z.object({
   requiredReusedTag: z.string(),
   maxNewTags: z.number().int().min(0),
 });
-const translationCaseSchema = z.object({
-  id: idSchema,
-  targetLocale: z.string(),
-  requiredTags: stringListSchema,
-  requiredLinks: stringListSchema,
-  requiredBlocks: stringListSchema,
-});
 const duplicateCaseSchema = z.object({ id: idSchema, label: z.boolean() });
 const answerCaseSchema = z.object({
   id: idSchema,
@@ -28,7 +21,6 @@ const corpusSchema = z.object({
   version: z.number().int().positive(),
   synthetic: z.literal(true),
   writing: z.array(writingCaseSchema).min(4),
-  translations: z.array(translationCaseSchema).min(2),
   duplicates: z.array(duplicateCaseSchema).min(4),
   answers: z.array(answerCaseSchema).min(2),
 });
@@ -40,19 +32,6 @@ const evaluationSchema = z.object({
     .array(z.object({ id: idSchema, schemaSuccess: z.boolean(), tags: stringListSchema }))
     .refine((entries) => new Set(entries.map((entry) => entry.id)).size === entries.length, {
       message: "Writing result IDs must be unique",
-    }),
-  translations: z
-    .array(
-      z.object({
-        id: idSchema,
-        schemaSuccess: z.boolean(),
-        tags: stringListSchema,
-        links: stringListSchema,
-        blocks: stringListSchema,
-      }),
-    )
-    .refine((entries) => new Set(entries.map((entry) => entry.id)).size === entries.length, {
-      message: "Translation result IDs must be unique",
     }),
   duplicates: z
     .array(z.object({ id: idSchema, score: z.number().min(-1).max(1) }))
@@ -78,7 +57,6 @@ export type EvaluationSummary = {
   schemaSuccess: number;
   tagCompliance: number;
   tagReuse: number;
-  translationStructure: number;
   duplicatePrecision: number;
   duplicateRecall: number;
   citationPrecision: number;
@@ -99,8 +77,6 @@ export function evaluateFrozenCorpus(
     throw new Error("Evaluation corpus version does not match");
   if (evaluation.writing.length !== corpus.writing.length)
     throw new Error("Writing evaluation result count does not match the corpus");
-  if (evaluation.translations.length !== corpus.translations.length)
-    throw new Error("Translation evaluation result count does not match the corpus");
   if (evaluation.duplicates.length !== corpus.duplicates.length)
     throw new Error("Duplicate evaluation result count does not match the corpus");
   if (evaluation.answers.length !== corpus.answers.length)
@@ -110,7 +86,6 @@ export function evaluateFrozenCorpus(
   let schemaTotal = 0;
   let tagCompliance = 0;
   let tagReuse = 0;
-  let translationStructure = 0;
   let truePositives = 0;
   let falsePositives = 0;
   let falseNegatives = 0;
@@ -131,22 +106,6 @@ export function evaluateFrozenCorpus(
     if (compliant) tagCompliance += 1;
     if (result.tags.includes(expected.requiredReusedTag)) tagReuse += 1;
     if (!result.schemaSuccess || !compliant) hardInvariantFailures += 1;
-  }
-
-  for (const expected of corpus.translations) {
-    const result = evaluation.translations.find((entry) => entry.id === expected.id);
-    if (!result) throw new Error(`Translation evaluation result is missing: ${expected.id}`);
-    schemaTotal += 1;
-    if (result.schemaSuccess) schemaSuccesses += 1;
-    const structurePreserved =
-      result.tags.length === expected.requiredTags.length &&
-      result.tags.every((tag, index) => tag === expected.requiredTags[index]) &&
-      result.links.length === expected.requiredLinks.length &&
-      result.links.every((link, index) => link === expected.requiredLinks[index]) &&
-      result.blocks.length === expected.requiredBlocks.length &&
-      result.blocks.every((block, index) => block === expected.requiredBlocks[index]);
-    if (structurePreserved) translationStructure += 1;
-    if (!result.schemaSuccess || !structurePreserved) hardInvariantFailures += 1;
   }
 
   for (const expected of corpus.duplicates) {
@@ -187,7 +146,6 @@ export function evaluateFrozenCorpus(
     schemaSuccess: schemaSuccesses / schemaTotal,
     tagCompliance: tagCompliance / corpus.writing.length,
     tagReuse: tagReuse / corpus.writing.length,
-    translationStructure: translationStructure / corpus.translations.length,
     duplicatePrecision: truePositives / predictedDuplicates,
     duplicateRecall: truePositives / labeledDuplicates,
     citationPrecision: authorizedCitations / citationTotal,

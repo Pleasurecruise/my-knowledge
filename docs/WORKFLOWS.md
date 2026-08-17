@@ -8,10 +8,10 @@ approval pipeline.
 
 ## Create
 
-`createArticle` accepts conversation content and an explicit BCP 47 locale set containing `zh` and
-`en`. The content remains in request memory and is never written to D1, R2, KV, application logs, or
-a job record. AI Gateway payload logging and caching are disabled; the configured upstream provider
-must meet the owner's retention requirement.
+`createArticle` accepts conversation content in any language. The AI understands that input and
+always writes one Simplified Chinese article. The content remains in request memory and is never
+written to D1, R2, KV, application logs, or a job record. AI Gateway payload logging and caching are
+disabled; the configured upstream provider must meet the owner's retention requirement.
 
 ### 1. Prepare context and skills
 
@@ -35,22 +35,17 @@ returns Chinese YAML frontmatter and Markdown:
 The model prefers existing tags and may propose at most one new leaf. Invalid structured output stores
 nothing.
 
-### 3. Translate
+### 3. Compare
 
-`translateArticle` produces every locale requested by the validated creation operation while
-preserving tags, links, code, charts, diagrams, and claim strength. Failure stores no edition.
-
-### 4. Compare
-
-Compute the canonical locale-set `contentHash`, embed the Chinese title, summary, and body, and query
+Compute the canonical Chinese `contentHash`, embed the title, summary, and body, and query
 Vectorize. An exact hash or a score above the duplicate threshold returns the closest authorized
 article and stores nothing. Lower-scoring neighbors become article-page semantic relationships at
 read time.
 
-### 5. Save
+### 4. Save
 
-Parse every requested Markdown edition, validate tags, resolve wiki links, and validate supported blocks. Use
-the conditional R2, Vectorize, and D1 order defined in [Database](DATABASE.md), with visibility forced to
+Parse the Chinese Markdown, validate tags, resolve wiki links, and validate supported blocks. Use the
+conditional R2, Vectorize, and D1 order defined in [Database](DATABASE.md), with visibility forced to
 `private`.
 
 Return the finished private article directly. There is no background job or polling.
@@ -67,15 +62,15 @@ read flow does not run article-writing skills or alter similarity data.
 
 ## Browser authoring
 
-The allowed-email owner can create or edit canonical Markdown from the Article surface. A save uses
-the edited locale as source, regenerates its one-sentence summary, synchronizes every stored edition
-while retaining required Chinese and English, validates the complete locale set, and replaces the
-version through the existing R2, Vectorize, and D1 write order. New articles start private. Publish,
-withdraw, and delete remain explicit operations guarded by the current content hash.
+The allowed-email owner can create or edit canonical Chinese Markdown from the Article surface. A
+save regenerates its one-sentence Chinese summary, validates the document, and replaces the version
+through the existing R2, Vectorize, and D1 write order. Updating a legacy multilingual article removes
+its superseded editions. New articles start private. Publish, withdraw, and delete remain explicit
+operations guarded by the current content hash.
 
 ## MCP mutations, reads, and search
 
-- `getArticle` reads one authorized locale-keyed article.
+- `getArticle` reads one authorized Chinese article.
 - `listArticles` uses a stable updated-time/ID cursor and filters by visibility and nested tags.
 - `updateArticle` saves edited final Markdown, tags, links, hash, and vector with an expected hash.
 - `deleteArticle` makes the D1 row private before removing cached editions, Markdown, vector, and the
@@ -86,13 +81,13 @@ withdraw, and delete remain explicit operations guarded by the current content h
 - `setVisibility` is the explicit owner-only private/public action.
 
 MCP and browser authoring share the same Article persistence boundaries. Browser saves own automatic
-summary and translation synchronization; MCP `updateArticle` continues to accept complete validated
-Markdown editions. Neither path creates jobs, revisions, audit records, or hidden fallbacks.
+Chinese summary generation; MCP `updateArticle` accepts one complete validated Chinese Markdown
+document. Neither path creates jobs, revisions, audit records, or hidden fallbacks.
 
 ## Failure behavior
 
 - Invalid MCP input returns a validation error.
-- Provider, translation, frontmatter, or block validation failure stores nothing.
+- Provider, frontmatter, or block validation failure stores nothing.
 - Duplicate content returns the closest article summary and does not write.
 - Unauthorized reads behave as not found.
 - Cache failure is logged, reads canonical R2, and never bypasses the preceding D1 authorization.

@@ -2,7 +2,6 @@ import type { Article } from "@my-knowledge/content";
 
 export type ArticleDraft = {
   body: string;
-  locale: string;
   tags: string[];
   title: string;
 };

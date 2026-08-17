@@ -1,5 +1,5 @@
-import { isDuplicateScore, translateArticle, writeChineseArticle } from "@my-knowledge/ai-core";
-import { parseArticleDocument, parseArticleDocuments } from "@my-knowledge/content";
+import { isDuplicateScore, writeChineseArticle } from "@my-knowledge/ai-core";
+import { parseArticleDocuments } from "@my-knowledge/content";
 import { selectSkills, skillRegistry } from "@my-knowledge/skills";
 
 import { modelConfig } from "@/model/config";
@@ -17,7 +17,7 @@ type CreateArticleResult =
       score: number;
     };
 
-function requireSkill(id: "write" | "translate" | "vega" | "canvas") {
+function requireSkill(id: "write" | "vega" | "canvas") {
   const skill = skillRegistry.get(id);
   if (!skill) throw new Error(`Runtime skill is missing: ${id}`);
   return skill;
@@ -26,7 +26,6 @@ function requireSkill(id: "write" | "translate" | "vega" | "canvas") {
 export async function createArticleFromContent(
   env: CloudflareEnv,
   content: string,
-  locales: readonly string[],
 ): Promise<CreateArticleResult> {
   const gateway = modelConfig(env);
   const inputEmbedding = await embedText(env, content);
@@ -45,19 +44,7 @@ export async function createArticleFromContent(
     })),
     tags.map((tag) => tag.path),
   );
-  const zh = parseArticleDocument(zhMarkdown);
-  const translated = await Promise.all(
-    locales
-      .filter((locale) => locale !== "zh")
-      .map(async (locale): Promise<[string, string]> => [
-        locale,
-        await translateArticle(gateway, zh.markdown, locale, requireSkill("translate")),
-      ]),
-  );
-  const document = await parseArticleDocuments({
-    zh: zh.markdown,
-    ...Object.fromEntries(translated),
-  });
+  const document = await parseArticleDocuments({ zh: zhMarkdown });
 
   const exact = await findArticleByHash(env, document.contentHash);
   if (exact) return { status: "duplicate", similarArticle: exact, score: 1 };

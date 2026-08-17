@@ -161,7 +161,7 @@ const commands: EditorCommand[] = [
 const saveResponseSchema = z.object({ article: z.object({ slug: z.string() }) });
 
 export function ArticleEditor(props: ArticleEditorProps) {
-  const { locale, messages } = props;
+  const { messages } = props;
   const article = props.mode === "edit" ? props.article : null;
   const initialBody = props.mode === "edit" ? props.article.body : "";
   const initialSummary = props.mode === "edit" ? props.article.summary : null;
@@ -301,7 +301,6 @@ export function ArticleEditor(props: ArticleEditorProps) {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             ...(article === null ? {} : { operation: "save", expectedHash: article.contentHash }),
-            locale,
             title: title.trim(),
             body: markdown.trimEnd(),
             tags: [
@@ -398,7 +397,9 @@ export function ArticleEditor(props: ArticleEditorProps) {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:max-w-140 sm:grid-cols-[3fr_2fr]">
+      <div
+        className={`mt-5 grid grid-cols-1 gap-4 sm:grid-cols-[3fr_2fr] ${article === null ? "max-w-none" : "sm:max-w-140"}`}
+      >
         <label className="grid gap-2" htmlFor="article-title">
           <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
             {messages.titleLabel}
@@ -426,7 +427,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
         </label>
       </div>
 
-      <div className="mt-4 max-w-140">
+      <div className={`mt-4 ${article === null ? "max-w-none" : "max-w-140"}`}>
         <div className="grid gap-2">
           <span className="text-muted-foreground text-[0.6875rem] font-medium tracking-widest uppercase">
             {messages.summaryLabel}

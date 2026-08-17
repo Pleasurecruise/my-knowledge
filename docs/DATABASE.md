@@ -11,7 +11,7 @@ and graph views without adding a database server or normalized relation tables.
 The application owns one table, `articles`:
 
 - `id`, `slug`, `contentHash`;
-- `metaJson`: locale-keyed title and summary projections with required `zh` and `en`;
+- `metaJson`: Chinese title and summary under required `zh`; legacy edition keys remain readable;
 - `tagsJson`: normalized tag paths;
 - `linksJson`: referenced wiki-link slugs;
 - `visibility`, `createdAt`, `updatedAt`.
@@ -31,23 +31,23 @@ bottleneck.
 
 ## R2 and KV
 
-R2 stores the canonical locale set:
+R2 stores the canonical Chinese document:
 
 ```text
-knowledge/{primaryTagPath?}/{articleSlug}/{locale}.md
+knowledge/{primaryTagPath?}/{articleSlug}/zh.md
 ```
 
 The complete first tag is the optional folder path, so `engineering/frontend` produces nested
 folders; an untagged article begins directly with its stable slug. Changing the first tag moves the
-locale set. Keys remain derived from existing D1 projections, so D1 does not store a path or category
+document. Keys remain derived from existing D1 projections, so D1 does not store a path or category
 field. Hashes never appear in R2 paths. Canonical Markdown uses LF line endings, one final newline,
 and frontmatter ordered as `title`, `summary`, then `tags`. `contentHash` remains lowercase SHA-256
-over each canonical locale name, one NUL byte, its Markdown bytes, and one NUL byte, with locales
-sorted lexicographically. It is concurrency metadata for D1, KV, and Vectorize rather than a folder
-name.
+over `zh`, one NUL byte, the canonical Markdown bytes, and one NUL byte. It is concurrency metadata
+for D1, KV, and Vectorize rather than a folder name. Existing locale-keyed objects remain readable
+until a later update removes superseded editions.
 
 D1 `metaJson`, `tagsJson`, and `linksJson` are parsed projections used for lists, filters, backlinks,
-and Graph, avoiding an R2 read for every row. KV caches only parsed public article editions under
+and Graph, avoiding an R2 read for every row. KV caches the parsed public Chinese article under
 `articles/{articleId}/{contentHash}/{locale}.json` with a 24-hour TTL. A public read first authorizes
 the D1 row, then checks KV, reads canonical R2 Markdown on a miss, validates it, and writes the parsed
 edition back to KV. Private articles never read from or write to KV. Invalid or unavailable cache
@@ -59,13 +59,13 @@ Cloudflare stores do not share a transaction.
 
 Create or update in this order:
 
-1. validate and canonicalize every locale document, including required `zh` and `en`;
-2. read the current R2 locale set and ETags for an update;
-3. conditionally write the new locale set: an unchanged path must match its previous ETag and a moved
+1. validate and canonicalize the required Chinese document;
+2. read the current R2 document set and ETags for an update, including legacy editions;
+3. conditionally write the Chinese document: an unchanged path must match its previous ETag and a moved
    or new path must not already exist;
 4. upsert Vectorize ID `{articleId}:{contentHash}`;
 5. insert the D1 row, or update it with `WHERE id = ? AND contentHash = expectedHash`;
-6. after success, invalidate the previous KV/vector version and delete superseded locale paths.
+6. after success, invalidate the previous KV/vector version and delete superseded edition paths.
 
 If a later write fails, restore overwritten objects with the ETags returned by the conditional write,
 delete newly created paths, and remove the new vector. A conflicting object write fails rather than

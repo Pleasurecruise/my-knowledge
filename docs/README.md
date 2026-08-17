@@ -6,7 +6,7 @@ Read only the document that owns the question:
 
 - [Product](PRODUCT.md): users, product outcome, content model, and release boundary.
 - [Architecture](ARCHITECTURE.md): technical stack, modules, data authority, security, and runtime.
-- [Content](CONTENT.md): locale-keyed article DTO, Markdown, frontmatter, and supported source forms.
+- [Content](CONTENT.md): Chinese article DTO, Markdown, frontmatter, and supported source forms.
 - [Database](DATABASE.md): D1 schema, R2 keys, normalization, indexes, and mutation order.
 - [Workflows](WORKFLOWS.md): direct creation, comparison, MCP CRUD, and web discovery.
 - [Design](DESIGN.md): visual direction, tokens, page composition, components, and accessibility.

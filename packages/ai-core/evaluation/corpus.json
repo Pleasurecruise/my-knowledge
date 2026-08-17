@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "synthetic": true,
   "writing": [
     {
@@ -29,22 +29,6 @@
       "existingTags": ["technology/ai", "economics/labor"],
       "requiredReusedTag": "technology/ai",
       "maxNewTags": 1
-    }
-  ],
-  "translations": [
-    {
-      "id": "translation-en",
-      "targetLocale": "en",
-      "requiredTags": ["technology/ai"],
-      "requiredLinks": ["source-article"],
-      "requiredBlocks": ["heading", "code", "callout"]
-    },
-    {
-      "id": "translation-ja",
-      "targetLocale": "ja",
-      "requiredTags": ["technology/ai"],
-      "requiredLinks": ["source-article"],
-      "requiredBlocks": ["heading", "code", "callout"]
     }
   ],
   "duplicates": [

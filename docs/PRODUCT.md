@@ -2,9 +2,9 @@
 
 Status: Implemented locally; production release awaits owner-controlled configuration
 
-`my-knowledge` is a personal, locale-extensible, long-form knowledge base. It turns useful conversation
-content into a finished article without requiring the owner to rewrite, summarize, classify, tag,
-translate, or compare it manually.
+`my-knowledge` is a personal Chinese long-form knowledge base. It lets AI understand useful
+conversation content in any language and turn it into a finished Chinese article without requiring
+the owner to rewrite, summarize, classify, tag, or compare it manually.
 
 ## Users
 
@@ -16,7 +16,7 @@ translate, or compare it manually.
 ## Main experience
 
 1. Send conversation content to `createArticle`.
-2. Receive one finished locale-keyed article or a similar-article conflict.
+2. Receive one finished Chinese article or a similar-article conflict.
 3. Find it through AI answers, keywords, tags, links, or the graph.
 4. Review and edit it in the browser, then publish it from the browser or MCP when ready.
 
@@ -46,7 +46,7 @@ visibility is never authorization. MCP retains the separate owner credential des
 An article stores only:
 
 - identity and slug;
-- required Chinese and English editions plus stored editions such as Japanese;
+- one canonical Chinese Markdown document;
 - Obsidian-style hierarchical tags;
 - private or public visibility;
 - content hash and timestamps.
@@ -70,7 +70,7 @@ Home search and Graph expose this hierarchy without adding filters to the chrono
 The first release is complete when:
 
 - only the allowed email can reveal or mutate private content from the web UI;
-- MCP creates one polished locale-keyed article from one input without storing that input;
+- MCP creates one polished Chinese article from one input without storing that input;
 - a highly similar article prevents a duplicate write and returns the existing article;
 - every created article is private regardless of model output or client input;
 - MCP can list, read, update, delete, search, tag, link, and change article visibility;
@@ -78,8 +78,7 @@ The first release is complete when:
   header language, theme, and authentication actions;
 - Home supports public keyword and tag search; only the signed-in owner can use AI answers grounded in
   authorized articles;
-- browser saves regenerate the one-sentence summary and synchronize translations before replacing an
-  article version;
+- browser saves regenerate the one-sentence Chinese summary before replacing an article version;
 - private articles never appear on anonymous pages, search, feeds, metadata, or graph views;
 - public articles expose canonical article metadata, dynamic social images, and sitemap entries
   through Next.js metadata routes; private articles expose none of them;

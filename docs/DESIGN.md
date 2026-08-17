@@ -142,9 +142,9 @@ navigation.
   `ja.ts` hold complete typed dictionaries. Each registry entry owns a BCP 47 code and native label.
   Chinese, English, and Japanese are currently registered; adding a locale adds one complete message
   module and one registry entry rather than changing an environment list.
-- The same masthead action selects the compatible stored edition on an Article route; the Article
-  header does not repeat a language control. If an optional edition is absent, the required Chinese
-  edition is used. Missing or unsupported interface cookies also resolve to `zh-CN`.
+- The masthead action changes interface labels only. Article content always uses the canonical Chinese
+  document, and the Article header does not repeat a language control. Missing or unsupported
+  interface cookies resolve to `zh-CN`.
 
 Placeholders and operational error messages remain English so diagnostics are stable across locale
 changes. Visible interface labels are translated.
@@ -193,7 +193,9 @@ inside image generation; it does not introduce another design palette for applic
 On wide screens the fixed left TOC copies the Notes collapsed bars, delayed text reveal, heading
 indentation, active marker, and smooth navigation. It is hidden on smaller screens. Neither rail
 participates in the document grid. The owner editor copies the Notes save/cancel/delete rhythm and
-keeps Markdown canonical; summary and translations synchronize when Save completes.
+keeps Markdown canonical; the Chinese summary regenerates when Save completes.
+The new-article editor uses the wide publication shell so its metadata and editing surface share the
+available measure. Existing-article editing keeps its compact metadata measure above the wide editor.
 
 ### Graph
 

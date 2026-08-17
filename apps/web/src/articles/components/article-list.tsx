@@ -1,9 +1,9 @@
-import { resolveLocale, type ArticleSummary } from "@my-knowledge/content";
+import type { ArticleSummary } from "@my-knowledge/content";
 import Link from "next/link";
 
 import type { ArticleListProps } from "./article-list.types";
 
-export function ArticleList({ articles, empty, entryUnit, locale }: ArticleListProps) {
+export function ArticleList({ articles, empty, entryUnit }: ArticleListProps) {
   if (articles.length === 0)
     return <p className="text-muted-foreground border-b py-10 text-sm">{empty}</p>;
 
@@ -55,11 +55,7 @@ export function ArticleList({ articles, empty, entryUnit, locale }: ArticleListP
                         const primaryTag = article.tags.at(0);
                         const tagSegments = primaryTag ? primaryTag.split("/").filter(Boolean) : [];
                         const type = tagSegments.at(-1);
-                        const resolvedLocale = resolveLocale(Object.keys(article.editions), locale);
-                        const edition = resolvedLocale
-                          ? article.editions[resolvedLocale]
-                          : undefined;
-                        if (!edition) return null;
+                        const edition = article.editions.zh;
                         return (
                           <li
                             className="grid grid-cols-[2.25rem_minmax(0,1fr)_max-content] gap-3"

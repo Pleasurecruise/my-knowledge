@@ -33,8 +33,7 @@ export async function parseArticleDocuments(
   );
   const editions = Object.fromEntries(entries);
   const base = editions.zh;
-  const english = editions.en;
-  if (!base || !english) throw new Error("Article documents require zh and en editions");
+  if (!base) throw new Error("Article documents require a zh edition");
   for (const [locale, edition] of Object.entries(editions)) {
     if (
       base.tags.map((tag) => tag.toLocaleLowerCase("en-US")).join("\0") !==
@@ -47,7 +46,7 @@ export async function parseArticleDocuments(
     }
   }
   return {
-    editions: { ...editions, zh: base, en: english },
+    editions: { ...editions, zh: base },
     tags: base.tags,
     links: base.links,
     contentHash: await hashArticle(

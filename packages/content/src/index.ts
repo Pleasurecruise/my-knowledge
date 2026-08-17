@@ -6,7 +6,7 @@ export {
 } from "./document";
 export { hashArticle, parseArticleDocuments } from "./hash";
 export { createSlug, extractHeadings, extractWikiLinks, type ArticleHeading } from "./links";
-export { normalizeLocale, parseArticleLocales, resolveLocale } from "./locale";
+export { normalizeLocale, resolveLocale } from "./locale";
 export {
   articleSchema,
   articleTextSchema,

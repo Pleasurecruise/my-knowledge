@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     getCloudflareContext({ async: true }),
     getInterfaceI18n(),
   ]);
-  const answer = await answerKnowledgeQuestion(env, query, i18n.code);
+  const answer = await answerKnowledgeQuestion(env, query);
   return Response.json(
     answer.status === "answered"
       ? answer.result

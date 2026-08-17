@@ -117,13 +117,13 @@ Keep synthetic or explicitly approved test corpora for:
 
 - long-form writing across technology, politics, economics, and mixed-domain articles;
 - tag reuse and new-leaf decisions;
-- Chinese-to-configured-locale structure, links, code, and claim preservation;
+- Chinese output from source conversations across languages;
 - labeled duplicate, near-duplicate, related, and unrelated article pairs;
 - answerable and unanswerable knowledge questions with expected source articles.
 
-Measure schema success, tag-limit compliance, tag reuse, translation structure preservation,
-duplicate precision/recall, citation precision, unsupported-claim rate, refusal correctness, latency,
-and model cost. Hard invariants must never regress. A subjective writing change requires blinded owner
+Measure schema success, tag-limit compliance, tag reuse, duplicate precision/recall, citation
+precision, unsupported-claim rate, refusal correctness, latency, and model cost. Hard invariants must
+never regress. A subjective writing change requires blinded owner
 review; an aggregate score cannot override privacy, schema, or citation failures. Store evaluation
 fixtures and summaries, not production conversations or full provider traces.
 

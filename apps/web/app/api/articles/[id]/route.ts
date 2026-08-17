@@ -10,7 +10,6 @@ const patchSchema = z.discriminatedUnion("operation", [
   z.object({
     operation: z.literal("save"),
     expectedHash,
-    locale: z.string().min(1),
     title: z.string().trim().min(1).max(240),
     body: z.string().trim().min(1).max(500_000),
     tags: z.array(z.string().min(1)).max(5),
