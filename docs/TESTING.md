@@ -93,11 +93,12 @@ The core journey set is intentionally small:
 4. the Chinese owner interface exposes New while other interface locales do not;
 5. the owner can open New/Edit, use the Markdown editor, and explicitly save, publish, withdraw, or
    delete while anonymous users cannot reach those mutations; a listed private article must render
-   its body before Edit and expose Publish or Withdraw according to its current visibility;
+   its body before Edit without requiring private metadata, and expose Publish or Withdraw according
+   to its current visibility;
 6. Article follows the Header locale, renders rich blocks, exposes the Notes TOC/action rails, and
    publishes canonical metadata plus a renderable dynamic social image only when public;
-7. Graph has no filter controls, opens linked articles, and keeps its keyboard-accessible relationship
-   list at a stable desktop position;
+7. Graph has no filter controls, opens linked articles, keeps both columns inside the wide shell, and
+   preserves keyboard-accessible relationships plus hidden-scrollbar internal scrolling;
 8. the Header language action changes interface copy and the compatible article edition together in
    Chinese, English, and Japanese, falling back to Chinese when an optional edition is absent;
 9. robots and sitemap metadata routes advertise only public surfaces and articles;

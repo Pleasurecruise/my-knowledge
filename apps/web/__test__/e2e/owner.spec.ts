@@ -45,6 +45,7 @@ test("shows owner-only knowledge, visibility, and deletion controls", async ({ p
   await expect(page.getByRole("link", { name: "New" })).toHaveCount(0);
 
   await page.goto("/articles/private-deletion-fixture");
+  await expect(page).toHaveTitle("Article not found · my knowledge");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/u);
   await expect(page.locator('meta[property="og:image"]')).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "私密删除夹具" })).toBeVisible();
@@ -53,6 +54,27 @@ test("shows owner-only knowledge, visibility, and deletion controls", async ({ p
   await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Publish" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Withdraw" })).toHaveCount(0);
+});
+
+test("keeps the owner graph inside the wide shell without visible scrollbars", async ({ page }) => {
+  await page.goto("/graph");
+  const stage = page.locator(".graph-stage");
+  const grid = stage.locator("..");
+  const related = page.getByRole("region", { name: "关系列表" }).getByRole("list");
+  const [stageBounds, gridBounds] = await Promise.all([stage.boundingBox(), grid.boundingBox()]);
+  if (!stageBounds || !gridBounds) throw new Error("Graph bounds are unavailable");
+  expect(stageBounds.x).toBeGreaterThanOrEqual(gridBounds.x);
+  expect(stageBounds.x + stageBounds.width).toBeLessThanOrEqual(gridBounds.x + gridBounds.width);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await expect(related).toHaveCSS("scrollbar-width", "none");
+  await expect(page.locator('[aria-live="polite"] .overflow-y-auto')).toHaveCSS(
+    "scrollbar-width",
+    "none",
+  );
 });
 
 test("opens the owner editor, uses a slash command, and discards the draft", async ({

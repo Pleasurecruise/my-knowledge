@@ -23,10 +23,13 @@ sanitized error and deletes the input.
 ### 1. Prepare context and skills
 
 Read the existing tag tree and use one in-memory input embedding to retrieve at most eight authorized
-article titles, summaries, and slugs. This bounded context lets the model reuse tags and propose real
-wiki links; it is never persisted. The small project-owned selector then chooses the minimal skill
-set. Waza `write` is always present. It adds `vega` for real quantitative data and `canvas` for a
-useful concept map. Ordinary prose loads neither visual skill.
+article titles, summaries, and slugs. Long inputs split into paragraphs under a 12,000-character
+budget, embed in one batched call, and mean-pool to one normalized vector, so the single-vector
+index contract holds while BGE-M3's 8,192-token input limit never truncates content; inputs within
+the budget keep the single-call path. This bounded context lets the model reuse tags and propose
+real wiki links; it is never persisted. The small project-owned selector then chooses the minimal
+skill set. Waza `write` is always present. It adds `vega` for real quantitative data and `canvas`
+for a useful concept map. Ordinary prose loads neither visual skill.
 
 ### 2. Write
 

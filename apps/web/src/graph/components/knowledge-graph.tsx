@@ -50,9 +50,9 @@ export function KnowledgeGraph({
 
   return (
     <PageLayout action={null} description={description} title={title} view="wide">
-      <div className="space-y-6">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_19rem]">
-          <div className="graph-stage border-border h-96 overflow-hidden rounded-lg border shadow-[var(--shadow-spatial)] xl:h-[min(62vh,38rem)]">
+      <div className="min-w-0 space-y-6">
+        <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_19rem]">
+          <div className="graph-stage border-border h-96 min-w-0 overflow-hidden rounded-lg border shadow-[var(--shadow-spatial)] xl:h-[min(62vh,38rem)]">
             <svg
               aria-label={messages.canvas}
               className="graph-canvas"
@@ -108,7 +108,7 @@ export function KnowledgeGraph({
             </svg>
           </div>
 
-          <div className="space-y-5 xl:sticky xl:top-24 xl:grid xl:h-[min(62vh,38rem)] xl:grid-rows-[18rem_minmax(0,1fr)] xl:self-start xl:space-y-0 xl:gap-5">
+          <div className="min-w-0 space-y-5 xl:sticky xl:top-24 xl:grid xl:h-[min(62vh,38rem)] xl:grid-rows-[18rem_minmax(0,1fr)] xl:self-start xl:space-y-0 xl:gap-5">
             {selected ? (
               <Card aria-live="polite" className="xl:h-72" size="sm">
                 <CardHeader>
@@ -146,7 +146,7 @@ export function KnowledgeGraph({
                   {messages.noRelationships}
                 </p>
               ) : (
-                <ol className="grid gap-2 xl:min-h-0 xl:overflow-y-auto xl:pr-1">
+                <ol className="grid gap-2 xl:min-h-0 xl:overflow-y-auto xl:pr-1 xl:[scrollbar-width:none] xl:[&::-webkit-scrollbar]:hidden">
                   {edges.map((edge, index) => {
                     const source = nodesById.get(edge.source);
                     const target = nodesById.get(edge.target);

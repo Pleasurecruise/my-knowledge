@@ -180,11 +180,16 @@ test("keeps the three public tabs searchable, localized, and keyboard reachable"
   await expect(page.getByRole("combobox")).toHaveCount(0);
   const cardBounds = await page.locator('[aria-live="polite"]').boundingBox();
   const graphBounds = await page.locator(".graph-stage").boundingBox();
+  const graphGridBounds = await page.locator(".graph-stage").locator("..").boundingBox();
   const relationshipBounds = await page
     .getByRole("region", { name: "Relationships" })
     .boundingBox();
-  if (!cardBounds || !graphBounds || !relationshipBounds)
+  if (!cardBounds || !graphBounds || !graphGridBounds || !relationshipBounds)
     throw new Error("Graph column bounds are unavailable");
+  expect(graphBounds.x).toBeGreaterThanOrEqual(graphGridBounds.x);
+  expect(graphBounds.x + graphBounds.width).toBeLessThanOrEqual(
+    graphGridBounds.x + graphGridBounds.width,
+  );
   expect(graphBounds.y).toBeCloseTo(cardBounds.y, 0);
   expect(graphBounds.height).toBeCloseTo(
     relationshipBounds.y + relationshipBounds.height - cardBounds.y,
@@ -194,6 +199,12 @@ test("keeps the three public tabs searchable, localized, and keyboard reachable"
   expect(
     await page
       .locator('[aria-live="polite"] .overflow-y-auto')
+      .evaluate((element) => getComputedStyle(element).scrollbarWidth),
+  ).toBe("none");
+  expect(
+    await page
+      .getByRole("region", { name: "Relationships" })
+      .getByRole("list")
       .evaluate((element) => getComputedStyle(element).scrollbarWidth),
   ).toBe("none");
   await page.keyboard.press("Tab");

@@ -206,9 +206,10 @@ top-right controls. The bounded canvas uses perspective, node elevation, and exp
 desktop side rail reserves a fixed row for the selected article, so the bounded relationship list
 starts at a stable position regardless of summary height. The canvas and complete side rail have the
 same desktop height; long selected-article content remains scrollable without displaying a scrollbar.
-Graph removes wide-page bottom padding and fits its canvas to the available viewport instead of
-creating a permanent scrollbar. Its empty state uses the title measure rather than stretching across
-the wider canvas measure.
+The related-article list follows the same hidden-scrollbar behavior. Graph removes wide-page bottom
+padding, constrains both grid columns to the wide shell, and fits its canvas to the available viewport
+instead of creating a permanent page scrollbar. Its empty state uses the title measure rather than
+stretching across the wider canvas measure.
 
 ### Not found
 

@@ -18,21 +18,10 @@ import { getInterfaceI18n } from "@/i18n/server";
 export async function generateMetadata({
   params,
 }: PageProps<"/articles/[slug]">): Promise<Metadata> {
-  const [{ slug }, { env }, principal] = await Promise.all([
-    params,
-    getCloudflareContext({ async: true }),
-    getPrincipal(),
-  ]);
-  const article = await getArticleBySlug(env, principal, slug);
+  const [{ slug }, { env }] = await Promise.all([params, getCloudflareContext({ async: true })]);
+  const article = await getArticleBySlug(env, "anonymous", slug);
   if (!article) return { title: "Article not found", robots: { index: false, follow: false } };
   const edition = article.editions.zh;
-  if (article.visibility === "private") {
-    return {
-      title: edition.title,
-      description: edition.summary,
-      robots: { index: false, follow: false },
-    };
-  }
   const canonical = new URL(`/articles/${article.slug}`, env.BETTER_AUTH_URL);
   const socialImage = new URL(`/articles/${article.slug}/opengraph-image`, env.BETTER_AUTH_URL);
   socialImage.searchParams.set("v", article.contentHash);
