@@ -20,23 +20,35 @@ Input: `{ content: string }`. The content may use any language; AI always produc
 Chinese article. The request deliberately has no locale, visibility, tags, model, skill, or provider
 override.
 
-Runs skill selection, Chinese writing, similarity, and private persistence. Returns either:
+Creates an asynchronous job, stores the input in expiring KV, and publishes only the job ID to Queue.
+It does not call the writing or embedding providers. Returns promptly:
 
 ```ts
-type CreateArticleResult =
-  | { status: "created"; article: Article }
-  | { status: "duplicate"; similarArticle: ArticleSummary; score: number };
+type CreateArticleResult = { status: "accepted"; jobId: string };
 ```
 
 Annotations: not read-only, non-destructive, non-idempotent, and open-world because it calls the
 configured model provider.
 
-Each call uses the writing provider, embedding inference, Vectorize, D1, and R2. Free-plan clients
-should serialize creation and wait for a result before sending the next call. The server has no batch
-queue, and concurrent bursts can exhaust current provider or Cloudflare allowances; consult the
-account dashboard for current limits rather than relying on numbers copied into this repository. Use
-`listTags` or `listArticles` for a connection check because neither invokes the writing pipeline;
-`createArticle` is not a health-check operation.
+Submission uses KV, D1, and Queue. The consumer serializes creation to protect provider allowances;
+consult the account dashboard for current limits rather than relying on numbers copied into this
+repository. Use `listTags` or `listArticles` for a connection check; `createArticle` creates durable
+work and is not a health-check operation.
+
+## `getArticleJob`
+
+Input: `{ jobId: string }`. Returns `pending` or `processing`, or one terminal result:
+
+```ts
+type ArticleJobResult =
+  | { status: "pending" | "processing"; jobId: string }
+  | { status: "created"; jobId: string; article: Article }
+  | { status: "duplicate"; jobId: string; similarArticle: ArticleSummary; score: number }
+  | { status: "failed"; jobId: string; error: string };
+```
+
+A missing job returns not found. An accepted client polls this read-only, idempotent, closed-world tool
+until the status is `created`, `duplicate`, or `failed`.
 
 ## `getArticle`
 
@@ -103,12 +115,13 @@ Annotations: not read-only, not destructive, idempotent, closed-world.
 
 ## Not exposed
 
-There are no job, cancellation, reindex, classify, translate, relation, model-selection, provider,
-prompt, or raw skill tools. Skills are an internal implementation detail of `createArticle`.
+There are no cancellation, reindex, classify, translate, relation, model-selection, provider, prompt,
+or raw skill tools. Skills are an internal implementation detail of the queued creation pipeline.
 
 ## Verification
 
-The local contract covers modern discovery and direct reads, legacy initialize, Bearer authentication,
-required headers, Chinese document schemas, annotations, nested tags, stale writes, visibility
-changes, and private non-disclosure against the generated Worker. Duplicate creation, vector-backed
-updates, and destructive cleanup require the owner's live AI and Vectorize bindings at release smoke.
+The local contract covers modern discovery, job polling discovery/not-found behavior, direct reads,
+legacy initialize, Bearer authentication, required headers, Chinese document schemas, annotations,
+nested tags, stale writes, visibility changes, and private non-disclosure against the generated
+Worker. Queue delivery, duplicate creation, vector-backed updates, and destructive cleanup require
+the owner's live bindings at release smoke.

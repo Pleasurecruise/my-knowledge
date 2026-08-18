@@ -156,3 +156,11 @@ export async function findArticleByHash(
     .get();
   return row ? articleSummary(row) : undefined;
 }
+
+export async function findArticleSummaryById(
+  env: CloudflareEnv,
+  id: string,
+): Promise<ArticleSummary | undefined> {
+  const row = await drizzle(env.DB).select().from(articles).where(eq(articles.id, id)).get();
+  return row ? articleSummary(row) : undefined;
+}

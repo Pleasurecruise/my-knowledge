@@ -9,9 +9,16 @@ approval pipeline.
 ## Create
 
 `createArticle` accepts conversation content in any language. The AI understands that input and
-always writes one Simplified Chinese article. The content remains in request memory and is never
-written to D1, R2, KV, application logs, or a job record. AI Gateway payload logging and caching are
-disabled; the configured upstream provider must meet the owner's retention requirement.
+always writes one Simplified Chinese article. The web Worker stores the content in an expiring KV
+entry, creates a pending D1 job without the content, publishes only its job ID to Queue, and returns
+immediately. AI Gateway payload logging and caching are disabled; the configured upstream provider
+must meet the owner's retention requirement.
+
+The Worker's Queue handler conditionally changes a pending job to processing in an invocation separate
+from the MCP request. A 20-minute claim lease lets a redelivery recover interrupted work, while
+terminal jobs are acknowledged without rerunning. KV's eventual consistency is handled as a
+retryable missing-input condition. Processing retries three times; the final failure records one
+sanitized error and deletes the input.
 
 ### 1. Prepare context and skills
 
@@ -49,7 +56,9 @@ Parse the Chinese Markdown, validate tags, resolve wiki links, and validate supp
 conditional R2, Vectorize, and D1 order defined in [Database](DATABASE.md), with visibility forced to
 `private`.
 
-Return the finished private article directly. There is no background job or polling.
+Record the created article ID or duplicate article ID and score in the terminal job result, then
+delete the KV input. `getArticleJob` resolves those IDs through the normal authorized article read and
+returns the current state or terminal result. Clients poll until `created`, `duplicate`, or `failed`.
 
 ## Web discovery
 
@@ -82,13 +91,15 @@ content hash.
 
 MCP and browser authoring share the same Article persistence boundaries. Browser saves own automatic
 Chinese summary generation; MCP `updateArticle` accepts one complete validated Chinese Markdown
-document. Neither path creates jobs, revisions, audit records, or hidden fallbacks.
+document. Only MCP conversation creation uses a job; browser authoring and other mutations remain
+synchronous and create no revisions, audit records, or hidden fallbacks.
 
 ## Failure behavior
 
 - Invalid MCP input returns a validation error.
-- Provider, frontmatter, or block validation failure stores nothing.
-- Duplicate content returns the closest article summary and does not write.
+- Provider, frontmatter, or block validation failures retry and eventually produce a sanitized failed
+  job without storing an article.
+- Duplicate content produces the closest article result and does not write another article.
 - Unauthorized reads behave as not found.
 - Cache failure is logged, reads canonical R2, and never bypasses the preceding D1 authorization.
 - Vector failure blocks create/update so search never silently becomes stale.

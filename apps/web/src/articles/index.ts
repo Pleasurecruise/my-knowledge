@@ -2,6 +2,7 @@ export { getArticleById, getArticleBySlug, hasArticleVersion } from "./persisten
 export { getArticleRelations } from "./persistence/relations";
 export {
   findArticleByHash,
+  findArticleSummaryById,
   listArticles,
   listGraphArticles,
   listTags,

@@ -1,5 +1,15 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
+export const articleJobs = sqliteTable("articleJobs", {
+  id: text("id").primaryKey(),
+  status: text("status", {
+    enum: ["pending", "processing", "created", "duplicate", "failed"],
+  }).notNull(),
+  resultJson: text("resultJson"),
+  createdAt: text("createdAt").notNull(),
+  updatedAt: text("updatedAt").notNull(),
+});
+
 export const articles = sqliteTable(
   "articles",
   {

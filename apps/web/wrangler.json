@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "my-knowledge",
-  "main": ".open-next/worker.js",
+  "main": "worker.ts",
   "compatibility_date": "2026-08-16",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "workers_dev": false,
@@ -62,6 +62,23 @@
   "ai": {
     "binding": "AI",
     "remote": true
+  },
+  "queues": {
+    "producers": [
+      {
+        "binding": "ARTICLE_JOBS",
+        "queue": "article-jobs"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "article-jobs",
+        "max_batch_size": 1,
+        "max_batch_timeout": 1,
+        "max_retries": 3,
+        "max_concurrency": 1
+      }
+    ]
   },
   "observability": {
     "logs": {

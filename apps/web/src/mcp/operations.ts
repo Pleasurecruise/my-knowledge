@@ -2,7 +2,6 @@ import { canonicalizeTags, parseArticleDocuments } from "@my-knowledge/content";
 import { z } from "zod";
 
 import {
-  createArticleFromContent,
   deleteArticle,
   embedText,
   embeddingInput,
@@ -14,6 +13,7 @@ import {
   setArticleVisibility,
   updateArticle,
 } from "@/articles";
+import { getArticleJob, submitArticleJob } from "@/article-jobs";
 
 type McpResult = {
   content: [{ type: "text"; text: string }];
@@ -32,10 +32,10 @@ function result(value: object): McpResult {
   };
 }
 
-function notFound(): McpError {
+function notFound(message: string): McpError {
   return {
     isError: true,
-    content: [{ type: "text", text: "Article not found" }],
+    content: [{ type: "text", text: message }],
   };
 }
 
@@ -47,7 +47,17 @@ export async function createArticleOperation(
   env: CloudflareEnv,
   input: z.infer<typeof createArticleInput>,
 ) {
-  return result(await createArticleFromContent(env, input.content));
+  return result(await submitArticleJob(env, input.content));
+}
+
+export const getArticleJobInput = z.object({ jobId: z.uuid() });
+
+export async function getArticleJobOperation(
+  env: CloudflareEnv,
+  input: z.infer<typeof getArticleJobInput>,
+) {
+  const job = await getArticleJob(env, input.jobId);
+  return job ? result(job) : notFound("Article job not found");
 }
 
 export const getArticleInput = z.object({ id: z.string().uuid() });
@@ -57,7 +67,7 @@ export async function getArticleOperation(
   input: z.infer<typeof getArticleInput>,
 ) {
   const article = await getArticleById(env, "owner", input.id);
-  return article ? result(article) : notFound();
+  return article ? result(article) : notFound("Article not found");
 }
 
 export const listArticlesInput = z.object({
@@ -91,11 +101,13 @@ export async function updateArticleOperation(
   env: CloudflareEnv,
   input: z.infer<typeof updateArticleInput>,
 ) {
-  if (!(await hasArticleVersion(env, input.id, input.expectedHash))) return notFound();
+  if (!(await hasArticleVersion(env, input.id, input.expectedHash))) {
+    return notFound("Article not found");
+  }
   const document = await parseArticleDocuments({ zh: input.document });
   const embedding = await embedText(env, embeddingInput(document.editions.zh));
   const article = await updateArticle(env, input.id, input.expectedHash, document, embedding);
-  return article ? result(article) : notFound();
+  return article ? result(article) : notFound("Article not found");
 }
 
 export const deleteArticleInput = z.object({
@@ -109,7 +121,7 @@ export async function deleteArticleOperation(
 ) {
   return (await deleteArticle(env, input.id, input.expectedHash))
     ? result({ deleted: true })
-    : notFound();
+    : notFound("Article not found");
 }
 
 export const searchArticlesInput = z.object({
@@ -178,5 +190,5 @@ export async function setVisibilityOperation(
   input: z.infer<typeof setVisibilityInput>,
 ) {
   const article = await setArticleVisibility(env, input.id, input.expectedHash, input.visibility);
-  return article ? result(article) : notFound();
+  return article ? result(article) : notFound("Article not found");
 }

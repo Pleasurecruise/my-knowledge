@@ -110,6 +110,7 @@ assert.deepEqual(
   toolsBody.result.tools.map((tool) => tool.name),
   [
     "createArticle",
+    "getArticleJob",
     "getArticle",
     "listArticles",
     "updateArticle",
@@ -125,6 +126,16 @@ assert.equal(deleteTool.annotations.destructiveHint, true);
 const createTool = toolsBody.result.tools.find((tool) => tool.name === "createArticle");
 if (!createTool) throw new Error("createArticle was not discovered");
 assert.deepEqual(createTool.inputSchema.required, ["content"]);
+const getJobTool = toolsBody.result.tools.find((tool) => tool.name === "getArticleJob");
+if (!getJobTool) throw new Error("getArticleJob was not discovered");
+assert.deepEqual(getJobTool.inputSchema.required, ["jobId"]);
+const missingJob = await callTool(
+  100,
+  "getArticleJob",
+  { jobId: "99999999-9999-4999-8999-999999999999" },
+  toolResultSchema,
+);
+assert.equal(missingJob.isError, true);
 const updateTool = toolsBody.result.tools.find((tool) => tool.name === "updateArticle");
 if (!updateTool) throw new Error("updateArticle was not discovered");
 assert.deepEqual(updateTool.inputSchema.required, ["id", "expectedHash", "document"]);

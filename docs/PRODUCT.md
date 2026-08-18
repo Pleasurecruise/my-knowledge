@@ -16,7 +16,8 @@ the owner to rewrite, summarize, classify, tag, or compare it manually.
 ## Main experience
 
 1. Send conversation content to `createArticle`.
-2. Receive one finished Chinese article or a similar-article conflict.
+2. Receive a job ID and poll `getArticleJob` for one finished Chinese article or a similar-article
+   conflict.
 3. Find it through keywords, tags, links, the graph, or authenticated MCP search.
 4. Review and edit it in the browser, then publish it from the browser or MCP when ready.
 
@@ -70,7 +71,7 @@ Home search and Graph expose this hierarchy without adding filters to the chrono
 The first release is complete when:
 
 - only the allowed email can reveal or mutate private content from the web UI;
-- MCP creates one polished Chinese article from one input without storing that input;
+- MCP creates one polished Chinese article from one temporarily held input, then deletes that input;
 - a highly similar article prevents a duplicate write and returns the existing article;
 - every created article is private regardless of model output or client input;
 - MCP can list, read, update, delete, search, tag, link, and change article visibility;
@@ -88,5 +89,5 @@ The first release is complete when:
 - Multiple owners, teams, comments, or social features
 - Owner dashboard
 - Automatic publication, revisions, or stored source history
-- Background jobs or editorial approval pipelines
+- Editorial approval pipelines or background jobs beyond MCP article creation
 - Unbounded tag creation or typed entity relations

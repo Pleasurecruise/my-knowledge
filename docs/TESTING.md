@@ -57,14 +57,16 @@ Run Worker-facing integration tests in the Workers runtime with isolated local D
 Use a narrow in-memory adapter only where the local platform cannot reproduce a binding, such as a
 Vectorize query; keep a separate contract fixture for its real response shape.
 
-Cover create, update, visibility, and delete failure at every write boundary. Assert both the visible
-result and leftover objects so R2/vector orphans, stale KV, and partial D1 writes are detected. Run the
-numbered SQL migrations from an empty database and from the immediately previous schema.
+Cover job submission/claim/retry, create, update, visibility, and delete failure at every write
+boundary. Assert both the visible result and leftover objects so submitted KV input, R2/vector
+orphans, stale cache, and partial D1 writes are detected. Run the numbered SQL migrations from an
+empty database and from the immediately previous schema.
 
 ## Contract and black-box tests
 
 - MCP tests use real clients for both supported protocol versions and cover discovery, Bearer auth,
-  schemas, annotations, duplicate results, stale updates, and destructive deletion.
+  schemas, annotations, accepted jobs, polling states, duplicate results, stale updates, and
+  destructive deletion.
 - HTTP tests cover the complete anonymous/allowed-email matrix for Home, Articles, Article, Graph,
   browser authoring, visibility changes, and deletion. Unauthorized private resources return not
   found, and the removed AI-search route remains absent.
@@ -147,8 +149,9 @@ cheaper than the required local/preview path and has an explicit teardown proced
 ## Gates and evidence
 
 The local release evidence is reproducible: Vite Plus covers the domain suites and frozen model
-evaluation; the numbered D1 migration replays against local state; and the generated OpenNext Worker
-builds. The MCP suite covers both protocol generations plus real D1 visibility changes. Playwright
+evaluation; the numbered D1 migration replays against local state; and the custom OpenNext Worker
+with its Queue handler builds. The MCP suite covers both protocol generations plus
+real D1 visibility changes. Playwright
 uses a Better Auth session generated through its public cryptographic API and checks anonymous and
 owner surfaces at desktop and phone widths, light and dark themes, reduced motion, accessibility,
 the rich Japanese article, and expected browser errors only.
@@ -161,9 +164,9 @@ production-account gates. Deterministic evaluation leaves latency and cost as `n
 live Gateway run supplies real measurements.
 
 Every pull request and push to `main` runs the my-memos-style `Commit-CI` workflow: frozen dependency
-installation, `pnpm check`, `pnpm test`, the generated OpenNext Worker build, and `pnpm dry-run`.
-The final command executes `wrangler deploy --dry-run` against the built Worker, validates its strict
-JSON configuration and bundle without authentication, and never deploys.
+installation, `pnpm check`, `pnpm test`, the custom Worker build, and `pnpm dry-run`. The final command
+executes `wrangler deploy --dry-run`, validates its strict JSON configuration and bundle without
+authentication, and never deploys.
 
 Every change runs formatting, lint, types, affected unit tests, and diff checks. Storage, auth, MCP,
 rendering, or routing changes also run their integration/contract suites. Release candidates run the

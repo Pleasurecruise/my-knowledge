@@ -64,7 +64,7 @@ no-SSR bundle boundaries and never pass through Shiki.
 
 ## Generation and update
 
-`createArticle` receives conversation content in any language and returns one Chinese article. The
+Article creation receives conversation content in any language and produces one Chinese article. The
 model owns language understanding as part of the single writing call. It stores neither input nor an
 intermediate result and does not run a translation stage.
 

@@ -27,11 +27,11 @@ AI summary generation and cross-store cleanup remain live account gates.
 
 ## 3. Content creation — complete, live provider smoke pending
 
-The custom provider adapter, pinned Waza and project-owned rich-content skills, Chinese writing, MCP
-`createArticle`, tags, wiki links, and the rule that submitted content is never persisted are
-implemented.
+The custom provider adapter, pinned Waza and project-owned rich-content skills, Chinese writing,
+asynchronous MCP `createArticle`, tags, wiki links, and bounded KV input lifetime are implemented.
 
-Exit: one MCP request returns one complete private Chinese article and only the result is stored.
+Exit: one MCP submission returns a job ID; polling returns one complete private Chinese article or a
+duplicate, and temporary input is deleted after terminal processing.
 
 ## 4. Similarity and discovery — complete, live Vectorize smoke pending
 

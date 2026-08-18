@@ -2,13 +2,14 @@
 
 Status: Implemented locally; production resources await owner setup
 
-D1 is the query index, R2 owns Markdown, KV is a disposable derived cache, and Drizzle is the typed D1
-query layer. The content model keeps frontmatter properties, nested tag paths, wiki links, backlinks,
-and graph views without adding a database server or normalized relation tables.
+D1 is the query index and job state store, R2 owns Markdown, KV holds disposable cached output and
+expiring job input, and Drizzle is the typed D1 query layer. The content model keeps frontmatter
+properties, nested tag paths, wiki links, backlinks, and graph views without adding a database server
+or normalized relation tables.
 
 ## D1
 
-The application owns one table, `articles`:
+The application owns two tables. `articles` stores:
 
 - `id`, `slug`, `contentHash`;
 - `metaJson`: Chinese title and summary under required `zh`; legacy edition keys remain readable;
@@ -16,8 +17,13 @@ The application owns one table, `articles`:
 - `linksJson`: referenced wiki-link slugs;
 - `visibility`, `createdAt`, `updatedAt`.
 
+`articleJobs` stores only `id`, `status`, nullable `resultJson`, `createdAt`, and `updatedAt`. Status is
+`pending`, `processing`, `created`, `duplicate`, or `failed`. Pending and processing rows have no
+result. Terminal JSON contains either an article ID, an article ID plus duplicate score, or a
+sanitized error. It never contains submitted content, generated Markdown, prompts, or embeddings.
+
 Better Auth owns its standard `user`, `session`, `account`, and `verification` tables. Do not add a
-profile, role, token, tag, link, revision, job, relation, source, or deletion table.
+profile, role, token, tag, link, revision, relation, source, or deletion table.
 
 Make `id` the primary key and `slug` and `contentHash` unique. Add only one project index on
 `(visibility, updatedAt)`. Store timestamps as UTC ISO strings. Generate IDs with
@@ -52,6 +58,11 @@ and Graph, avoiding an R2 read for every row. KV caches the parsed public Chines
 the D1 row, then checks KV, reads canonical R2 Markdown on a miss, validates it, and writes the parsed
 edition back to KV. Private articles never read from or write to KV. Invalid or unavailable cache
 data is observable and falls back to canonical R2; KV never authorizes access.
+
+KV also stores submitted creation input under `article-jobs/{jobId}/input` with a 48-hour TTL. This
+entry is a transient handoff to the Queue consumer, not canonical knowledge. The producer deletes it
+if D1 insertion or Queue publication fails; the consumer deletes it after any terminal result. Queue
+messages contain only the job ID, and D1 never stores the input.
 
 ## Writes
 

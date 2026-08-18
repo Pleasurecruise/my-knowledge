@@ -2,9 +2,10 @@
 
 Status: Application and local release gates implemented; production provisioning remains an owner gate
 
-OpenNext builds one Cloudflare Worker. Wrangler owns its resources, bindings, variables, secrets,
-migrations, preview, and deployment. Use one production resource set plus local Wrangler state; this
-personal application does not need duplicated cloud environments.
+OpenNext builds one Worker with a project-owned entry that reuses its generated fetch handler and adds
+the Queue consumer. Wrangler owns resources, bindings, variables, secrets, migrations, preview, and
+deployment. Use one production resource set plus local Wrangler state; this personal application does
+not need duplicated cloud environments.
 
 ## Platform bindings
 
@@ -14,13 +15,18 @@ Create these resources once and declare them in `apps/web/wrangler.json`:
 | :----------------- | :--------------------------- | :--------------------- |
 | `DB`               | `my-knowledge`               | Article index and auth |
 | `KNOWLEDGE_BUCKET` | Dedicated or approved shared | Canonical Markdown     |
-| `KNOWLEDGE_CACHE`  | `my-knowledge`               | Public edition cache   |
+| `KNOWLEDGE_CACHE`  | `my-knowledge`               | Cache and job input    |
 | `KNOWLEDGE_INDEX`  | `my-knowledge`               | Semantic vectors       |
 | `AI`               | Workers AI                   | BGE-M3 embeddings      |
+| `ARTICLE_JOBS`     | `article-jobs` Queue         | Job publication        |
 
 These are Worker bindings injected by Cloudflare, not environment variables. Resource IDs and names
 belong only in `wrangler.json`; application code accesses `env.DB`, `env.KNOWLEDGE_BUCKET`,
 `env.KNOWLEDGE_CACHE`, `env.KNOWLEDGE_INDEX`, and `env.AI`.
+
+`ARTICLE_JOBS` is the producer binding, and the same Worker is the queue's sole consumer. Queue events
+run independently from fetch events and use the existing D1, R2, KV, Vectorize, AI, account, and
+Gateway bindings.
 
 Create only missing resources. A dedicated setup uses the `my-knowledge` name throughout; keep a
 different R2 bucket name in `wrangler.json` only when sharing that bucket is an explicit decision.
@@ -31,6 +37,7 @@ pnpm --filter @my-knowledge/web exec wrangler d1 create my-knowledge
 pnpm --filter @my-knowledge/web exec wrangler r2 bucket create my-knowledge
 pnpm --filter @my-knowledge/web exec wrangler kv namespace create my-knowledge
 pnpm --filter @my-knowledge/web exec wrangler vectorize create my-knowledge --dimensions=1024 --metric=cosine
+pnpm --filter @my-knowledge/web exec wrangler queues create article-jobs
 ```
 
 ## Values you set
@@ -53,8 +60,8 @@ Upload these with Wrangler secrets:
 | `CF_AIG_TOKEN`         | AI Gateway authentication                   |
 | `MCP_API_KEY`          | Owner Bearer key for MCP                    |
 
-`wrangler.json` declares all six names as required secrets so clean CI type generation does not
-depend on a local `.dev.vars`, and a Worker version cannot be uploaded with an incomplete secret set.
+`wrangler.json` declares all six names as required secrets so clean CI type generation does not depend
+on a local `.dev.vars`, and a Worker version cannot be uploaded with an incomplete secret set.
 
 Google's client ID is not cryptographically secret, but keeping the OAuth pair in the same Wrangler
 secret workflow avoids another configuration path. Register
@@ -76,10 +83,11 @@ exists, do not also rely on a Wrangler `.env` file. Never commit either populate
 example contains the two variables and six empty secret names only. Set `BETTER_AUTH_URL` to the
 actual origin of the command being run; do not reuse a `next dev` origin for preview.
 
-Wrangler keeps one binding configuration. Its bindings use `remote: true` so local development can
-reach the configured Cloudflare resources. During Next.js's development-server phase,
+The Worker keeps one binding configuration. Its storage and model bindings use `remote: true` so
+local development can reach the configured Cloudflare resources. During Next.js's development-server phase,
 `apps/web/next.config.ts` initializes OpenNext for those bindings. Wrangler local state lives under
-`apps/web/.wrangler`.
+`apps/web/.wrangler`. A production-like local Queue run uses the generated custom Worker; `next dev`
+alone does not consume queued jobs.
 
 The root layout declares `dynamic = "force-dynamic"`, making the complete application route tree
 request-rendered before any page or metadata function can read Cloudflare context. The independent
@@ -88,9 +96,10 @@ static-generation workers from creating Wrangler platform proxies during a produ
 
 ## Free-plan constraints
 
-The application is designed for Cloudflare's free plan: direct bindings, one project D1 table,
-paginated list queries, bounded Vectorize results, no database server, and no cached list blobs. KV
-caches only versioned public Chinese articles, while R2 remains canonical.
+The application is designed for Cloudflare's free plan: direct bindings, two small project D1 tables,
+paginated list queries, bounded Vectorize results, one Queue consumer, no database server, and no
+cached list blobs. KV caches versioned public Chinese articles and temporarily holds submitted job
+input, while R2 remains canonical.
 
 Do not copy numeric platform quotas into this repository because Cloudflare changes them. Before each
 release, run `pnpm build` followed by `pnpm dry-run` and confirm Wrangler's compressed upload remains
@@ -102,15 +111,15 @@ before adding storage layers or database abstractions.
 ## Release
 
 1. verify every configured resource and decide whether R2 is dedicated or intentionally shared;
-2. create any missing resources, initialize the Worker without production traffic, and configure
-   Workers Builds with root directory `apps/web`, build command `pnpm build:worker`, and deploy
-   command `pnpm exec opennextjs-cloudflare deploy`;
+2. create the Queue and any missing storage resources, initialize the Worker without production
+   traffic, and configure Workers Builds with root directory `apps/web`, build command
+   `pnpm build:worker`, and deploy command `pnpm exec opennextjs-cloudflare deploy`;
 3. set the two variables, create the Google OAuth client, and upload the six secrets;
 4. review the numbered application and Better Auth SQL migrations;
 5. run `pnpm d1:migrate:local`, `pnpm check`, `pnpm test`, `pnpm build`, `pnpm dry-run`, and
    `pnpm preview`;
-6. apply `pnpm d1:migrate:remote`, deploy, then verify login, MCP mutations, authenticated deletion,
-   public search, owner-authorized private search, and private non-disclosure.
+6. apply `pnpm d1:migrate:remote`, deploy, then verify login, Job submission/polling, MCP mutations,
+   authenticated deletion, public search, owner-authorized private search, and private non-disclosure.
 
 Migrations remain backward-compatible for one Worker rollback window. Roll back application code with
 Cloudflare Worker versions and repair data with a new forward migration.
@@ -120,7 +129,7 @@ must perform the following final gate because it requires account authority or a
 
 1. accept the configured model provider's retention policy;
 2. verify the production origin, configured Cloudflare resource IDs, and R2 ownership decision;
-3. create every missing resource and initialize the Worker;
+3. create every missing resource, including Queue, and initialize the Worker;
 4. create the Google OAuth client and upload all six secrets;
 5. run the remote migration, deploy, and execute the live provider, Vectorize, OAuth, MCP mutation,
    deletion, and anonymous privacy smoke tests.

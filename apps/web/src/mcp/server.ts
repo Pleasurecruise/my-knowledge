@@ -8,6 +8,8 @@ import {
   deleteArticleInput,
   deleteArticleOperation,
   getArticleInput,
+  getArticleJobInput,
+  getArticleJobOperation,
   getArticleOperation,
   listArticlesInput,
   listArticlesOperation,
@@ -31,7 +33,7 @@ function serverFor(env: CloudflareEnv) {
     "createArticle",
     {
       description:
-        "Create one finished private Chinese article from conversation content in any language.",
+        "Accept conversation content for asynchronous creation of one private Chinese article.",
       inputSchema: createArticleInput,
       annotations: {
         readOnlyHint: false,
@@ -41,6 +43,21 @@ function serverFor(env: CloudflareEnv) {
       },
     },
     (input) => createArticleOperation(env, input),
+  );
+
+  server.registerTool(
+    "getArticleJob",
+    {
+      description: "Read the current state or terminal result of an article creation job.",
+      inputSchema: getArticleJobInput,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    (input) => getArticleJobOperation(env, input),
   );
 
   server.registerTool(

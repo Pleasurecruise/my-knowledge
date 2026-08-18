@@ -5,7 +5,8 @@ without manual organization.
 
 ## Outcomes
 
-- Capture: one MCP call produces one valid Chinese article or a useful duplicate result.
+- Capture: one MCP submission produces one valid Chinese article or a useful duplicate result through
+  a queryable job.
 - Retrieval: the owner can find knowledge through tags, links, graph, keywords, and grounded AI search.
 - Publication: public articles read like a calm long-form knowledge library and produce complete,
   recognizable link previews.
@@ -14,7 +15,9 @@ without manual organization.
 ## Hard measures
 
 - Zero anonymous disclosure of private titles, bodies, metadata, vectors, or relationships.
-- Zero storage of submitted conversations or AI-search request material.
+- Submitted conversations exist only in expiring KV job-input entries until terminal processing;
+  they never enter D1, R2, Vectorize, job results, or application logs. AI-search request material is
+  never stored.
 - Every AI answer citation resolves to an article authorized for the current session.
 - Every generated article is private until an explicit MCP visibility change.
 

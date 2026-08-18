@@ -5,20 +5,22 @@ Status: Implemented
 ## Monorepo
 
 ```text
-apps/web                 Next.js pages, Route Handlers, orchestration, auth, and Cloudflare bindings
+apps/web                 Next.js, MCP, article orchestration, Queue consumer, auth, and bindings
 packages/ai-core         provider adapter and schema-bound model execution
 packages/content         article, Markdown, tag, link, and hash domain rules
 packages/skills          pinned upstream skills, loader, registry, and attribution
 packages/ui              shadcn components, tokens, icons, theme behavior, and Markdown presentation
 ```
 
-This is one product and one Worker deployment. Packages exist for reusable ownership and test
-boundaries, not as separate services. Do not add a package until code is genuinely shared or has a
+This is one product and one Worker deployment. A custom OpenNext entry reuses the generated fetch
+handler and adds the Queue consumer, so HTTP/MCP requests and background jobs remain separate Worker
+invocations without adding another application. Packages exist for reusable ownership and test
+boundaries, not as independent services. Do not add a package until code is genuinely shared or has a
 stable independent responsibility.
 
 Dependency direction is fixed: `content` and `skills` are independent; `ai-core` may consume both;
 `ui` consumes content types but never platform adapters; `apps/web` composes packages with D1, R2,
-KV, Vectorize, auth, and transport. Domain packages never import from `apps/web`.
+KV, Vectorize, Queue, auth, and transport. Domain packages never import from `apps/web`.
 
 ## Selected stack
 
@@ -89,22 +91,28 @@ content skill and does not construct provider URLs or headers.
 
 ```text
 MCP createArticle
+  -> D1 inserts articleJobs(pending), KV stores expiring input, Queue receives { jobId }
+  -> MCP returns { status: accepted, jobId }
+  -> the Worker's queue handler claims the job in a separate invocation
   -> packages/skills selects Waza and project-owned rich-content skills
   -> packages/ai-core calls the custom provider
   -> Vectorize compares the finished article
-  -> apps/web stores the private result in R2 and D1
+  -> the queue handler stores the private result and updates the D1 job
+  -> MCP getArticleJob resolves status or the terminal result
 ```
 
-The input exists only in request memory. There is no Cloudflare Workflow, job table, staging bucket,
-temporary transcript object, or background cleanup process.
+Submitted input is stored only under an expiring, namespaced KV key. Queue messages contain only the
+job UUID. Terminal processing deletes the input immediately; the TTL cleans abandoned submissions.
+Job rows contain state and final article references, never submitted content or generated Markdown.
+There is no Workflow, staging bucket, temporary R2 object, or stored provider payload.
 
 ## Storage
 
 | Store     | Purpose                                            |
 | :-------- | :------------------------------------------------- |
-| D1        | One article index row plus Better Auth tables      |
+| D1        | Article index, creation jobs, and Better Auth      |
 | R2        | Final Chinese Markdown with YAML frontmatter       |
-| KV        | Disposable hash-keyed public article cache         |
+| KV        | Public article cache and expiring job input        |
 | Vectorize | Rebuildable similarity and semantic-search vectors |
 
 D1 is authoritative for existence and visibility. R2 is authoritative for Markdown, title, summary,
@@ -118,6 +126,8 @@ defined once in [Database](DATABASE.md).
 
 - Every create writes `private`; neither MCP input nor model output can override it.
 - `createArticle` has no visibility input.
+- Queue delivery is at least once; a conditional D1 claim makes terminal jobs idempotent, and a stale
+  processing lease permits recovery after an interrupted consumer.
 - Public queries include visibility in D1 before reading R2.
 - Public article reads check D1, then read through the versioned KV entry, and use R2 on a cache miss
   or observable cache failure.
@@ -128,7 +138,7 @@ defined once in [Database](DATABASE.md).
   invalidates the current version.
 - Delete makes the D1 row private before removing KV, R2, Vectorize, and finally the row.
 - Repeating a completed delete returns not found and performs no further write.
-- Failed generation stores nothing.
+- Failed generation stores only a sanitized terminal job result and deletes its temporary input.
 
 ## Similarity and graph
 
