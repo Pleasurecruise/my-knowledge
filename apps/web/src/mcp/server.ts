@@ -33,7 +33,7 @@ function serverFor(env: CloudflareEnv) {
     "createArticle",
     {
       description:
-        "Queue one private Chinese article and return a job ID immediately. Keep the job ID and poll getArticleJob; serial processing may take several minutes. Do not submit the same content again while its job is pending or processing.",
+        "Queue one private Chinese article and return a job ID immediately; that job ID is the complete result of this call. Serial processing can take several minutes, so check getArticleJob again later instead of polling in a tight loop. Do not submit the same content again while its job is pending or processing.",
       inputSchema: createArticleInput,
       annotations: {
         readOnlyHint: false,

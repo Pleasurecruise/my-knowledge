@@ -49,10 +49,6 @@ export async function parseArticleDocuments(
     editions: { ...editions, zh: base },
     tags: base.tags,
     links: base.links,
-    contentHash: await hashArticle(
-      Object.fromEntries(
-        Object.entries(editions).map(([locale, edition]) => [locale, edition.markdown]),
-      ),
-    ),
+    contentHash: await hashArticle({ zh: base.markdown }),
   };
 }

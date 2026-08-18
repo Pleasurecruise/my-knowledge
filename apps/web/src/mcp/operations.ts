@@ -1,4 +1,4 @@
-import { canonicalizeTags, parseArticleDocuments } from "@my-knowledge/content";
+import { canonicalizeTags } from "@my-knowledge/content";
 import { z } from "zod";
 
 import {
@@ -11,6 +11,7 @@ import {
   listArticles,
   listTags,
   setArticleVisibility,
+  translateChineseDocument,
   updateArticle,
 } from "@/articles";
 import { getArticleJob, submitArticleJob } from "@/article-jobs";
@@ -104,7 +105,7 @@ export async function updateArticleOperation(
   if (!(await hasArticleVersion(env, input.id, input.expectedHash))) {
     return notFound("Article not found");
   }
-  const document = await parseArticleDocuments({ zh: input.document });
+  const document = await translateChineseDocument(env, input.document);
   const embedding = await embedText(env, embeddingInput(document.editions.zh));
   const article = await updateArticle(env, input.id, input.expectedHash, document, embedding);
   return article ? result(article) : notFound("Article not found");

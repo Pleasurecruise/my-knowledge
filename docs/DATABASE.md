@@ -12,7 +12,7 @@ or normalized relation tables.
 The application owns two tables. `articles` stores:
 
 - `id`, `slug`, `contentHash`;
-- `metaJson`: Chinese title and summary under required `zh`; legacy edition keys remain readable;
+- `metaJson`: title and summary keyed by edition, `zh`/`en`/`ja` required on every current row;
 - `tagsJson`: normalized tag paths;
 - `linksJson`: referenced wiki-link slugs;
 - `visibility`, `createdAt`, `updatedAt`.
@@ -37,27 +37,31 @@ bottleneck.
 
 ## R2 and KV
 
-R2 stores the canonical Chinese document:
+R2 stores the three current editions side by side:
 
 ```text
 knowledge/{primaryTagPath?}/{articleSlug}/zh.md
+knowledge/{primaryTagPath?}/{articleSlug}/en.md
+knowledge/{primaryTagPath?}/{articleSlug}/ja.md
 ```
 
 The complete first tag is the optional folder path, so `engineering/frontend` produces nested
-folders; an untagged article begins directly with its stable slug. Changing the first tag moves the
-document. Keys remain derived from existing D1 projections, so D1 does not store a path or category
-field. Hashes never appear in R2 paths. Canonical Markdown uses LF line endings, one final newline,
-and frontmatter ordered as `title`, `summary`, then `tags`. `contentHash` remains lowercase SHA-256
-over `zh`, one NUL byte, the canonical Markdown bytes, and one NUL byte. It is concurrency metadata
-for D1, KV, and Vectorize rather than a folder name. Existing locale-keyed objects remain readable
-until a later update removes superseded editions.
+folders; an untagged article begins directly with its stable slug. Changing the first tag moves every
+edition together. Keys remain derived from existing D1 projections, so D1 does not store a path or
+category field. Hashes never appear in R2 paths. Canonical Markdown uses LF line endings, one final
+newline, and frontmatter ordered as `title`, `summary`, then `tags` for every edition. `contentHash`
+remains lowercase SHA-256 over `zh`, one NUL byte, the canonical Chinese Markdown bytes, and one NUL
+byte — only the authored Chinese edition participates in the hash, since `en`/`ja` are derived from it.
+It is concurrency metadata for D1, KV, and Vectorize rather than a folder name. A create or update
+writes all three editions together; a legacy edition outside this set is removed rather than kept.
 
 D1 `metaJson`, `tagsJson`, and `linksJson` are parsed projections used for lists, filters, backlinks,
-and Graph, avoiding an R2 read for every row. KV caches the parsed public Chinese article under
-`articles/{articleId}/{contentHash}/{locale}.json` with a 24-hour TTL. A public read first authorizes
-the D1 row, then checks KV, reads canonical R2 Markdown on a miss, validates it, and writes the parsed
-edition back to KV. Private articles never read from or write to KV. Invalid or unavailable cache
-data is observable and falls back to canonical R2; KV never authorizes access.
+and Graph, avoiding an R2 read for every row; `metaJson` carries title and summary for all three
+editions. KV caches each parsed public edition under `articles/{articleId}/{contentHash}/{locale}.json`
+with a 24-hour TTL. A public read first authorizes the D1 row, then checks KV for the requested
+locale, reads canonical R2 Markdown on a miss, validates it, and writes the parsed edition back to KV.
+Private articles never read from or write to KV. Invalid or unavailable cache data is observable and
+falls back to canonical R2; KV never authorizes access.
 
 KV also stores submitted creation input under `article-jobs/{jobId}/input` with a 48-hour TTL. This
 entry is a transient handoff to the Queue consumer, not canonical knowledge. The producer deletes it
@@ -70,9 +74,10 @@ Cloudflare stores do not share a transaction.
 
 Create or update in this order:
 
-1. validate and canonicalize the required Chinese document;
+1. validate and canonicalize the Chinese document, then translate it into `en` and `ja`, and validate
+   those two as well;
 2. read the current R2 document set and ETags for an update, including legacy editions;
-3. conditionally write the Chinese document: an unchanged path must match its previous ETag and a moved
+3. conditionally write all three documents: an unchanged path must match its previous ETag and a moved
    or new path must not already exist;
 4. upsert a 64-byte Vectorize ID made from the hyphenless article UUID, a separator, and the first 31
    hash characters; store the complete article ID and content hash in vector metadata;

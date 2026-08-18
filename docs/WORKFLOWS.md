@@ -49,19 +49,28 @@ nothing.
 
 Compute the canonical Chinese `contentHash`, embed the title, summary, and body, and query
 Vectorize. An exact hash or a score above the duplicate threshold returns the closest authorized
-article and stores nothing. Lower-scoring neighbors become article-page semantic relationships at
-read time. Vector IDs stay within the provider's 64-byte boundary; complete authorization fields live
-in validated metadata and are checked against D1.
+article and stores nothing — a duplicate never reaches translation. Lower-scoring neighbors become
+article-page semantic relationships at read time. Vector IDs stay within the provider's 64-byte
+boundary; complete authorization fields live in validated metadata and are checked against D1.
 
-### 4. Save
+### 4. Translate
 
-Parse the Chinese Markdown, validate tags, resolve wiki links, and validate supported blocks. Use the
-conditional R2, Vectorize, and D1 order defined in [Database](DATABASE.md), with visibility forced to
-`private`.
+Once comparison clears the Chinese article for storage, translate its title, summary, and body into
+`en` and `ja` editions. This step only mirrors the already-written Chinese result; it does not draft,
+summarize, tag, or link independently. Invalid or incomplete translation output stores nothing, the
+same as an invalid writing result.
+
+### 5. Save
+
+Parse all three Markdown editions, validate tags, resolve wiki links, and validate supported blocks.
+Use the conditional R2, Vectorize, and D1 order defined in [Database](DATABASE.md), with visibility
+forced to `private`.
 
 Record the created article ID or duplicate article ID and score in the terminal job result, then
 delete the KV input. `getArticleJob` resolves those IDs through the normal authorized article read and
-returns the current state or terminal result. Clients poll until `created`, `duplicate`, or `failed`.
+returns the current state or terminal result. `createArticle` already returned its complete result (the
+job ID); calling `getArticleJob` again to learn `created`, `duplicate`, or `failed` is the client's
+choice and cadence, not a loop the server expects it to run continuously.
 
 ## Web discovery
 
@@ -75,16 +84,17 @@ private rows; anonymous readers search public rows only.
 The allowed-email owner can create or edit canonical Chinese Markdown from the Article surface. The
 New action appears only with the Chinese interface, and the new-article editor always uses Chinese
 labels; direct route access remains owner-authorized. A save regenerates its one-sentence Chinese
-summary, validates the document, and replaces the version through the existing R2, Vectorize, and D1
-write order. Updating a legacy multilingual article removes its superseded editions. New articles
-start private. Publish, withdraw, and delete remain explicit operations guarded by the current
-content hash.
+summary, translates the result into `en` and `ja`, validates all three documents, and replaces the
+version through the existing R2, Vectorize, and D1 write order. A legacy edition outside the current
+three is removed. New articles start private. Publish, withdraw, and delete remain explicit
+operations guarded by the current content hash.
 
 ## MCP mutations, reads, and search
 
-- `getArticle` reads one authorized Chinese article.
+- `getArticle` reads one authorized article with its Chinese, English, and Japanese editions.
 - `listArticles` uses a stable updated-time/ID cursor and filters by visibility and nested tags.
-- `updateArticle` saves edited final Markdown, tags, links, hash, and vector with an expected hash.
+- `updateArticle` saves edited final Chinese Markdown, tags, links, hash, and vector with an expected
+  hash, translating the submitted document into refreshed `en`/`ja` editions.
 - `deleteArticle` makes the D1 row private before removing cached editions, Markdown, vector, and the
   row.
 - `searchArticles` combines text/tag filters with semantic search and re-authorizes every result.
@@ -92,10 +102,11 @@ content hash.
   applying the caller's visibility boundary.
 - `setVisibility` is the explicit owner-only private/public action.
 
-MCP and browser authoring share the same Article persistence boundaries. Browser saves own automatic
-Chinese summary generation; MCP `updateArticle` accepts one complete validated Chinese Markdown
-document. Only MCP conversation creation uses a job; browser authoring and other mutations remain
-synchronous and create no revisions, audit records, or hidden fallbacks.
+MCP and browser authoring share the same Article persistence boundaries and the same translation step
+for `en`/`ja`. Browser saves own automatic Chinese summary generation; MCP `updateArticle` accepts one
+complete validated Chinese Markdown document. Only MCP conversation creation uses a job; browser
+authoring and other mutations remain synchronous and create no revisions, audit records, or hidden
+fallbacks.
 
 ## Failure behavior
 
@@ -103,6 +114,8 @@ synchronous and create no revisions, audit records, or hidden fallbacks.
 - Provider, frontmatter, or block validation failures retry and eventually produce a sanitized failed
   job without storing an article.
 - Duplicate content produces the closest article result and does not write another article.
+- Translation failure blocks create/update so an article is never stored with a missing or invalid
+  edition.
 - Unauthorized reads behave as not found.
 - Cache failure is logged, reads canonical R2, and never bypasses the preceding D1 authorization.
 - Vector failure blocks create/update so search never silently becomes stale.

@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { extractHeadings, parseArticleDocument } from "@my-knowledge/content";
+import { extractHeadings, parseArticleDocument, resolveLocale } from "@my-knowledge/content";
 import { Markdown } from "@my-knowledge/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -69,9 +69,9 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
   ]);
   const article = await getArticleBySlug(env, principal, slug);
   if (!article) notFound();
-  const text = article.editions.zh;
   if (principal === "owner" && query.edit === "1") {
-    const document = parseArticleDocument(text.markdown);
+    const zhEdition = article.editions.zh;
+    const document = parseArticleDocument(zhEdition.markdown);
     return (
       <div className="mx-auto max-w-280 px-4 pt-5 pb-20 sm:px-8 sm:pt-7 sm:pb-24">
         <ArticleEditorShell
@@ -80,9 +80,9 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
             contentHash: article.contentHash,
             id: article.id,
             slug: article.slug,
-            summary: text.summary,
+            summary: zhEdition.summary,
             tags: article.tags,
-            title: text.title,
+            title: zhEdition.title,
             visibility: article.visibility,
           }}
           messages={i18n.messages.article}
@@ -91,6 +91,8 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
       </div>
     );
   }
+  const locale = resolveLocale(Object.keys(article.editions), i18n.code) ?? "zh";
+  const text = article.editions[locale] ?? article.editions.zh;
   const relations = await getArticleRelations(env, principal, article);
   const headings = extractHeadings(text.markdown);
   return (
@@ -98,7 +100,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
       <article
         className="mx-auto mt-6 min-w-0 w-full max-w-162.5 sm:mt-8"
         id="article"
-        lang="zh-CN"
+        lang={locale === "zh" ? "zh-CN" : locale}
       >
         <ArticleHeader
           actions={
@@ -116,7 +118,11 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
           title={text.title}
         />
         {headings.length > 0 ? (
-          <ArticleToc headings={headings} key="zh" label={i18n.messages.article.tableOfContents} />
+          <ArticleToc
+            headings={headings}
+            key={locale}
+            label={i18n.messages.article.tableOfContents}
+          />
         ) : null}
         <Markdown
           labels={{

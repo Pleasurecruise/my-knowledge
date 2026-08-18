@@ -19,7 +19,7 @@ describe("browser fixtures", () => {
     expect(Object.keys(article.editions)).toEqual(["zh", "en", "ja"]);
     expect(article.links).toEqual(["related-article"]);
     expect(article.contentHash).toBe(
-      "99565281b97b58653d28bb2a051ccc2ff0be870cd2f1f2116f9a45b5c6c071b5",
+      "60a93252b4aad827daa74851a0b1ff889226fef40b87c55e74cde3493f8c9370",
     );
   });
 
@@ -28,7 +28,7 @@ describe("browser fixtures", () => {
     expect(article.links).toEqual([]);
     expect(article.tags).toEqual(["engineering/architecture"]);
     expect(article.contentHash).toBe(
-      "266ed4837c32e892b9e1ca59e4339bf9206e8a31be0544d81437a25fc30b7400",
+      "ff05da72f85e25930d01f0e144564d58c100a01e5fc86f467075b89f591f8c72",
     );
   });
 
@@ -36,7 +36,7 @@ describe("browser fixtures", () => {
     const article = await parseArticleDocuments(await documents("private"));
     expect(article.tags).toEqual(["testing/privacy"]);
     expect(article.contentHash).toBe(
-      "9859fec5e397ef21b07ff25a813a3149e46fda460fca71d5e5871e74823152c3",
+      "24127f5139323ac615200058d1cc566fcc55d7fbd37563f93aa153992d3e3725",
     );
   });
 });

@@ -16,8 +16,8 @@ the owner to rewrite, summarize, classify, tag, or compare it manually.
 ## Main experience
 
 1. Send conversation content to `createArticle`.
-2. Receive a job ID and poll `getArticleJob` for one finished Chinese article or a similar-article
-   conflict.
+2. Receive a job ID immediately, then check `getArticleJob` later for one finished article (with its
+   Chinese, English, and Japanese editions) or a similar-article conflict.
 3. Find it through keywords, tags, links, the graph, or authenticated MCP search.
 4. Review and edit it in the browser, then publish it from the browser or MCP when ready.
 
@@ -47,7 +47,7 @@ visibility is never authorization. MCP retains the separate owner credential des
 An article stores only:
 
 - identity and slug;
-- one canonical Chinese Markdown document;
+- one canonical Chinese Markdown document plus its English and Japanese translations;
 - Obsidian-style hierarchical tags;
 - private or public visibility;
 - content hash and timestamps.
@@ -71,7 +71,8 @@ Home search and Graph expose this hierarchy without adding filters to the chrono
 The first release is complete when:
 
 - only the allowed email can reveal or mutate private content from the web UI;
-- MCP creates one polished Chinese article from one temporarily held input, then deletes that input;
+- MCP creates one polished article — Chinese plus its English and Japanese translations — from one
+  temporarily held input, then deletes that input;
 - a highly similar article prevents a duplicate write and returns the existing article;
 - every created article is private regardless of model output or client input;
 - MCP can list, read, update, delete, search, tag, link, and change article visibility;

@@ -28,10 +28,12 @@ AI summary generation and cross-store cleanup remain live account gates.
 ## 3. Content creation — complete, live provider smoke pending
 
 The custom provider adapter, pinned Waza and project-owned rich-content skills, Chinese writing,
-asynchronous MCP `createArticle`, tags, wiki links, and bounded KV input lifetime are implemented.
+translation into English and Japanese editions, asynchronous MCP `createArticle`, tags, wiki links,
+and bounded KV input lifetime are implemented.
 
-Exit: one MCP submission returns a job ID; polling returns one complete private Chinese article or a
-duplicate, and temporary input is deleted after terminal processing.
+Exit: one MCP submission returns a job ID; checking `getArticleJob` later returns one complete private
+article with its Chinese, English, and Japanese editions, or a duplicate, and temporary input is
+deleted after terminal processing.
 
 ## 4. Similarity and discovery — complete, live Vectorize smoke pending
 
@@ -51,6 +53,7 @@ Exit: public reading is polished and private articles remain absent from every a
 
 ## Later
 
-Additional article or interface languages, revision history, more diagram engines, and export formats
-only after a real need appears. Language additions extend their existing registry or edition map; they
-do not introduce environment lists or parallel page trees.
+Additional interface display languages, revision history, more diagram engines, and export formats
+only after a real need appears. The `zh`/`en`/`ja` content triangle is core, not later; further content
+languages would extend the existing edition map rather than introduce environment lists or parallel
+page trees.

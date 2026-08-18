@@ -12,6 +12,7 @@ export { findVectorArticles } from "./persistence/vector";
 export { createArticleFromContent } from "./application/create";
 export { createArticleFromDraft, updateArticleFromDraft } from "./application/authoring";
 export { embedText, embeddingInput } from "./application/embedding";
+export { translateChineseDocument } from "./application/translation";
 export {
   createArticle,
   deleteArticle,

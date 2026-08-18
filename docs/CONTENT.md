@@ -28,22 +28,26 @@ type Article = {
 };
 ```
 
-`zh` is the only required and newly written edition. The record shape still accepts additional
-canonical BCP 47 keys so existing multilingual articles remain readable until their next update;
-creation, display, search, and mutation use Chinese only. `createArticle` receives no locale choice.
-AI understands the source conversation in whatever language it uses and writes Simplified Chinese.
-`ArticleSummary` omits every Markdown body. List, search, related, and graph responses use
-summaries unless the caller requests one article. Timestamps are UTC ISO strings. The slug is created
-from the Chinese title, made unique once, and never changes during updates.
+`zh` is the authored, canonical edition; `en` and `ja` are translations that every creation and
+update produces alongside it, so a current record always carries all three. `createArticle` and the
+browser editor accept only Chinese input; `createArticle` receives no locale choice, and AI
+understands the source conversation in whatever language it uses and writes Simplified Chinese.
+Hashing, embedding, and duplicate comparison use the Chinese edition only. Reading an article renders
+whichever edition matches the caller's locale, falling back to Chinese when one is missing — possible
+only for content saved before a locale existed. `ArticleSummary` omits every Markdown body. List,
+search, related, and graph responses use summaries unless the caller requests one article. Timestamps
+are UTC ISO strings. The slug is created from the Chinese title, made unique once, and never changes
+during updates.
 
 ## Markdown
 
-R2 stores one canonical Chinese Markdown document at the `zh` object key. It begins with YAML
-frontmatter containing only `title`, `summary`, and `tags` in that order. The body may contain
+R2 stores three Markdown documents, one at each of the `zh`, `en`, and `ja` object keys. Every edition
+begins with YAML frontmatter containing only `title`, `summary`, and `tags` in that order, and the
+translated `en`/`ja` editions carry the same (untranslated) tags as `zh`. The body may contain
 CommonMark/GFM, fenced code, math, Mermaid, Vega/Vega-Lite JSON, JSON Canvas, callouts, and `[[slug]]`
-or `[[slug|label]]` links. Title and body are separate fields; normalization removes one leading
-level-one heading so a client that submits `# title` cannot duplicate the Article header. Other body
-headings are retained.
+or `[[slug|label]]` links, and translation preserves this structure rather than reformatting it. Title
+and body are separate fields; normalization removes one leading level-one heading so a client that
+submits `# title` cannot duplicate the Article header. Other body headings are retained.
 
 Raw HTML, executable URLs, embedded scripts, and unknown structured-block formats are rejected.
 HTML-like text and URL examples inside code spans or fenced code remain valid escaped code. JSON
@@ -64,14 +68,17 @@ no-SSR bundle boundaries and never pass through Shiki.
 
 ## Generation and update
 
-Article creation receives conversation content in any language and produces one Chinese article. The
-model owns language understanding as part of the single writing call. It stores neither input nor an
-intermediate result and does not run a translation stage.
+Article creation receives conversation content in any language. The model first writes one finished
+Chinese article; a separate translation step then produces the `en` and `ja` title, summary, and body
+from that Chinese result. All three editions are validated and stored together. It stores neither the
+submitted input nor an intermediate result.
 
 `updateArticle` receives one complete Chinese `document` plus `expectedHash`. It does not accept
-partial field patches, call the model, or infer a translation. Visibility changes remain a separate
-MCP operation. Updating a legacy multilingual article replaces its stored edition set with Chinese.
+partial field patches or call the writing model, but it does run the same translation step to refresh
+`en` and `ja` from the new Chinese document before storing all three. Visibility changes remain a
+separate MCP operation.
 
 The browser editor accepts a Chinese title, body, and tags. Save regenerates the Chinese one-sentence
-summary before the same canonical validation and conditional R2/D1 write. This is one coordinated
-mutation; a failed summary, validation, embedding, or write leaves the current version unchanged.
+summary, translates the result into `en` and `ja`, then runs the same canonical validation and
+conditional R2/D1 write for all three editions. This is one coordinated mutation; a failed summary,
+translation, validation, embedding, or write leaves the current version unchanged.

@@ -6,6 +6,14 @@ Expose one authenticated `POST /api/mcp` endpoint with the official MCP TypeScri
 One high-entropy Bearer key represents the owner. Tools call the same application operations as the
 web read layer; `deleteArticle` is also used by the one authenticated browser mutation.
 
+This is a single-person product: whoever holds the Bearer key is the same person as `ALLOWED_EMAIL`,
+not a second principal. The key and the browser's Better Auth session are simply two credential paths
+to that one owner, each still checked against its own transport — the key authorizes only the
+`/api/mcp` request that carries it, and a browser tab needs its own signed-in session. A link built
+from a tool result (for example an article slug from `listArticles`) therefore still renders as not
+found in a browser tab that has not separately signed in, because every generated article starts
+private.
+
 ## Protocol
 
 - Prefer stateless `2026-07-28`, including `server/discover`, protocol and routing headers, and no
@@ -16,9 +24,10 @@ web read layer; `deleteArticle` is also used by the one authenticated browser mu
 
 ## `createArticle`
 
-Input: `{ content: string }`. The content may use any language; AI always produces one finished
-Chinese article. The request deliberately has no locale, visibility, tags, model, skill, or provider
-override.
+Input: `{ content: string }`. The content may use any language; AI always writes one finished
+Chinese article, then an internal translation step produces matching English and Japanese editions
+before anything is stored. The request deliberately has no locale, visibility, tags, model, skill, or
+provider override.
 
 Creates an asynchronous job, stores the input in expiring KV, and publishes only the job ID to Queue.
 It does not call the writing or embedding providers. Returns promptly:
@@ -31,11 +40,14 @@ Annotations: not read-only, non-destructive, non-idempotent, and open-world beca
 configured model provider.
 
 Submission uses KV, D1, and Queue. The consumer serializes creation to protect provider allowances;
-each job may therefore wait in `pending` and take several minutes once `processing`. Clients must keep
-the returned job ID, poll `getArticleJob`, and never resubmit the same content while that job remains
-active. Consult the account dashboard for current limits rather than relying on numbers copied into
-this repository. Use `listTags` or `listArticles` for a connection check; `createArticle` creates
-durable work and is not a health-check operation.
+each job may therefore wait in `pending` and take several minutes once `processing`. The Worker cannot
+hold the request open until a terminal result exists — processing routinely outlives the request's own
+time limit — so returning only the job ID is deliberate, not a shortcut a client should compensate for
+by polling in a tight loop. Returning the job ID is the complete result of this call; keep it and check
+`getArticleJob` again later, on whatever cadence suits the client, and never resubmit the same content
+while that job remains active. Consult the account dashboard for current limits rather than relying on
+numbers copied into this repository. Use `listTags` or `listArticles` for a connection check;
+`createArticle` creates durable work and is not a health-check operation.
 
 ## `getArticleJob`
 
@@ -55,8 +67,8 @@ job is still active, not that the client should call `createArticle` again.
 
 ## `getArticle`
 
-Input: `{ id: string }`. Returns the authorized article and its Chinese Markdown. A missing or
-unauthorized ID produces the same not-found result.
+Input: `{ id: string }`. Returns the authorized article with its Chinese, English, and Japanese
+Markdown editions. A missing or unauthorized ID produces the same not-found result.
 
 Annotations: read-only, non-destructive, idempotent, closed-world.
 
@@ -71,14 +83,16 @@ Annotations: read-only, non-destructive, idempotent, closed-world.
 
 ## `updateArticle`
 
-Input: `{ id: string; expectedHash: string; document: string }`. The Chinese Markdown frontmatter
-contains title, summary, and tags. The operation validates the document, refreshes article-row
-projections and the vector, removes superseded legacy editions, and rejects a stale hash without
-overwriting newer content.
+Input: `{ id: string; expectedHash: string; document: string }`. The caller supplies only the
+finished Chinese Markdown; its frontmatter contains title, summary, and tags. The operation
+translates that document into fresh `en` and `ja` editions, validates all three, refreshes
+article-row projections and the vector from the Chinese edition, removes any other legacy edition, and
+rejects a stale hash without overwriting newer content.
 
-It does not call the model or silently rewrite content.
-The expected hash is checked before embedding so stale requests do not spend provider work; the D1
-update still repeats the hash condition to close the concurrency race.
+It does not call the writing model or silently rewrite the submitted Chinese content; translation only
+mirrors that content into the other two editions. The expected hash is checked before embedding so
+stale requests do not spend provider work; the D1 update still repeats the hash condition to close the
+concurrency race.
 
 Annotations: not read-only, not destructive, idempotent for the same expected hash and content,
 closed-world.

@@ -196,7 +196,8 @@ another document. Status labels distinguish locally verified work from productio
   incomplete dictionaries fail type checking.
 - The interface cookie is validated against that registry. Only the documented default may replace an
   absent or unsupported interface choice; article content has no analogous fallback.
-- Interface locale affects labels only. Article content always renders and saves the Chinese edition;
-  legacy extra editions remain a storage compatibility detail until the next article update.
+- Interface locale affects labels and which stored article edition renders. Every create or update
+  saves the Chinese, English, and Japanese editions together; reading an article renders whichever
+  edition matches the interface locale, falling back to Chinese when one is missing.
 - User-facing interface labels may be translated. Placeholders, operational errors, protocol errors,
   and thrown diagnostics remain English.

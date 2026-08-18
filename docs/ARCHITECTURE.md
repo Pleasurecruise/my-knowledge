@@ -60,11 +60,14 @@ primitives locally.
 Interface i18n is application composition, not a content-package concern. The web layout reads the
 validated `my-knowledge:locale` cookie and passes one complete registered dictionary into Server and
 Client Components. The language action writes that cookie through a Server Action, which re-renders
-the current App Router route. This changes interface labels only; Article, list, search, and Graph
-content always use the canonical Chinese document. AI handles the source conversation's
-language during article creation rather than exposing content locales to the application. The New
-action is shown only for the Chinese interface, and the owner-authorized new-article route keeps its
-editor labels in Chinese; editing an existing article still follows the selected interface locale.
+the current App Router route. This changes interface labels and the rendered Article body; list,
+search, and Graph summaries always use the canonical Chinese title and summary, while the Article page
+renders whichever stored edition matches the current interface locale, falling back to Chinese when
+one is missing. AI handles the source conversation's language during article creation, and a separate
+internal translation step produces the English and Japanese editions, rather than exposing content
+locale choice to the caller. The New action is shown only for the Chinese interface, and the
+owner-authorized new-article route keeps its editor labels in Chinese; editing an existing article
+still follows the selected interface locale.
 
 Server-rendered authorization resolves the Better Auth session directly from the current request
 headers in each protected page or Route Handler. Article metadata always uses anonymous access, so a

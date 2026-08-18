@@ -17,8 +17,9 @@ not fetch mutable GitHub content during a request.
 The deterministic `selectSkills` function reads short catalog descriptions and returns `write` plus
 zero or more visual skill IDs. It does not draft the article or become another prompt. The writing
 call receives the project article contract, pinned Waza material, and only the selected project-owned
-rich-content skills. There is no translation skill or translation stage; the writing model
-understands source content in any language and emits Chinese.
+rich-content skills; the writing model understands source content in any language and emits Chinese.
+Translation into `en` and `ja` runs afterward as its own model call over the finished Chinese result;
+it does not consume or select a skill and is documented in [Workflows](WORKFLOWS.md).
 
 Summary, hierarchical tags, and proposed wiki links are outputs of the writing call. They are not
 separate skills. Embedding, similarity, CRUD, indexing, authorization, and rendering remain

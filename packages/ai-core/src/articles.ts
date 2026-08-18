@@ -54,3 +54,23 @@ Do not invent claims or repeat the title verbatim.`,
     `Title: ${title}\n\nArticle:\n${body}`,
   );
 }
+
+const translationLanguages = { en: "English", ja: "Japanese" } as const;
+
+export type TranslationLocale = keyof typeof translationLanguages;
+
+export async function translateArticle(
+  config: GatewayConfig,
+  locale: TranslationLocale,
+  zhMarkdown: string,
+): Promise<string> {
+  const language = translationLanguages[locale];
+  const system = `You translate one finished Simplified Chinese knowledge article into natural ${language}.
+Return only Markdown with the same structure as the source. Begin with YAML frontmatter containing
+exactly title, summary, tags in that order; translate title and summary, but copy the tags array
+unchanged — never translate, add, or remove a tag. In the body, translate prose and headings
+naturally, but leave fenced code blocks, Mermaid, Vega/Vega-Lite JSON, and JSON Canvas blocks
+byte-for-byte unchanged, and keep every [[slug]] or [[slug|label]] wiki-link target unchanged,
+translating only its optional label. Never add commentary, an explanation, or an output wrapper.`;
+  return runModel(config, system, `Source Chinese article:\n\n${zhMarkdown}`);
+}

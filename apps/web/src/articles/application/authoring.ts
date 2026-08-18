@@ -1,9 +1,5 @@
 import { summarizeArticle } from "@my-knowledge/ai-core";
-import {
-  canonicalizeTags,
-  parseArticleDocuments,
-  serializeArticleDocument,
-} from "@my-knowledge/content";
+import { canonicalizeTags, serializeArticleDocument } from "@my-knowledge/content";
 
 import { modelConfig } from "@/model/config";
 
@@ -11,6 +7,7 @@ import { getArticleById } from "../persistence/document";
 import { createArticle, updateArticle } from "../persistence/write";
 import { embedText, embeddingInput } from "./embedding";
 import type { ArticleDraft, UpdateArticleDraftResult } from "./authoring.types";
+import { translateChineseDocument } from "./translation";
 
 async function chineseDocument(env: CloudflareEnv, draft: ArticleDraft) {
   const tags = canonicalizeTags(draft.tags);
@@ -22,7 +19,7 @@ async function chineseDocument(env: CloudflareEnv, draft: ArticleDraft) {
     tags,
     body: draft.body,
   });
-  return parseArticleDocuments({ zh: source });
+  return translateChineseDocument(env, source);
 }
 
 export async function createArticleFromDraft(env: CloudflareEnv, draft: ArticleDraft) {
