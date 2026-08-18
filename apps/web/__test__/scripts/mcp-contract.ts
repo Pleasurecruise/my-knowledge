@@ -98,6 +98,7 @@ const toolsBody = z
     result: z.object({
       tools: z.array(
         z.object({
+          description: z.string(),
           name: z.string(),
           annotations: z.object({ destructiveHint: z.boolean().optional() }),
           inputSchema: z.object({ required: z.array(z.string()).optional() }),
@@ -126,9 +127,12 @@ assert.equal(deleteTool.annotations.destructiveHint, true);
 const createTool = toolsBody.result.tools.find((tool) => tool.name === "createArticle");
 if (!createTool) throw new Error("createArticle was not discovered");
 assert.deepEqual(createTool.inputSchema.required, ["content"]);
+assert.match(createTool.description, /poll getArticleJob/u);
+assert.match(createTool.description, /Do not submit the same content again/u);
 const getJobTool = toolsBody.result.tools.find((tool) => tool.name === "getArticleJob");
 if (!getJobTool) throw new Error("getArticleJob was not discovered");
 assert.deepEqual(getJobTool.inputSchema.required, ["jobId"]);
+assert.match(getJobTool.description, /Pending and processing jobs are still active/u);
 const missingJob = await callTool(
   100,
   "getArticleJob",

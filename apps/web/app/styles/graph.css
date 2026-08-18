@@ -1,5 +1,4 @@
 .graph-stage {
-  height: min(62vh, 38rem);
   background:
     radial-gradient(
       circle at 50% 20%,
@@ -64,10 +63,6 @@
 }
 
 @media (max-width: 48rem) {
-  .graph-stage {
-    height: 24rem;
-  }
-
   .graph-canvas {
     transform: none;
   }

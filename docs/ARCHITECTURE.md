@@ -66,6 +66,11 @@ language during article creation rather than exposing content locales to the app
 action is shown only for the Chinese interface, and the owner-authorized new-article route keeps its
 editor labels in Chinese; editing an existing article still follows the selected interface locale.
 
+Server-rendered authorization resolves the Better Auth session from request headers once per React
+render pass. Metadata, layouts, and pages reuse that principal decision so a private article cannot be
+authorized in metadata and rejected by the page body. Route Handlers use the same function without
+sharing results across requests.
+
 ## Model provider
 
 Implement the provider boundary with the same proven Cloudflare AI Gateway request pattern currently

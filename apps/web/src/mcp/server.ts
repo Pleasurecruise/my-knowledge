@@ -33,7 +33,7 @@ function serverFor(env: CloudflareEnv) {
     "createArticle",
     {
       description:
-        "Accept conversation content for asynchronous creation of one private Chinese article.",
+        "Queue one private Chinese article and return a job ID immediately. Keep the job ID and poll getArticleJob; serial processing may take several minutes. Do not submit the same content again while its job is pending or processing.",
       inputSchema: createArticleInput,
       annotations: {
         readOnlyHint: false,
@@ -48,7 +48,8 @@ function serverFor(env: CloudflareEnv) {
   server.registerTool(
     "getArticleJob",
     {
-      description: "Read the current state or terminal result of an article creation job.",
+      description:
+        "Poll an article creation job by ID until it is created, duplicate, or failed. Pending and processing jobs are still active and must not be resubmitted.",
       inputSchema: getArticleJobInput,
       annotations: {
         readOnlyHint: true,

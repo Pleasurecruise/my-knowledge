@@ -92,7 +92,8 @@ The core journey set is intentionally small:
 3. Articles has the Notes chronological composition and exposes no search or filter controls;
 4. the Chinese owner interface exposes New while other interface locales do not;
 5. the owner can open New/Edit, use the Markdown editor, and explicitly save, publish, withdraw, or
-   delete while anonymous users cannot reach those mutations;
+   delete while anonymous users cannot reach those mutations; a listed private article must render
+   its body before Edit and expose Publish or Withdraw according to its current visibility;
 6. Article follows the Header locale, renders rich blocks, exposes the Notes TOC/action rails, and
    publishes canonical metadata plus a renderable dynamic social image only when public;
 7. Graph has no filter controls, opens linked articles, and keeps its keyboard-accessible relationship

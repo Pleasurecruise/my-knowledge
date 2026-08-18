@@ -75,7 +75,7 @@ packages/ui/src/styles/index.css      Tailwind imports, source scan, and theme m
 packages/ui/src/styles/tokens.css     Reference and semantic tokens for both themes
 packages/ui/src/styles/base.css       Shared browser defaults and theme-transition behavior
 packages/ui/src/styles/markdown.css   Portable article-content presentation
-apps/web/app/styles/graph.css         SVG edges and perspective behavior only
+apps/web/app/styles/graph.css         Spatial graph background, SVG edges, and perspective behavior
 ```
 
 Ordinary layouts use Tailwind utilities at the component. Do not create a stylesheet for one page or
@@ -204,8 +204,11 @@ keeps its compact metadata measure above the wide editor.
 Graph is the wide page, while its title uses the same typography and rule as Articles. It has no
 top-right controls. The bounded canvas uses perspective, node elevation, and explicit edges. The
 desktop side rail reserves a fixed row for the selected article, so the bounded relationship list
-starts at a stable position regardless of summary height. Graph removes wide-page bottom padding and
-fits its canvas to the available viewport instead of creating a permanent scrollbar.
+starts at a stable position regardless of summary height. The canvas and complete side rail have the
+same desktop height; long selected-article content remains scrollable without displaying a scrollbar.
+Graph removes wide-page bottom padding and fits its canvas to the available viewport instead of
+creating a permanent scrollbar. Its empty state uses the title measure rather than stretching across
+the wider canvas measure.
 
 ### Not found
 

@@ -31,9 +31,11 @@ Annotations: not read-only, non-destructive, non-idempotent, and open-world beca
 configured model provider.
 
 Submission uses KV, D1, and Queue. The consumer serializes creation to protect provider allowances;
-consult the account dashboard for current limits rather than relying on numbers copied into this
-repository. Use `listTags` or `listArticles` for a connection check; `createArticle` creates durable
-work and is not a health-check operation.
+each job may therefore wait in `pending` and take several minutes once `processing`. Clients must keep
+the returned job ID, poll `getArticleJob`, and never resubmit the same content while that job remains
+active. Consult the account dashboard for current limits rather than relying on numbers copied into
+this repository. Use `listTags` or `listArticles` for a connection check; `createArticle` creates
+durable work and is not a health-check operation.
 
 ## `getArticleJob`
 
@@ -48,7 +50,8 @@ type ArticleJobResult =
 ```
 
 A missing job returns not found. An accepted client polls this read-only, idempotent, closed-world tool
-until the status is `created`, `duplicate`, or `failed`.
+until the status is `created`, `duplicate`, or `failed`. `pending` and `processing` mean the original
+job is still active, not that the client should call `createArticle` again.
 
 ## `getArticle`
 

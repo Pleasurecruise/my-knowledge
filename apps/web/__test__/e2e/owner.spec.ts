@@ -51,6 +51,8 @@ test("shows owner-only knowledge, visibility, and deletion controls", async ({ p
   await expect(page.getByRole("button", { name: "Delete" })).toHaveCount(0);
   await page.getByRole("link", { name: "Edit" }).click();
   await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Publish" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Withdraw" })).toHaveCount(0);
 });
 
 test("opens the owner editor, uses a slash command, and discards the draft", async ({

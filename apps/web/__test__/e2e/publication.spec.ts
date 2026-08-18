@@ -179,11 +179,23 @@ test("keeps the three public tabs searchable, localized, and keyboard reachable"
   await expect(page.getByRole("group")).toHaveCount(0);
   await expect(page.getByRole("combobox")).toHaveCount(0);
   const cardBounds = await page.locator('[aria-live="polite"]').boundingBox();
+  const graphBounds = await page.locator(".graph-stage").boundingBox();
   const relationshipBounds = await page
     .getByRole("region", { name: "Relationships" })
     .boundingBox();
-  if (!cardBounds || !relationshipBounds) throw new Error("Graph side rail bounds are unavailable");
+  if (!cardBounds || !graphBounds || !relationshipBounds)
+    throw new Error("Graph column bounds are unavailable");
+  expect(graphBounds.y).toBeCloseTo(cardBounds.y, 0);
+  expect(graphBounds.height).toBeCloseTo(
+    relationshipBounds.y + relationshipBounds.height - cardBounds.y,
+    0,
+  );
   expect(relationshipBounds.y).toBeGreaterThanOrEqual(cardBounds.y + cardBounds.height);
+  expect(
+    await page
+      .locator('[aria-live="polite"] .overflow-y-auto')
+      .evaluate((element) => getComputedStyle(element).scrollbarWidth),
+  ).toBe("none");
   await page.keyboard.press("Tab");
   await expect(page.locator(":focus-visible")).toBeVisible();
   await page.screenshot({ fullPage: true, path: testInfo.outputPath("graph.png") });

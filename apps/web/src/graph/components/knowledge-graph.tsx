@@ -42,7 +42,9 @@ export function KnowledgeGraph({
   if (nodes.length === 0)
     return (
       <PageLayout action={null} description={description} title={title} view="wide">
-        <p className="text-muted-foreground border-y py-10 text-sm">{messages.empty}</p>
+        <p className="text-muted-foreground mx-auto max-w-240 border-y py-10 text-sm">
+          {messages.empty}
+        </p>
       </PageLayout>
     );
 
@@ -50,7 +52,7 @@ export function KnowledgeGraph({
     <PageLayout action={null} description={description} title={title} view="wide">
       <div className="space-y-6">
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_19rem]">
-          <div className="graph-stage border-border overflow-hidden rounded-lg border shadow-[var(--shadow-spatial)]">
+          <div className="graph-stage border-border h-96 overflow-hidden rounded-lg border shadow-[var(--shadow-spatial)] xl:h-[min(62vh,38rem)]">
             <svg
               aria-label={messages.canvas}
               className="graph-canvas"
@@ -106,14 +108,14 @@ export function KnowledgeGraph({
             </svg>
           </div>
 
-          <div className="space-y-5 xl:sticky xl:top-24 xl:grid xl:grid-rows-[18rem_auto] xl:self-start xl:space-y-0 xl:gap-5">
+          <div className="space-y-5 xl:sticky xl:top-24 xl:grid xl:h-[min(62vh,38rem)] xl:grid-rows-[18rem_minmax(0,1fr)] xl:self-start xl:space-y-0 xl:gap-5">
             {selected ? (
               <Card aria-live="polite" className="xl:h-72" size="sm">
                 <CardHeader>
                   <p className="text-primary text-xs font-medium">{messages.selected}</p>
                   <CardTitle>{selected.title}</CardTitle>
                 </CardHeader>
-                <CardContent className="min-h-0 space-y-3 overflow-y-auto">
+                <CardContent className="min-h-0 space-y-3 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <p className="text-muted-foreground leading-6">{selected.summary}</p>
                   <ul aria-label={messages.tags} className="flex flex-wrap gap-1.5">
                     {selected.tags.map((tag) => (
@@ -132,7 +134,10 @@ export function KnowledgeGraph({
               </Card>
             ) : null}
 
-            <section aria-labelledby="relationships-heading">
+            <section
+              aria-labelledby="relationships-heading"
+              className="xl:grid xl:min-h-0 xl:grid-rows-[auto_minmax(0,1fr)]"
+            >
               <h2 className="font-heading mb-3 text-sm font-semibold" id="relationships-heading">
                 {messages.relationships}
               </h2>
@@ -141,7 +146,7 @@ export function KnowledgeGraph({
                   {messages.noRelationships}
                 </p>
               ) : (
-                <ol className="grid gap-2 xl:max-h-72 xl:overflow-y-auto xl:pr-1">
+                <ol className="grid gap-2 xl:min-h-0 xl:overflow-y-auto xl:pr-1">
                   {edges.map((edge, index) => {
                     const source = nodesById.get(edge.source);
                     const target = nodesById.get(edge.target);
