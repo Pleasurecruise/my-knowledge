@@ -16,29 +16,32 @@ Create these resources once and declare them in `apps/web/wrangler.json`:
 | `DB`               | `my-knowledge`               | Article index and auth |
 | `KNOWLEDGE_BUCKET` | Dedicated or approved shared | Canonical Markdown     |
 | `KNOWLEDGE_CACHE`  | `my-knowledge`               | Cache and job input    |
-| `KNOWLEDGE_INDEX`  | `my-knowledge`               | Semantic vectors       |
-| `AI`               | Workers AI                   | BGE-M3 embeddings      |
+| `AI_SEARCH`        | `default` namespace          | Search index and chat  |
 | `ARTICLE_JOBS`     | `article-jobs` Queue         | Job publication        |
 
 These are Worker bindings injected by Cloudflare, not environment variables. Resource IDs and names
 belong only in `wrangler.json`; application code accesses `env.DB`, `env.KNOWLEDGE_BUCKET`,
-`env.KNOWLEDGE_CACHE`, `env.KNOWLEDGE_INDEX`, and `env.AI`.
+`env.KNOWLEDGE_CACHE`, and `env.AI_SEARCH`.
 
 `ARTICLE_JOBS` is the producer binding, and the same Worker is the queue's sole consumer. Queue events
-run independently from fetch events and use the existing D1, R2, KV, Vectorize, AI, account, and
-Gateway bindings.
+run independently from fetch events and use the existing D1, R2, KV, AI Search, account, and Gateway
+bindings.
 
 Create only missing resources. A dedicated setup uses the `my-knowledge` name throughout; keep a
 different R2 bucket name in `wrangler.json` only when sharing that bucket is an explicit decision.
-Vectorize uses 1,024 dimensions and cosine distance to match `@cf/baai/bge-m3`.
+Create one AI Search instance in the `default` namespace: `my-knowledge` (builtin type, programmatic item
+upload). It holds every article and serves owner search/chat plus anonymous hybrid search, whose
+results are re-authorized through D1.
 
 ```text
 pnpm --filter @my-knowledge/web exec wrangler d1 create my-knowledge
 pnpm --filter @my-knowledge/web exec wrangler r2 bucket create my-knowledge
 pnpm --filter @my-knowledge/web exec wrangler kv namespace create my-knowledge
-pnpm --filter @my-knowledge/web exec wrangler vectorize create my-knowledge --dimensions=1024 --metric=cosine
 pnpm --filter @my-knowledge/web exec wrangler queues create article-jobs
 ```
+
+Create the AI Search instance from the Cloudflare dashboard or with Wrangler's AI Search commands,
+then connect the gateway and select the generation model in the instance settings.
 
 ## Values you set
 
@@ -67,13 +70,15 @@ Google's client ID is not cryptographically secret, but keeping the OAuth pair i
 secret workflow avoids another configuration path. Register
 `{BETTER_AUTH_URL}/api/auth/callback/google` in Google OAuth.
 
-The following are code constants, not deployment variables: Gateway `default`, provider
-`custom-opencode`, article model `deepseek-v4-flash`, embedding model `@cf/baai/bge-m3`, duplicate
-threshold `0.92`, and maximum tag count `5`. Change them through reviewed code when the product
-decision changes.
+The following are code constants, not deployment variables: Gateway `default`, article route
+`dynamic/article`, AI Search instance name `my-knowledge`, and maximum tag count `5`. Change
+them through reviewed code when the product decision changes. The route's internal flow — primary
+model, rate and budget limits, and fallback model — is versioned in the AI Gateway dashboard, so
+quota-driven fallback changes do not require a code redeploy.
 
-The upstream OpenCode Go key stays in AI Gateway Provider Keys. `CLOUDFLARE_API_TOKEN`, when used by
-CI, authenticates Wrangler deployment only and must not become a Worker variable or secret.
+The upstream provider keys stay in AI Gateway Provider Keys through BYOK. `CLOUDFLARE_API_TOKEN`,
+when used by CI, authenticates Wrangler deployment only and must not become a Worker variable or
+secret.
 
 ## Local development
 
@@ -97,7 +102,7 @@ static-generation workers from creating Wrangler platform proxies during a produ
 ## Free-plan constraints
 
 The application is designed for Cloudflare's free plan: direct bindings, two small project D1 tables,
-paginated list queries, bounded Vectorize results, one Queue consumer, no database server, and no
+paginated list queries, bounded AI Search results, one Queue consumer, no database server, and no
 cached list blobs. KV caches versioned public Chinese articles and temporarily holds submitted job
 input, while R2 remains canonical.
 
@@ -131,7 +136,7 @@ must perform the following final gate because it requires account authority or a
 2. verify the production origin, configured Cloudflare resource IDs, and R2 ownership decision;
 3. create every missing resource, including Queue, and initialize the Worker;
 4. create the Google OAuth client and upload all six secrets;
-5. run the remote migration, deploy, and execute the live provider, Vectorize, OAuth, MCP mutation,
+5. run the remote migration, deploy, and execute the live provider, AI Search, OAuth, MCP mutation,
    deletion, and anonymous privacy smoke tests.
 
 Do not run the remote migration or deployment before these values have been reviewed. Local green

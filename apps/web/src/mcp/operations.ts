@@ -2,19 +2,19 @@ import { canonicalizeTags } from "@my-knowledge/content";
 import { z } from "zod";
 
 import {
+  chatAboutKnowledge,
   deleteArticle,
-  embedText,
-  embeddingInput,
-  findVectorArticles,
   getArticleById,
   hasArticleVersion,
   listArticles,
   listTags,
+  searchAiArticles,
   setArticleVisibility,
   translateChineseDocument,
   updateArticle,
 } from "@/articles";
 import { getArticleJob, submitArticleJob } from "@/article-jobs";
+import { getArticleRow } from "@/articles/persistence/document";
 
 type McpResult = {
   content: [{ type: "text"; text: string }];
@@ -106,8 +106,7 @@ export async function updateArticleOperation(
     return notFound("Article not found");
   }
   const document = await translateChineseDocument(env, input.document);
-  const embedding = await embedText(env, embeddingInput(document.editions.zh));
-  const article = await updateArticle(env, input.id, input.expectedHash, document, embedding);
+  const article = await updateArticle(env, input.id, input.expectedHash, document);
   return article ? result(article) : notFound("Article not found");
 }
 
@@ -135,11 +134,10 @@ export async function searchArticlesOperation(
   env: CloudflareEnv,
   input: z.infer<typeof searchArticlesInput>,
 ) {
-  const embedding = await embedText(env, input.query);
   const wantedTags = input.tags
     ? canonicalizeTags(input.tags).map((tag) => tag.toLocaleLowerCase("en-US"))
     : undefined;
-  const ranked = await findVectorArticles(env, "owner", embedding, wantedTags ? 50 : input.limit);
+  const ranked = await searchAiArticles(env, "owner", input.query, wantedTags ? 50 : input.limit);
   const filtered = wantedTags
     ? ranked.filter(({ article }) =>
         wantedTags.every((wanted) =>
@@ -161,6 +159,29 @@ export async function searchArticlesOperation(
       score,
     })),
   });
+}
+
+export const chatArticlesInput = z.object({
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().min(1).max(20_000),
+      }),
+    )
+    .min(1),
+});
+
+export async function chatArticlesOperation(
+  env: CloudflareEnv,
+  input: z.infer<typeof chatArticlesInput>,
+) {
+  const { answer, articleIds } = await chatAboutKnowledge(env, input.messages);
+  const resolved: string[] = [];
+  for (const articleId of articleIds) {
+    if (await getArticleRow(env, "owner", "id", articleId)) resolved.push(articleId);
+  }
+  return result({ answer, articleIds: resolved });
 }
 
 export const listTagsInput = z.object({ parent: z.string().min(1).optional() });

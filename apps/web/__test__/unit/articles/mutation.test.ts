@@ -14,7 +14,7 @@ function recordStorageStep(log: string[], name: string, failure?: Error) {
 }
 
 describe("article storage coordination", () => {
-  const createBoundaries: Array<"documents" | "vector" | "row"> = ["documents", "vector", "row"];
+  const createBoundaries: Array<"documents" | "index" | "row"> = ["documents", "index", "row"];
 
   it.each(createBoundaries)("cleans a failed create at the %s boundary", async (boundary) => {
     const log: string[] = [];
@@ -26,7 +26,7 @@ describe("article storage coordination", () => {
           "documents",
           boundary === "documents" ? failure : undefined,
         ),
-        writeVector: recordStorageStep(log, "vector", boundary === "vector" ? failure : undefined),
+        writeIndex: recordStorageStep(log, "index", boundary === "index" ? failure : undefined),
         insertRow: async () => {
           log.push("row");
           if (boundary === "row") throw failure;
@@ -39,12 +39,12 @@ describe("article storage coordination", () => {
   });
 
   it("reports both the primary and cleanup failures", async () => {
-    const primary = new Error("vector");
+    const primary = new Error("index");
     const cleanup = new Error("cleanup");
     await expect(
       createStoredArticle({
         writeDocuments: async () => {},
-        writeVector: async () => {
+        writeIndex: async () => {
           throw primary;
         },
         insertRow: async () => "unreachable",
@@ -62,7 +62,7 @@ describe("article storage coordination", () => {
     await expect(
       updateStoredArticle({
         writeDocuments: recordStorageStep(log, "documents"),
-        writeVector: recordStorageStep(log, "vector"),
+        writeIndex: recordStorageStep(log, "index"),
         switchRow: async () => {
           log.push("switch-row");
           return "updated";
@@ -71,10 +71,10 @@ describe("article storage coordination", () => {
         cleanupPreviousVersion: recordStorageStep(log, "cleanup-previous"),
       }),
     ).resolves.toBe("updated");
-    expect(log).toEqual(["documents", "vector", "switch-row", "cleanup-previous"]);
+    expect(log).toEqual(["documents", "index", "switch-row", "cleanup-previous"]);
   });
 
-  const updateBoundaries: Array<"documents" | "vector" | "row"> = ["documents", "vector", "row"];
+  const updateBoundaries: Array<"documents" | "index" | "row"> = ["documents", "index", "row"];
 
   it.each(updateBoundaries)("cleans a failed update at the %s boundary", async (boundary) => {
     const log: string[] = [];
@@ -86,7 +86,7 @@ describe("article storage coordination", () => {
           "documents",
           boundary === "documents" ? failure : undefined,
         ),
-        writeVector: recordStorageStep(log, "vector", boundary === "vector" ? failure : undefined),
+        writeIndex: recordStorageStep(log, "index", boundary === "index" ? failure : undefined),
         switchRow: async () => {
           log.push("switch-row");
           if (boundary === "row") throw failure;
@@ -108,7 +108,7 @@ describe("article storage coordination", () => {
         writeDocuments: async () => {
           throw primary;
         },
-        writeVector: async () => {},
+        writeIndex: async () => {},
         switchRow: async () => "unreachable",
         cleanupNewVersion: async () => {
           throw cleanup;
@@ -126,7 +126,7 @@ describe("article storage coordination", () => {
     await expect(
       updateStoredArticle({
         writeDocuments: recordStorageStep(log, "documents"),
-        writeVector: recordStorageStep(log, "vector"),
+        writeIndex: recordStorageStep(log, "index"),
         switchRow: async () => {
           log.push("switch-row");
           return "updated";
@@ -135,7 +135,7 @@ describe("article storage coordination", () => {
         cleanupPreviousVersion: recordStorageStep(log, "cleanup-previous", failure),
       }),
     ).rejects.toBe(failure);
-    expect(log).toEqual(["documents", "vector", "switch-row", "cleanup-previous"]);
+    expect(log).toEqual(["documents", "index", "switch-row", "cleanup-previous"]);
   });
 
   it("cleans the new update version after a stale row switch", async () => {
@@ -143,7 +143,7 @@ describe("article storage coordination", () => {
     await expect(
       updateStoredArticle({
         writeDocuments: recordStorageStep(log, "documents"),
-        writeVector: recordStorageStep(log, "vector"),
+        writeIndex: recordStorageStep(log, "index"),
         switchRow: async () => {
           log.push("switch-row");
           return undefined;
@@ -152,12 +152,12 @@ describe("article storage coordination", () => {
         cleanupPreviousVersion: recordStorageStep(log, "cleanup-previous"),
       }),
     ).resolves.toBeUndefined();
-    expect(log).toEqual(["documents", "vector", "switch-row", "cleanup-new"]);
+    expect(log).toEqual(["documents", "index", "switch-row", "cleanup-new"]);
   });
 
   it("keeps delete retryable by hiding before external cleanup", async () => {
     const log: string[] = [];
-    const cleanupFailure = new Error("vector unavailable");
+    const cleanupFailure = new Error("index unavailable");
     await expect(
       deleteStoredArticle({
         hideRow: async () => {

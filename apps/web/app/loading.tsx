@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <div aria-busy="true" className="mx-auto max-w-280 px-4 pt-7 pb-24 sm:px-8">
+    <div aria-busy="true" className="mx-auto max-w-5xl px-4 pt-7 pb-24 sm:px-6 lg:px-8">
       <span className="sr-only">
         <span className="hidden [html:lang(zh)_&]:inline">正在载入</span>
         <span className="hidden [html:lang(en)_&]:inline">Loading</span>

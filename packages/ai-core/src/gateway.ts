@@ -9,7 +9,7 @@ export type GatewayConfig = z.input<typeof gatewayConfigSchema>;
 
 export function gatewayEndpoint(configInput: GatewayConfig): string {
   const config = gatewayConfigSchema.parse(configInput);
-  return `https://gateway.ai.cloudflare.com/v1/${config.accountId}/default/custom-opencode/v1`;
+  return `https://gateway.ai.cloudflare.com/v1/${config.accountId}/default/compat`;
 }
 
 export function gatewayHeaders(configInput: GatewayConfig) {
@@ -17,7 +17,7 @@ export function gatewayHeaders(configInput: GatewayConfig) {
   return {
     "content-type": "application/json",
     "cf-aig-authorization": `Bearer ${config.token}`,
-    "cf-aig-collect-log-payload": "false",
+    "cf-aig-collect-log-payload": "true",
     "cf-aig-skip-cache": "true",
   };
 }

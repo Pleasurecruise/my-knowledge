@@ -5,7 +5,6 @@ import { modelConfig } from "@/model/config";
 
 import { getArticleById } from "../persistence/document";
 import { createArticle, updateArticle } from "../persistence/write";
-import { embedText, embeddingInput } from "./embedding";
 import type { ArticleDraft, UpdateArticleDraftResult } from "./authoring.types";
 import { translateChineseDocument } from "./translation";
 
@@ -24,8 +23,7 @@ async function chineseDocument(env: CloudflareEnv, draft: ArticleDraft) {
 
 export async function createArticleFromDraft(env: CloudflareEnv, draft: ArticleDraft) {
   const document = await chineseDocument(env, draft);
-  const embedding = await embedText(env, embeddingInput(document.editions.zh));
-  return createArticle(env, document, embedding);
+  return createArticle(env, document);
 }
 
 export async function updateArticleFromDraft(
@@ -38,7 +36,6 @@ export async function updateArticleFromDraft(
   if (!current) return { status: "notFound" };
   if (current.contentHash !== expectedHash) return { status: "stale" };
   const document = await chineseDocument(env, draft);
-  const embedding = await embedText(env, embeddingInput(document.editions.zh));
-  const updated = await updateArticle(env, id, expectedHash, document, embedding);
+  const updated = await updateArticle(env, id, expectedHash, document);
   return updated ? { status: "updated", article: updated } : { status: "stale" };
 }

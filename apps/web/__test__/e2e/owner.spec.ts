@@ -17,7 +17,7 @@ test.afterEach(async ({ page }, testInfo) => {
   const errors = errorsByPage.get(page);
   if (
     testInfo.project.name === "owner-desktop-light" &&
-    testInfo.title === "keeps deletion retryable when the local Vectorize boundary is unavailable"
+    testInfo.title === "keeps deletion retryable when the local AI Search boundary is unavailable"
   ) {
     if (!errors) throw new Error("Browser error collection was not initialized");
     expect(errors).toHaveLength(1);
@@ -118,7 +118,7 @@ test("opens the owner editor, uses a slash command, and discards the draft", asy
   await expect(page).toHaveURL(/\/articles$/u);
 });
 
-test("keeps deletion retryable when the local Vectorize boundary is unavailable", async ({
+test("keeps deletion retryable when the local AI Search boundary is unavailable", async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "owner-desktop-light", "One destructive local-boundary run");

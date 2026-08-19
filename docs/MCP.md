@@ -30,7 +30,7 @@ before anything is stored. The request deliberately has no locale, visibility, t
 provider override.
 
 Creates an asynchronous job, stores the input in expiring KV, and publishes only the job ID to Queue.
-It does not call the writing or embedding providers. Returns promptly:
+It does not call the writing, translation, or search-index providers. Returns promptly:
 
 ```ts
 type CreateArticleResult = { status: "accepted"; jobId: string };
@@ -86,11 +86,11 @@ Annotations: read-only, non-destructive, idempotent, closed-world.
 Input: `{ id: string; expectedHash: string; document: string }`. The caller supplies only the
 finished Chinese Markdown; its frontmatter contains title, summary, and tags. The operation
 translates that document into fresh `en` and `ja` editions, validates all three, refreshes
-article-row projections and the vector from the Chinese edition, removes any other legacy edition, and
+article-row projections, syncs all three editions to AI Search, removes any other legacy edition, and
 rejects a stale hash without overwriting newer content.
 
 It does not call the writing model or silently rewrite the submitted Chinese content; translation only
-mirrors that content into the other two editions. The expected hash is checked before embedding so
+mirrors that content into the other two editions. The expected hash is checked before indexing so
 stale requests do not spend provider work; the D1 update still repeats the hash condition to close the
 concurrency race.
 
@@ -100,19 +100,28 @@ closed-world.
 ## `deleteArticle`
 
 Input: `{ id: string; expectedHash: string }`. Makes the D1 row private, removes Markdown, cache, and
-vector data, then deletes the row. Repeating a completed deletion returns not found and makes no
+AI Search items, then deletes the row. Repeating a completed deletion returns not found and makes no
 further change.
 
 Annotations: not read-only, destructive, idempotent, closed-world.
 
 ## `searchArticles`
 
-Input: `{ query: string; tags?: string[]; limit?: number }`. Combines semantic ranking with optional
-nested-tag filters and returns IDs, titles, summaries, tags, excerpts, and scores. Every vector result
-is re-authorized through D1. Limit defaults to 10 and cannot exceed 50.
+Input: `{ query: string; tags?: string[]; limit?: number }`. Runs AI Search hybrid retrieval with
+optional nested-tag filters and returns IDs, titles, summaries, tags, excerpts, and scores. Every
+result is re-authorized through D1. Limit defaults to 10 and cannot exceed 50.
 
-Annotations: read-only, non-destructive, idempotent, open-world because embedding inference may call
-Workers AI.
+Annotations: read-only, non-destructive, idempotent, open-world because retrieval may call AI Search
+and its connected models.
+
+## `chatArticles`
+
+Input: `{ messages: { role: "user" | "assistant"; content: string }[] }`. Answers a question grounded
+in the owner's knowledge base, returning the generated answer plus the article IDs used as citations.
+Every citation resolves to an article authorized for the owner session.
+
+Annotations: read-only, non-destructive, idempotent, open-world because generation may call AI Search
+and its connected models.
 
 ## `listTags`
 
@@ -140,5 +149,5 @@ or raw skill tools. Skills are an internal implementation detail of the queued c
 The local contract covers modern discovery, job polling discovery/not-found behavior, direct reads,
 legacy initialize, Bearer authentication, required headers, Chinese document schemas, annotations,
 nested tags, stale writes, visibility changes, and private non-disclosure against the generated
-Worker. Queue delivery, duplicate creation, vector-backed updates, and destructive cleanup require
+Worker. Queue delivery, duplicate creation, AI Search-backed updates, and destructive cleanup require
 the owner's live bindings at release smoke.

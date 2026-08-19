@@ -105,7 +105,7 @@ needs isolation, tests, explanation, and a removal condition.
 - Numbered SQL migrations are authoritative; the Drizzle schema mirrors them for typed queries. Do
   not add a migration generator, schema push, or a runtime migration endpoint.
 - Every mutation declares its write order, idempotency, and cleanup behavior.
-- Compare content hashes before replacing Chinese Markdown or vectors to prevent stale writes.
+- Compare content hashes before the D1 row switch to prevent stale writes across R2 and AI Search.
 - Time, IDs, randomness, models, and external services enter through explicit boundaries so critical
   logic is deterministic in tests.
 
@@ -113,10 +113,13 @@ needs isolation, tests, explanation, and a removal condition.
 
 - Better Auth + Google OAuth + `ALLOWED_EMAIL` for web ownership.
 - Fixed high-entropy MCP key for Agent ownership.
-- No submitted conversation, article body, embedding, secret, email, or private title in logs.
-- AI Gateway calls disable payload logging and caching; metadata-only metrics may remain.
+- No submitted conversation, article body, secret, email, or private title in logs.
+- AI Gateway calls enable payload logging (`cf-aig-collect-log-payload: true`) and disable
+  response caching (`cf-aig-skip-cache: true`); Cloudflare's AI Gateway log store retains the
+  request and response bodies for its default retention window. Metadata-only metrics stay
+  in the application.
 - Raw HTML and unsafe Markdown URLs are rejected/sanitized.
-- Private vector candidates are re-authorized through D1.
+- Private AI Search candidates are re-authorized through D1.
 - Local development and preview use local state and test credentials; they do not use production
   resources or credentials by default.
 
@@ -146,8 +149,8 @@ in the owning domain's `types.ts`; substantial component props live in an adjace
 and state introduced only to force rendering. Prefer discriminated unions for real UI and operation
 states and validate untrusted values at their boundary.
 
-Persistence separates D1 queries, R2/KV documents, Vectorize lookup, relation assembly, row mapping,
-and mutation coordination. A domain entrypoint serves external consumers; code inside the domain
+Persistence separates D1 queries, R2/KV documents, AI Search indexing and retrieval, relation
+assembly, row mapping, and mutation coordination. A domain entrypoint serves external consumers; code inside the domain
 imports concrete siblings directly and never imports its own barrel. Web application and Web test
 code use `@/` across domains or app/test boundaries, while files within one domain use relative
 imports. Package tests use relative imports to sibling source because package aliases are not

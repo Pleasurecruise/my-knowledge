@@ -6,11 +6,5 @@
     { "id": "writing-politics", "schemaSuccess": true, "tags": ["society/policy"] },
     { "id": "writing-economics", "schemaSuccess": true, "tags": ["economics/markets"] },
     { "id": "writing-mixed", "schemaSuccess": true, "tags": ["technology/ai", "economics/labor"] }
-  ],
-  "duplicates": [
-    { "id": "duplicate", "score": 0.95 },
-    { "id": "near-duplicate", "score": 0.91 },
-    { "id": "related", "score": 0.75 },
-    { "id": "unrelated", "score": 0.2 }
   ]
 }

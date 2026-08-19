@@ -54,6 +54,16 @@ describe("article documents", () => {
     );
   });
 
+  it("discards content that precedes the frontmatter opener", async () => {
+    const clean = parseArticleDocument(zh);
+    const prefixed = parseArticleDocument(`🥷\n${zh}`);
+    expect(prefixed.markdown).toBe(clean.markdown);
+    expect(prefixed.title).toBe(clean.title);
+    expect((await parseArticleDocuments({ zh: `🥷\n${zh}` })).contentHash).toBe(
+      (await parseArticleDocuments({ zh })).contentHash,
+    );
+  });
+
   it("requires the canonical frontmatter order", () => {
     expect(() =>
       parseArticleDocument(

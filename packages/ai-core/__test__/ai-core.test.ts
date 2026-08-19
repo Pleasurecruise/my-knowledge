@@ -1,30 +1,45 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { DUPLICATE_THRESHOLD, gatewayEndpoint, gatewayHeaders, isDuplicateScore } from "../src";
+import { gatewayEndpoint, gatewayHeaders } from "../src";
 import { runModel } from "../src/model";
 
 const gateway = { accountId: "account", token: "secret" };
 
+function sseResponse(frames: readonly string[], init: ResponseInit = {}): Response {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const frame of frames) controller.enqueue(encoder.encode(frame));
+      controller.close();
+    },
+  });
+  return new Response(body, init);
+}
+
+function sseChunk(delta: string): string {
+  return `data: ${JSON.stringify({ choices: [{ delta: { content: delta } }] })}\n\n`;
+}
+
 describe("AI boundary", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("routes through the configured Gateway and disables payload collection and caching", () => {
+  it("routes through the configured Gateway with payload collection enabled and caching disabled", () => {
     expect(gatewayEndpoint(gateway)).toBe(
-      "https://gateway.ai.cloudflare.com/v1/account/default/custom-opencode/v1",
+      "https://gateway.ai.cloudflare.com/v1/account/default/compat",
     );
     expect(gatewayHeaders(gateway)).toEqual({
       "content-type": "application/json",
       "cf-aig-authorization": "Bearer secret",
-      "cf-aig-collect-log-payload": "false",
+      "cf-aig-collect-log-payload": "true",
       "cf-aig-skip-cache": "true",
     });
   });
 
-  it("uses one non-streaming completion and validates its response", async () => {
+  it("uses one streaming completion and concatenates delta content", async () => {
     const request = vi.fn(() =>
       Promise.resolve(
-        Response.json({
-          choices: [{ message: { content: " 中文结果 " } }],
+        sseResponse([sseChunk("中文"), sseChunk("结果"), "data: [DONE]\n\n"], {
+          headers: { "content-type": "text/event-stream" },
         }),
       ),
     );
@@ -32,36 +47,44 @@ describe("AI boundary", () => {
 
     await expect(runModel(gateway, "system", "prompt")).resolves.toBe("中文结果");
     expect(request).toHaveBeenCalledWith(
-      "https://gateway.ai.cloudflare.com/v1/account/default/custom-opencode/v1/chat/completions",
+      "https://gateway.ai.cloudflare.com/v1/account/default/compat/chat/completions",
       expect.objectContaining({
         method: "POST",
         headers: gatewayHeaders(gateway),
         body: JSON.stringify({
-          model: "deepseek-v4-flash",
+          model: "dynamic/article",
           messages: [
             { role: "system", content: "system" },
             { role: "user", content: "prompt" },
           ],
-          max_tokens: 12_000,
-          temperature: 0.2,
-          stream: false,
+          stream: true,
         }),
       }),
     );
   });
 
-  it("rejects malformed completion responses without a fallback", async () => {
+  it("rejects malformed completion frames without a fallback", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(() => Promise.resolve(Response.json({ choices: [] }))),
+      vi.fn(() => Promise.resolve(sseResponse(["data: not-json\n\n"]))),
     );
 
     await expect(runModel(gateway, "system", "prompt")).rejects.toThrow();
   });
 
-  it("keeps the duplicate decision stable at its threshold", () => {
-    expect(isDuplicateScore(DUPLICATE_THRESHOLD - Number.EPSILON)).toBe(false);
-    expect(isDuplicateScore(DUPLICATE_THRESHOLD)).toBe(true);
-    expect(isDuplicateScore(DUPLICATE_THRESHOLD + Number.EPSILON)).toBe(true);
+  it("accepts a terminal usage chunk with an empty choices array", async () => {
+    const request = vi.fn(() =>
+      Promise.resolve(
+        sseResponse([
+          sseChunk("中"),
+          sseChunk("文"),
+          'data: {"id":"x","choices":[],"usage":{"prompt_tokens":2,"completion_tokens":2,"total_tokens":4}}\n\n',
+          "data: [DONE]\n\n",
+        ]),
+      ),
+    );
+    vi.stubGlobal("fetch", request);
+
+    await expect(runModel(gateway, "system", "prompt")).resolves.toBe("中文");
   });
 });

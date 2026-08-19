@@ -55,15 +55,30 @@ export function validateMarkdown(body: string): void {
 }
 
 export function parseArticleDocument(source: string): ParsedArticleDocument {
-  const normalized = normalizeLineEndings(source);
-  const match = /^---\n([\s\S]*?)\n---\n([\s\S]+)$/u.exec(normalized);
-  if (!match?.[1] || !match[2])
-    throw new Error("Article Markdown requires YAML frontmatter and a body");
+  const normalized = normalizeLineEndings(source).replace(/^\uFEFF/u, "");
+  const lines = normalized.split("\n");
 
-  validateFrontmatterOrder(match[1]);
-  const frontmatter = frontmatterSchema.parse(parse(match[1]));
+  // The first standalone `---` line is the frontmatter opener; any lines
+  // before it are discarded as noise so unrelated prefixes (a model or a
+  // tool prepending characters) do not break parsing.
+  const openerIndex = lines.findIndex((line) => /^---[ \t]*$/u.test(line));
+  if (openerIndex < 0) throw new Error("Article Markdown requires YAML frontmatter and a body");
+
+  const closerIndex = lines.findIndex(
+    (line, index) => index > openerIndex && /^---[ \t]*$/u.test(line),
+  );
+  if (closerIndex < 0) throw new Error("Article Markdown requires YAML frontmatter and a body");
+
+  const yaml = lines.slice(openerIndex + 1, closerIndex).join("\n");
+  validateFrontmatterOrder(yaml);
+  const frontmatter = frontmatterSchema.parse(parse(yaml));
   const tags = canonicalizeTags(frontmatter.tags);
-  const body = stripLeadingTitleHeading(match[2].trim()).trim();
+  const body = stripLeadingTitleHeading(
+    lines
+      .slice(closerIndex + 1)
+      .join("\n")
+      .trim(),
+  ).trim();
   validateMarkdown(body);
 
   const canonicalFrontmatter = stringify(

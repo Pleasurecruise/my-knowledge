@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { isDuplicateScore } from "../src/index";
-
 const idSchema = z.string().min(1);
 const stringListSchema = z.array(z.string());
 const writingCaseSchema = z.object({
@@ -11,12 +9,10 @@ const writingCaseSchema = z.object({
   requiredReusedTag: z.string(),
   maxNewTags: z.number().int().min(0),
 });
-const duplicateCaseSchema = z.object({ id: idSchema, label: z.boolean() });
 const corpusSchema = z.object({
   version: z.number().int().positive(),
   synthetic: z.literal(true),
   writing: z.array(writingCaseSchema).min(4),
-  duplicates: z.array(duplicateCaseSchema).min(4),
 });
 
 const evaluationSchema = z.object({
@@ -27,19 +23,12 @@ const evaluationSchema = z.object({
     .refine((entries) => new Set(entries.map((entry) => entry.id)).size === entries.length, {
       message: "Writing result IDs must be unique",
     }),
-  duplicates: z
-    .array(z.object({ id: idSchema, score: z.number().min(-1).max(1) }))
-    .refine((entries) => new Set(entries.map((entry) => entry.id)).size === entries.length, {
-      message: "Duplicate result IDs must be unique",
-    }),
 });
 
 export type EvaluationSummary = {
   schemaSuccess: number;
   tagCompliance: number;
   tagReuse: number;
-  duplicatePrecision: number;
-  duplicateRecall: number;
   hardInvariantFailures: number;
   latencyMs: null;
   costUsd: null;
@@ -55,16 +44,11 @@ export function evaluateFrozenCorpus(
     throw new Error("Evaluation corpus version does not match");
   if (evaluation.writing.length !== corpus.writing.length)
     throw new Error("Writing evaluation result count does not match the corpus");
-  if (evaluation.duplicates.length !== corpus.duplicates.length)
-    throw new Error("Duplicate evaluation result count does not match the corpus");
 
   let schemaSuccesses = 0;
   let schemaTotal = 0;
   let tagCompliance = 0;
   let tagReuse = 0;
-  let truePositives = 0;
-  let falsePositives = 0;
-  let falseNegatives = 0;
   let hardInvariantFailures = 0;
 
   for (const expected of corpus.writing) {
@@ -79,26 +63,10 @@ export function evaluateFrozenCorpus(
     if (!result.schemaSuccess || !compliant) hardInvariantFailures += 1;
   }
 
-  for (const expected of corpus.duplicates) {
-    const result = evaluation.duplicates.find((entry) => entry.id === expected.id);
-    if (!result) throw new Error(`Duplicate evaluation result is missing: ${expected.id}`);
-    const predicted = isDuplicateScore(result.score);
-    if (predicted && expected.label) truePositives += 1;
-    if (predicted && !expected.label) falsePositives += 1;
-    if (!predicted && expected.label) falseNegatives += 1;
-  }
-
-  const predictedDuplicates = truePositives + falsePositives;
-  const labeledDuplicates = truePositives + falseNegatives;
-  if (predictedDuplicates === 0) throw new Error("Evaluation has no predicted duplicate");
-  if (labeledDuplicates === 0) throw new Error("Evaluation has no labeled duplicate");
-
   return {
     schemaSuccess: schemaSuccesses / schemaTotal,
     tagCompliance: tagCompliance / corpus.writing.length,
     tagReuse: tagReuse / corpus.writing.length,
-    duplicatePrecision: truePositives / predictedDuplicates,
-    duplicateRecall: truePositives / labeledDuplicates,
     hardInvariantFailures,
     latencyMs: null,
     costUsd: null,

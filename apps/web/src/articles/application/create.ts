@@ -1,13 +1,11 @@
-import { isDuplicateScore, writeChineseArticle } from "@my-knowledge/ai-core";
+import { writeChineseArticle } from "@my-knowledge/ai-core";
 import { parseArticleDocuments } from "@my-knowledge/content";
 import { selectSkills, skillRegistry } from "@my-knowledge/skills";
 
 import { modelConfig } from "@/model/config";
 
 import { findArticleByHash, listTags } from "../persistence/query";
-import { findVectorArticles } from "../persistence/vector";
 import { createArticle } from "../persistence/write";
-import { embedText, embeddingInput } from "./embedding";
 import { translateChineseDocument } from "./translation";
 
 type CreateArticleResult =
@@ -29,20 +27,13 @@ export async function createArticleFromContent(
   content: string,
 ): Promise<CreateArticleResult> {
   const gateway = modelConfig(env);
-  const inputEmbedding = await embedText(env, content);
-  const neighbors = await findVectorArticles(env, "owner", inputEmbedding, 8);
   const tags = await listTags(env, "owner");
   const selected = selectSkills(content).map(requireSkill);
   const zhMarkdown = await writeChineseArticle(
     gateway,
     content,
     selected,
-    neighbors.map(({ article }) => ({
-      slug: article.slug,
-      title: article.editions.zh.title,
-      summary: article.editions.zh.summary,
-      tags: article.tags,
-    })),
+    [],
     tags.map((tag) => tag.path),
   );
   const zhDocument = await parseArticleDocuments({ zh: zhMarkdown });
@@ -50,17 +41,6 @@ export async function createArticleFromContent(
   const exact = await findArticleByHash(env, zhDocument.contentHash);
   if (exact) return { status: "duplicate", similarArticle: exact, score: 1 };
 
-  const embedding = await embedText(env, embeddingInput(zhDocument.editions.zh));
-  const similar = await findVectorArticles(env, "owner", embedding, 1);
-  const closest = similar[0];
-  if (closest && isDuplicateScore(closest.score)) {
-    return {
-      status: "duplicate",
-      similarArticle: closest.article,
-      score: closest.score,
-    };
-  }
-
   const document = await translateChineseDocument(env, zhMarkdown);
-  return { status: "created", article: await createArticle(env, document, embedding) };
+  return { status: "created", article: await createArticle(env, document) };
 }

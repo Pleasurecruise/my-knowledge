@@ -1,11 +1,11 @@
 import type { PageLayoutProps } from "./page-layout.types";
 
 export function PageLayout({ action, children, description, title, view }: PageLayoutProps) {
-  // One shared measure keeps wide content from rendering past the title above it.
+  const shell = view === "narrow" ? "max-w-280 px-4 sm:px-8" : "max-w-5xl px-4 sm:px-6 lg:px-8";
   const measure = view === "narrow" ? "max-w-180" : "max-w-none";
   const bottom = view === "narrow" ? "pb-24" : "pb-0";
   return (
-    <div className={`mx-auto max-w-280 px-4 pt-7 sm:px-8 ${bottom}`}>
+    <div className={`mx-auto ${shell} pt-7 ${bottom}`}>
       <header className={`mx-auto mb-8 ${measure}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="relative inline-block">

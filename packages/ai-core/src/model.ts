@@ -7,20 +7,10 @@ import {
   type GatewayConfig,
 } from "./gateway";
 
-export const ARTICLE_MODEL = "deepseek-v4-flash";
-export const EMBEDDING_MODEL = "@cf/baai/bge-m3";
-export const DUPLICATE_THRESHOLD = 0.92;
+export const ARTICLE_MODEL = "dynamic/article";
 
-export function isDuplicateScore(score: number): boolean {
-  return score >= DUPLICATE_THRESHOLD;
-}
-
-const completionChoiceSchema = z.object({
-  message: z.object({ content: z.string().trim().min(1) }),
-});
-const completionResponseSchema = z.object({
-  choices: z.tuple([completionChoiceSchema]).rest(completionChoiceSchema),
-});
+const chunkChoice = z.object({ delta: z.object({ content: z.string().nullish() }) });
+const chunk = z.object({ choices: z.array(chunkChoice) });
 
 export async function runModel(
   configInput: GatewayConfig,
@@ -37,12 +27,34 @@ export async function runModel(
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
       ],
-      max_tokens: 12_000,
-      temperature: 0.2,
-      stream: false,
+      stream: true,
     }),
     signal: AbortSignal.timeout(120_000),
   });
   if (!response.ok) throw new Error(`Article model request failed with status ${response.status}`);
-  return completionResponseSchema.parse(await response.json()).choices[0].message.content;
+  if (!response.body) throw new Error("Article model stream is empty");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let text = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let separatorIndex = buffer.indexOf("\n\n");
+    while (separatorIndex >= 0) {
+      const event = buffer.slice(0, separatorIndex);
+      buffer = buffer.slice(separatorIndex + 2);
+      for (const line of event.split("\n")) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6).trim();
+        if (data === "[DONE]" || data.length === 0) continue;
+        const parsed = chunk.parse(JSON.parse(data));
+        const delta = parsed.choices[0]?.delta.content;
+        if (delta) text += delta;
+      }
+      separatorIndex = buffer.indexOf("\n\n");
+    }
+  }
+  return text.trim();
 }

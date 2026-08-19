@@ -12,7 +12,7 @@ different failure class and must run against the smallest truthful boundary.
 | :----------------- | :------------------------------------------- | :-------------------------------------------------- |
 | Unit               | Pure TypeScript rules                        | Fast deterministic examples and edge cases          |
 | Integration        | Worker modules and local Cloudflare bindings | Real serialization, queries, and mutation order     |
-| Contract           | MCP, model, embedding, and HTTP boundaries   | Schemas, status codes, headers, and failure mapping |
+| Contract           | MCP, model, and HTTP boundaries              | Schemas, status codes, headers, and failure mapping |
 | End-to-end         | Generated OpenNext Worker in a browser       | User-visible behavior and privacy                   |
 | Offline evaluation | Frozen knowledge and model test sets         | Quality comparison against an accepted baseline     |
 | Release smoke      | Preview or production-like deployment        | Bindings, auth callback, rendering, and rollback    |
@@ -39,10 +39,9 @@ Use Vite Plus tests for:
 - long-form rendering through decoded code entities, the fixed Shiki language/alias bundle, dual
   themes, plain-text fallback, structured-fence exclusion, heading anchors, and table overflow;
 - tag normalization, hierarchy, existing-tag preference, and the five-tag/one-new-leaf limits;
-- article visibility predicates, anonymous result filtering, hierarchical tag SQL, and vector ID
-  parsing;
-- similarity threshold boundaries, the 64-byte Vectorize ID boundary, validated authorization
-  metadata, and stale-hash concurrency checks;
+- article visibility predicates, anonymous result filtering, and hierarchical tag SQL;
+- AI Search item-key and write-path sync boundaries, validated authorization metadata, and
+  stale-hash concurrency checks;
 - model-output schemas and cross-edition structural parity;
 - prompt construction that disables payload logging and never accepts client visibility overrides;
 - concise camelCase domain names and exhaustive error mapping where behavior is security-sensitive.
@@ -54,11 +53,11 @@ They must use deterministic seeds printed on failure.
 ## Integration tests
 
 Run Worker-facing integration tests in the Workers runtime with isolated local D1, R2, and KV state.
-Use a narrow in-memory adapter only where the local platform cannot reproduce a binding, such as a
-Vectorize query; keep a separate contract fixture for its real response shape.
+Use a narrow in-memory adapter only where the local platform cannot reproduce a binding, such as an
+AI Search query; keep a separate contract fixture for its real response shape.
 
 Cover job submission/claim/retry, create, update, visibility, and delete failure at every write
-boundary. Assert both the visible result and leftover objects so submitted KV input, R2/vector
+boundary. Assert both the visible result and leftover objects so submitted KV input, R2/AI Search
 orphans, stale cache, and partial D1 writes are detected. Run the numbered SQL migrations from an
 empty database and from the immediately previous schema.
 
@@ -158,10 +157,11 @@ uses a Better Auth session generated through its public cryptographic API and ch
 owner surfaces at desktop and phone widths, light and dark themes, reduced motion, accessibility,
 the rich Japanese article, and expected browser errors only.
 
-Wrangler cannot execute Vectorize locally. The owner deletion journey therefore proves that a failed
-vector cleanup returns the active locale's error and leaves the private article retryable; successful live
-cleanup is not replaced by a mock. Live embedding/similarity, successful create/update/delete
-cleanup, Google OAuth, provider behavior, and deployment smoke remain
+Wrangler cannot execute AI Search locally. The owner deletion journey therefore proves that a failed
+AI Search cleanup returns the active locale's error and leaves the private article retryable; the
+anonymous Home search journey proves that a failed public search surfaces the standard error page.
+Successful live cleanup and hybrid retrieval are not replaced by mocks. Live successful
+create/update/delete cleanup, Google OAuth, provider behavior, and deployment smoke remain
 production-account gates. Deterministic evaluation leaves latency and cost as `null` until the opt-in
 live Gateway run supplies real measurements.
 

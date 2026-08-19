@@ -32,7 +32,7 @@ type Article = {
 update produces alongside it, so a current record always carries all three. `createArticle` and the
 browser editor accept only Chinese input; `createArticle` receives no locale choice, and AI
 understands the source conversation in whatever language it uses and writes Simplified Chinese.
-Hashing, embedding, and duplicate comparison use the Chinese edition only. Reading an article renders
+Hashing and duplicate comparison use the Chinese edition only. Reading an article renders
 whichever edition matches the caller's locale, falling back to Chinese when one is missing — possible
 only for content saved before a locale existed. `ArticleSummary` omits every Markdown body. List,
 search, related, and graph responses use summaries unless the caller requests one article. Timestamps
@@ -80,5 +80,5 @@ separate MCP operation.
 
 The browser editor accepts a Chinese title, body, and tags. Save regenerates the Chinese one-sentence
 summary, translates the result into `en` and `ja`, then runs the same canonical validation and
-conditional R2/D1 write for all three editions. This is one coordinated mutation; a failed summary,
-translation, validation, embedding, or write leaves the current version unchanged.
+conditional R2/AI Search/D1 write for all three editions. This is one coordinated mutation; a failed
+summary, translation, validation, or write leaves the current version unchanged.

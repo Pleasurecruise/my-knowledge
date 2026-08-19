@@ -3,9 +3,9 @@
 Status: Implemented locally; production resources await owner setup
 
 D1 is the query index and job state store, R2 owns Markdown, KV holds disposable cached output and
-expiring job input, and Drizzle is the typed D1 query layer. The content model keeps frontmatter
-properties, nested tag paths, wiki links, backlinks, and graph views without adding a database server
-or normalized relation tables.
+expiring job input, AI Search owns vectorization and retrieval, and Drizzle is the typed D1 query
+layer. The content model keeps frontmatter properties, nested tag paths, wiki links, backlinks, and
+graph views without adding a database server or normalized relation tables.
 
 ## D1
 
@@ -20,7 +20,8 @@ The application owns two tables. `articles` stores:
 `articleJobs` stores only `id`, `status`, nullable `resultJson`, `createdAt`, and `updatedAt`. Status is
 `pending`, `processing`, `created`, `duplicate`, or `failed`. Pending and processing rows have no
 result. Terminal JSON contains either an article ID, an article ID plus duplicate score, or a
-sanitized error. It never contains submitted content, generated Markdown, prompts, or embeddings.
+sanitized error. It never contains submitted content, generated Markdown, prompts, or search index
+entries.
 
 Better Auth owns its standard `user`, `session`, `account`, and `verification` tables. Do not add a
 profile, role, token, tag, link, revision, relation, source, or deletion table.
@@ -32,8 +33,7 @@ Make `id` the primary key and `slug` and `contentHash` unique. Add only one proj
 Tag counts use one recursive SQLite query over `json_each(tagsJson)`. It expands every hierarchical
 prefix and counts an article once per prefix; anonymous execution filters public rows inside the same
 query. Wiki links and backlinks join `json_each(linksJson)` to `articles.slug`; Graph combines those
-links with re-authorized Vectorize neighbors. Normalize into more tables only after a measured D1
-bottleneck.
+links with shared tags. Normalize into more tables only after a measured D1 bottleneck.
 
 ## R2 and KV
 
@@ -52,8 +52,9 @@ category field. Hashes never appear in R2 paths. Canonical Markdown uses LF line
 newline, and frontmatter ordered as `title`, `summary`, then `tags` for every edition. `contentHash`
 remains lowercase SHA-256 over `zh`, one NUL byte, the canonical Chinese Markdown bytes, and one NUL
 byte — only the authored Chinese edition participates in the hash, since `en`/`ja` are derived from it.
-It is concurrency metadata for D1, KV, and Vectorize rather than a folder name. A create or update
-writes all three editions together; a legacy edition outside this set is removed rather than kept.
+It is concurrency metadata for D1, KV, and the AI Search index rather than a folder name. A create or
+update writes all three editions together; a legacy edition outside this set is removed rather than
+kept.
 
 D1 `metaJson`, `tagsJson`, and `linksJson` are parsed projections used for lists, filters, backlinks,
 and Graph, avoiding an R2 read for every row; `metaJson` carries title and summary for all three
@@ -79,19 +80,24 @@ Create or update in this order:
 2. read the current R2 document set and ETags for an update, including legacy editions;
 3. conditionally write all three documents: an unchanged path must match its previous ETag and a moved
    or new path must not already exist;
-4. upsert a 64-byte Vectorize ID made from the hyphenless article UUID, a separator, and the first 31
-   hash characters; store the complete article ID and content hash in vector metadata;
+4. upload the three Markdown editions to the AI Search `my-knowledge` instance under deterministic item keys
+   derived from the article ID, which overwrite the previous version on update;
 5. insert the D1 row, or update it with `WHERE id = ? AND contentHash = expectedHash`;
-6. after success, invalidate the previous KV/vector version and delete superseded edition paths.
+6. after success, invalidate the previous KV version and delete superseded edition paths. A failed
+   update restores the previous AI Search items instead of leaving a partial index.
+
+Visibility changes touch only D1 and the cache. The index keeps every article under its item key
+regardless of visibility; consumption re-authorizes each result through D1, so a withdrawn or
+deleted article never reaches an anonymous response.
 
 If a later write fails, restore overwritten objects with the ETags returned by the conditional write,
-delete newly created paths, and remove the new vector. A conflicting object write fails rather than
-overwriting another update. Vector reads validate the complete metadata and must match both the
-current D1 article ID and hash, so the shortened provider ID never authorizes a result and an orphan
-is never visible.
+delete newly created paths, and remove the new AI Search items. A conflicting object write fails
+rather than overwriting another update. Search results are re-authorized through D1 and must match
+the current article ID and hash, so the index never authorizes a result and an orphan is never
+visible.
 
 Delete snapshots the current R2 ETags, sets D1 visibility to `private`, then deletes unchanged
-KV/R2/Vectorize objects before deleting the D1 row. If external cleanup fails, the private row remains
+KV/R2/AI Search items before deleting the D1 row. If external cleanup fails, the private row remains
 for a retry. Public reads
 always check D1 visibility before KV or R2.
 

@@ -16,8 +16,10 @@ without manual organization.
 
 - Zero anonymous disclosure of private titles, bodies, metadata, vectors, or relationships.
 - Submitted conversations exist only in expiring KV job-input entries until terminal processing;
-  they never enter D1, R2, Vectorize, job results, or application logs. AI-search request material is
-  never stored.
+  they never enter D1, R2, AI Search, job results, or application logs. AI-search request material is
+  never stored. Cloudflare's AI Gateway log store may retain request and response payloads when
+  `cf-aig-collect-log-payload: true` is enabled; this is a deliberate operational trade-off and is
+  not a feature regression.
 - Every AI answer citation resolves to an article authorized for the current session.
 - Every generated article is private until an explicit MCP visibility change.
 

@@ -18,7 +18,8 @@ the owner to rewrite, summarize, classify, tag, or compare it manually.
 1. Send conversation content to `createArticle`.
 2. Receive a job ID immediately, then check `getArticleJob` later for one finished article (with its
    Chinese, English, and Japanese editions) or a similar-article conflict.
-3. Find it through keywords, tags, links, the graph, or authenticated MCP search.
+3. Find it through anonymous hybrid search, keywords, tags, links, the graph, or authenticated MCP
+   search.
 4. Review and edit it in the browser, then publish it from the browser or MCP when ready.
 
 ## Surface and access
@@ -29,7 +30,7 @@ not a fourth tab.
 
 | Surface              | Anonymous                                      | Signed-in owner                          |
 | :------------------- | :--------------------------------------------- | :--------------------------------------- |
-| `/`                  | Public keyword and tag search                  | Keyword and tag search across all        |
+| `/`                  | Public hybrid AI search                        | Keyword and tag search across all        |
 | `/articles`          | Public chronological list                      | Full list; New in the Chinese interface  |
 | `/articles/new`      | Not found                                      | Create a private article in Chinese      |
 | `/articles/[slug]`   | Public article or not found                    | Any article, with edit action            |
@@ -52,7 +53,7 @@ An article stores only:
 - private or public visibility;
 - content hash and timestamps.
 
-Explicit `[[wiki links]]`, shared tags, and Vectorize neighbors form the knowledge graph. There are no
+Explicit `[[wiki links]]` and shared tags form the knowledge graph. There are no
 model-generated relation types, entities, confidence fields, workflow artifacts, or revision history
 in the first release.
 
@@ -78,7 +79,8 @@ The first release is complete when:
 - MCP can list, read, update, delete, search, tag, link, and change article visibility;
 - the web UI contains exactly three primary tabs—Home, Articles, and Graph—plus Article detail and
   header language, theme, and authentication actions;
-- Home supports keyword and tag search over the caller's authorized articles;
+- Home routes anonymous queries through the AI Search instance with D1 re-authorization; owner
+  queries use D1 keyword/tag search across all rows;
 - browser saves regenerate the one-sentence Chinese summary before replacing an article version;
 - private articles never appear on anonymous pages, search, feeds, metadata, or graph views;
 - public articles expose canonical article metadata, dynamic social images, and sitemap entries

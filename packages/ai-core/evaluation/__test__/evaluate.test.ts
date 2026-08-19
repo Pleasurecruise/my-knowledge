@@ -16,22 +16,6 @@ describe("frozen model and retrieval evaluation", () => {
       schemaSuccess: 1,
       tagCompliance: 1,
       tagReuse: 1,
-      duplicatePrecision: 1,
-      duplicateRecall: 1,
-      hardInvariantFailures: 0,
-      latencyMs: null,
-      costUsd: null,
-    });
-  });
-
-  it("accepts the Chinese-only candidate with no deterministic regression", async () => {
-    const summary = evaluateFrozenCorpus(await readJson("corpus"), await readJson("candidate"));
-    expect(summary).toEqual({
-      schemaSuccess: 1,
-      tagCompliance: 1,
-      tagReuse: 1,
-      duplicatePrecision: 1,
-      duplicateRecall: 1,
       hardInvariantFailures: 0,
       latencyMs: null,
       costUsd: null,

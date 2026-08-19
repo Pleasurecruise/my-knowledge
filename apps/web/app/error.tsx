@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default function ErrorPage({ reset }: { reset: () => void }) {
   return (
-    <div className="mx-auto max-w-280 px-4 py-20 sm:px-8 sm:py-28">
+    <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
       <div className="max-w-xl border-l pl-6 sm:pl-10">
         <p className="font-mono text-xs text-muted-foreground">500 · ERROR</p>
         <h1 className="font-heading mt-4 text-xl font-semibold tracking-[-0.015em] sm:text-[1.375rem]">

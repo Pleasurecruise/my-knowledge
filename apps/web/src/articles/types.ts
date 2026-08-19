@@ -18,19 +18,9 @@ export type RankedArticle = {
   score: number;
 };
 
-export type RankedArticleSummary = {
-  article: ArticleSummary;
-  score: number;
-};
-
 export type ArticleGraphRecord = {
   article: ArticleSummary;
   links: string[];
-};
-
-export type ArticleRelations = {
-  backlinks: ArticleSummary[];
-  semantic: { status: "available"; articles: RankedArticleSummary[] } | { status: "unavailable" };
 };
 
 export type TagCount = {

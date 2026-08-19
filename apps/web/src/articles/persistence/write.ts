@@ -2,6 +2,7 @@ import type { Article, ArticleDocumentSet, ArticleSummary } from "@my-knowledge/
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
+import { MY_KNOWLEDGE_INSTANCE, deleteSearchItems, indexArticleItems } from "./ai-search";
 import { deleteArticleCache } from "./cache";
 import { getArticleRow, readArticle } from "./document";
 import { createStoredArticle, deleteStoredArticle, updateStoredArticle } from "./mutation";
@@ -10,7 +11,6 @@ import {
   articleDocumentMeta,
   articleObjectKey,
   articleSummary,
-  articleVectorId,
   requiredChineseEdition,
 } from "./record";
 import type { StoredArticleDocument, WrittenArticleDocument } from "./types";
@@ -24,13 +24,30 @@ async function deleteArticleArtifacts(
 ): Promise<void> {
   const results = await Promise.allSettled([
     deleteArticleCache(env.KNOWLEDGE_CACHE, id, hash, locales),
-    env.KNOWLEDGE_INDEX.deleteByIds([articleVectorId(id, hash)]),
+    deleteSearchItems(env, id, locales),
   ]);
   const errors: unknown[] = [];
   for (const result of results) {
     if (result.status === "rejected") errors.push(result.reason);
   }
   if (errors.length > 0) throw new AggregateError(errors, `Article version cleanup failed: ${id}`);
+}
+
+async function indexStoredDocuments(
+  env: CloudflareEnv,
+  id: string,
+  locales: readonly string[],
+  documents: readonly StoredArticleDocument[],
+): Promise<void> {
+  for (const [index, locale] of locales.entries()) {
+    const document = documents[index];
+    if (!document) continue;
+    const item = await env.AI_SEARCH.get(MY_KNOWLEDGE_INSTANCE).items.upload(
+      `${id}/${locale}.md`,
+      document.markdown,
+    );
+    if (item.status === "error") throw new Error(`AI Search indexing failed for ${id}/${locale}`);
+  }
 }
 
 async function readStoredArticleDocuments(
@@ -115,47 +132,31 @@ async function deleteStoredArticleDocuments(
   }
 }
 
-async function writeArticleVector(
-  env: CloudflareEnv,
-  id: string,
-  hash: string,
-  embedding: number[],
-): Promise<void> {
-  await env.KNOWLEDGE_INDEX.upsert([
-    {
-      id: articleVectorId(id, hash),
-      values: embedding,
-      metadata: { articleId: id, contentHash: hash },
-    },
-  ]);
-}
-
 export async function createArticle(
   env: CloudflareEnv,
   document: ArticleDocumentSet,
-  embedding: number[],
 ): Promise<Article> {
   const id = crypto.randomUUID();
   const slug = await allocateArticleSlug(env, requiredChineseEdition(document).title);
   const timestamp = new Date().toISOString();
-  const row: typeof articles.$inferInsert = {
-    id,
-    slug,
-    contentHash: document.contentHash,
-    metaJson: JSON.stringify(articleDocumentMeta(document)),
-    tagsJson: JSON.stringify(document.tags),
-    linksJson: JSON.stringify(document.links),
-    visibility: "private",
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
 
   const locales = Object.keys(document.editions);
   const writtenDocuments: WrittenArticleDocument[] = [];
   await createStoredArticle({
     writeDocuments: () => writeArticleDocuments(env, slug, document, [], writtenDocuments),
-    writeVector: () => writeArticleVector(env, id, document.contentHash, embedding),
+    writeIndex: () => indexArticleItems(env, id, document),
     insertRow: async () => {
+      const row: typeof articles.$inferInsert = {
+        id,
+        slug,
+        contentHash: document.contentHash,
+        metaJson: JSON.stringify(articleDocumentMeta(document)),
+        tagsJson: JSON.stringify(document.tags),
+        linksJson: JSON.stringify(document.links),
+        visibility: "private",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
       await drizzle(env.DB).insert(articles).values(row);
       return row;
     },
@@ -176,7 +177,6 @@ export async function updateArticle(
   id: string,
   expectedHash: string,
   document: ArticleDocumentSet,
-  embedding: number[],
 ): Promise<Article | undefined> {
   const previous = await getArticleRow(env, "owner", "id", id);
   if (!previous || previous.contentHash !== expectedHash) return undefined;
@@ -194,7 +194,7 @@ export async function updateArticle(
   const updated = await updateStoredArticle({
     writeDocuments: () =>
       writeArticleDocuments(env, previous.slug, document, previousDocuments, writtenDocuments),
-    writeVector: () => writeArticleVector(env, id, document.contentHash, embedding),
+    writeIndex: () => indexArticleItems(env, id, document),
     switchRow: () =>
       drizzle(env.DB)
         .update(articles)
@@ -213,11 +213,12 @@ export async function updateArticle(
         rollbackArticleDocuments(env.KNOWLEDGE_BUCKET, previousDocuments, writtenDocuments),
         deleteArticleArtifacts(env, id, document.contentHash, locales),
       ]);
+      await indexStoredDocuments(env, id, previousLocales, previousDocuments);
     },
     cleanupPreviousVersion: async () => {
       await Promise.all([
         deleteStoredArticleDocuments(env.KNOWLEDGE_BUCKET, previousDocuments, retainedKeys),
-        deleteArticleArtifacts(env, id, expectedHash, previousLocales),
+        deleteArticleCache(env.KNOWLEDGE_CACHE, id, expectedHash, previousLocales),
       ]);
     },
   });

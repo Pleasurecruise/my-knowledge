@@ -20,16 +20,11 @@ terminal jobs are acknowledged without rerunning. KV's eventual consistency is h
 retryable missing-input condition. Processing retries three times; the final failure records one
 sanitized error and deletes the input.
 
-### 1. Prepare context and skills
+### 1. Prepare skills
 
-Read the existing tag tree and use one in-memory input embedding to retrieve at most eight authorized
-article titles, summaries, and slugs. Long inputs split into paragraphs under a 12,000-character
-budget, embed in one batched call, and mean-pool to one normalized vector, so the single-vector
-index contract holds while BGE-M3's 8,192-token input limit never truncates content; inputs within
-the budget keep the single-call path. This bounded context lets the model reuse tags and propose
-real wiki links; it is never persisted. The small project-owned selector then chooses the minimal
-skill set. Waza `write` is always present. It adds `vega` for real quantitative data and `canvas`
-for a useful concept map. Ordinary prose loads neither visual skill.
+Read the existing tag tree, then let the small project-owned selector choose the minimal skill set.
+Waza `write` is always present. It adds `vega` for real quantitative data and `canvas` for a useful
+concept map. Ordinary prose loads neither visual skill.
 
 ### 2. Write
 
@@ -47,11 +42,8 @@ nothing.
 
 ### 3. Compare
 
-Compute the canonical Chinese `contentHash`, embed the title, summary, and body, and query
-Vectorize. An exact hash or a score above the duplicate threshold returns the closest authorized
-article and stores nothing — a duplicate never reaches translation. Lower-scoring neighbors become
-article-page semantic relationships at read time. Vector IDs stay within the provider's 64-byte
-boundary; complete authorization fields live in validated metadata and are checked against D1.
+Compute the canonical Chinese `contentHash` and check it against D1. An exact hash match returns the
+existing article and stores nothing — a duplicate never reaches translation.
 
 ### 4. Translate
 
@@ -63,7 +55,7 @@ same as an invalid writing result.
 ### 5. Save
 
 Parse all three Markdown editions, validate tags, resolve wiki links, and validate supported blocks.
-Use the conditional R2, Vectorize, and D1 order defined in [Database](DATABASE.md), with visibility
+Use the conditional R2, AI Search, and D1 order defined in [Database](DATABASE.md), with visibility
 forced to `private`.
 
 Record the created article ID or duplicate article ID and score in the terminal job result, then
@@ -74,10 +66,11 @@ choice and cadence, not a loop the server expects it to run continuously.
 
 ## Web discovery
 
-Home matches normalized keywords and tags against D1 projections over authorized rows; body full-text
-search is outside the first release. Articles is a chronological index and has no search or filter
-controls. Web discovery never calls a model. The owner searches the same fields across public and
-private rows; anonymous readers search public rows only.
+Home routes anonymous queries through the AI Search `my-knowledge` instance: hybrid retrieval ranked by
+score, with every result re-authorized through D1 (published rows only) so private content never
+leaks. Owner queries keep D1 keyword/tag matching across all rows; body full-text search is outside
+the first release. Articles is a chronological index and has no search or filter controls. Web
+discovery never calls a model.
 
 ## Browser authoring
 
@@ -85,7 +78,7 @@ The allowed-email owner can create or edit canonical Chinese Markdown from the A
 New action appears only with the Chinese interface, and the new-article editor always uses Chinese
 labels; direct route access remains owner-authorized. A save regenerates its one-sentence Chinese
 summary, translates the result into `en` and `ja`, validates all three documents, and replaces the
-version through the existing R2, Vectorize, and D1 write order. A legacy edition outside the current
+version through the existing R2, AI Search, and D1 write order. A legacy edition outside the current
 three is removed. New articles start private. Publish, withdraw, and delete remain explicit
 operations guarded by the current content hash.
 
@@ -93,10 +86,11 @@ operations guarded by the current content hash.
 
 - `getArticle` reads one authorized article with its Chinese, English, and Japanese editions.
 - `listArticles` uses a stable updated-time/ID cursor and filters by visibility and nested tags.
-- `updateArticle` saves edited final Chinese Markdown, tags, links, hash, and vector with an expected
-  hash, translating the submitted document into refreshed `en`/`ja` editions.
-- `deleteArticle` makes the D1 row private before removing cached editions, Markdown, vector, and the
-  row.
+- `updateArticle` saves edited final Chinese Markdown, tags, links, and hash with an expected hash,
+  translating the submitted document into refreshed `en`/`ja` editions and syncing all three to AI
+  Search.
+- `deleteArticle` makes the D1 row private before removing cached editions, Markdown, AI Search
+  items, and the row.
 - `searchArticles` combines text/tag filters with semantic search and re-authorizes every result.
 - `listTags` expands and counts canonical hierarchical tag paths in one D1 `json_each` query while
   applying the caller's visibility boundary.
@@ -118,4 +112,4 @@ fallbacks.
   edition.
 - Unauthorized reads behave as not found.
 - Cache failure is logged, reads canonical R2, and never bypasses the preceding D1 authorization.
-- Vector failure blocks create/update so search never silently becomes stale.
+- AI Search index failure blocks create/update so search never silently becomes stale.

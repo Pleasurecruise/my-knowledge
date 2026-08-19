@@ -52,6 +52,6 @@ application reimplements those ideas for a private-first cloud library; it does 
 copy its desktop vault architecture.
 
 `my-memos` defines the browser Notes composition and editor. This project keeps its Article routes,
-AI synchronization, Obsidian knowledge model, and D1/R2/KV/Vectorize boundaries. Its AGPL-3.0 license
+AI synchronization, Obsidian knowledge model, and D1/R2/KV/AI Search boundaries. Its AGPL-3.0 license
 has been reviewed for the requested reuse; third-party-derived fragments and assets still require
 their own compatibility review.

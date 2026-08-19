@@ -4,7 +4,7 @@ import { Markdown } from "@my-knowledge/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getArticleBySlug, getArticleRelations } from "@/articles";
+import { getArticleBySlug, listArticleBacklinks } from "@/articles";
 import { ArticleHeader } from "@/articles/components/article-header";
 import { ArticleNavigationActions } from "@/articles/components/article-navigation-actions";
 import { ArticleRelationList } from "@/articles/components/article-relations";
@@ -93,7 +93,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
   }
   const locale = resolveLocale(Object.keys(article.editions), i18n.code) ?? "zh";
   const text = article.editions[locale] ?? article.editions.zh;
-  const relations = await getArticleRelations(env, principal, article);
+  const backlinks = await listArticleBacklinks(env, principal, article);
   const headings = extractHeadings(text.markdown);
   return (
     <div className="relative mx-auto max-w-280 px-4 pt-5 pb-20 sm:px-8 sm:pt-7 sm:pb-24">
@@ -137,24 +137,11 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
           structuredBlock={StructuredBlock}
           markdown={text.markdown}
         />
-        <div className="mt-16 grid gap-8 border-t pt-8 sm:grid-cols-2">
+        <div className="mt-16 border-t pt-8">
           <ArticleRelationList
-            articles={relations.backlinks}
+            articles={backlinks}
             empty={i18n.messages.article.noBacklinks}
             heading={i18n.messages.article.backlinks}
-          />
-          <ArticleRelationList
-            articles={
-              relations.semantic.status === "available"
-                ? relations.semantic.articles.map(({ article: related }) => related)
-                : []
-            }
-            empty={
-              relations.semantic.status === "available"
-                ? i18n.messages.article.noRelated
-                : i18n.messages.article.relationsUnavailable
-            }
-            heading={i18n.messages.article.related}
           />
         </div>
       </article>

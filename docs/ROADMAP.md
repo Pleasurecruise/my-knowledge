@@ -15,7 +15,7 @@ Cloudflare bindings, generated skill registry, and root checks exist.
 
 Exit: the real generated Worker serves the four web surfaces and allowed-email authentication.
 
-## 2. Article CRUD — complete locally, live Vectorize cleanup smoke pending
+## 2. Article CRUD — complete locally, live AI Search cleanup smoke pending
 
 D1/R2/KV, Better Auth, allowed-email authorization, Chinese article records, default-private
 creation, MCP CRUD, public/private reads, and authenticated browser create/edit/visibility/delete are
@@ -35,12 +35,12 @@ Exit: one MCP submission returns a job ID; checking `getArticleJob` later return
 article with its Chinese, English, and Japanese editions, or a duplicate, and temporary input is
 deleted after terminal processing.
 
-## 4. Similarity and discovery — complete, live Vectorize smoke pending
+## 4. Search and discovery — Vectorize similarity replaced by AI Search
 
-Workers AI embeddings, the Vectorize duplicate threshold, authorized keyword/tag search, related
-articles, and the bounded graph view are implemented.
+Authorized keyword/tag search and the bounded graph view are implemented; Workers AI embeddings and
+the Vectorize duplicate threshold were replaced by Cloudflare AI Search owner search and chat.
 
-Exit: duplicates do not write, search respects visibility, and related knowledge is useful.
+Exit: duplicates do not write, search respects visibility, and the graph links related knowledge.
 
 ## 5. Publication surface — complete locally
 

@@ -23,21 +23,6 @@ export function articleObjectKey(slug: string, tags: readonly string[], locale: 
   return `knowledge/${articlePath}/${normalizeLocale(locale)}.md`;
 }
 
-const articleVectorIdentitySchema = z.object({
-  id: z.uuid(),
-  hash: z.string().regex(/^[a-f0-9]{64}$/u),
-});
-
-export const articleVectorMetadataSchema = z.object({
-  articleId: z.uuid(),
-  contentHash: z.string().regex(/^[a-f0-9]{64}$/u),
-});
-
-export function articleVectorId(id: string, hash: string): string {
-  const identity = articleVectorIdentitySchema.parse({ id, hash });
-  return `${identity.id.replaceAll("-", "")}:${identity.hash.slice(0, 31)}`;
-}
-
 export function articleSummary(row: ArticleRow): ArticleSummary {
   const parsedMeta: unknown = JSON.parse(row.metaJson);
   const parsedTags: unknown = JSON.parse(row.tagsJson);

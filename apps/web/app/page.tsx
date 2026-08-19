@@ -1,5 +1,5 @@
 import { ArticleList } from "@/articles/components/article-list";
-import { searchArticles } from "@/articles";
+import { searchAiArticles, searchArticles } from "@/articles";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getPrincipal } from "@/auth/owner";
 import { getInterfaceI18n } from "@/i18n/server";
@@ -13,7 +13,11 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
     getPrincipal(),
     getInterfaceI18n(),
   ]);
-  const results = query ? await searchArticles(env, principal, query, 50) : [];
+  const results = query
+    ? principal === "anonymous"
+      ? (await searchAiArticles(env, principal, query, 50)).map(({ article }) => article)
+      : await searchArticles(env, principal, query, 50)
+    : [];
 
   return (
     <PageLayout

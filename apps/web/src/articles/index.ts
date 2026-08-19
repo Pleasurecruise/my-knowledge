@@ -1,5 +1,5 @@
 export { getArticleById, getArticleBySlug, hasArticleVersion } from "./persistence/document";
-export { getArticleRelations } from "./persistence/relations";
+export { listArticleBacklinks } from "./persistence/relations";
 export {
   findArticleByHash,
   findArticleSummaryById,
@@ -8,10 +8,9 @@ export {
   listTags,
   searchArticles,
 } from "./persistence/query";
-export { findVectorArticles } from "./persistence/vector";
+export { chatAboutKnowledge, searchAiArticles } from "./persistence/ai-search";
 export { createArticleFromContent } from "./application/create";
 export { createArticleFromDraft, updateArticleFromDraft } from "./application/authoring";
-export { embedText, embeddingInput } from "./application/embedding";
 export { translateChineseDocument } from "./application/translation";
 export {
   createArticle,

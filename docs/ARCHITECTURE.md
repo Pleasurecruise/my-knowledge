@@ -20,7 +20,7 @@ stable independent responsibility.
 
 Dependency direction is fixed: `content` and `skills` are independent; `ai-core` may consume both;
 `ui` consumes content types but never platform adapters; `apps/web` composes packages with D1, R2,
-KV, Vectorize, Queue, auth, and transport. Domain packages never import from `apps/web`.
+KV, AI Search, Queue, auth, and transport. Domain packages never import from `apps/web`.
 
 ## Selected stack
 
@@ -32,7 +32,7 @@ KV, Vectorize, Queue, auth, and transport. Domain packages never import from `ap
 | Package manager  | pnpm workspaces                                      |
 | Toolchain        | Vite Plus for format, lint, types, and unit tests    |
 | Model runtime    | Strict non-streaming OpenAI-compatible completion    |
-| Model route      | Cloudflare AI Gateway `custom-opencode` provider     |
+| Model route      | Cloudflare AI Gateway Dynamic Route with BYOK keys   |
 | Validation       | Zod at MCP, model-output, and storage boundaries     |
 | Persistence      | Numbered SQL migrations and typed Drizzle queries    |
 | Authentication   | Better Auth, Google OAuth, and one allowed email     |
@@ -80,18 +80,21 @@ Implement the provider boundary with the same proven Cloudflare AI Gateway reque
 used by `my-memos`; do not inherit its content model, routes, or feature set:
 
 ```text
-https://gateway.ai.cloudflare.com/v1/{account}/default/custom-opencode/v1
+https://gateway.ai.cloudflare.com/v1/{account}/default/compat
 ```
 
-The initial model ID is `deepseek-v4-flash`. The Worker sends `cf-aig-authorization` and deliberately
-omits upstream `Authorization` and `x-api-key`; Cloudflare AI Gateway injects the provider key stored
-for the `custom-opencode` provider. Every content request also sends
-`cf-aig-collect-log-payload: false` and `cf-aig-skip-cache: true`, so the Gateway keeps neither prompt
-and response bodies in logs nor a response cache entry. Metadata-only operational logging is allowed.
-The Worker requests a non-streaming completion and validates the complete JSON response with Zod;
-upstream wait time therefore does not consume Worker CPU parsing incremental stream events.
+Requests go through a Cloudflare AI Gateway Dynamic Route. The request body names the route
+`dynamic/article` instead of a raw model ID; the route owns the primary model, its rate and budget
+limits, and the fallback model it switches to when a limit is exceeded, so the Worker code only
+references the route name. The Worker sends `cf-aig-authorization` and deliberately omits upstream
+`Authorization` and `x-api-key`; Cloudflare AI Gateway injects the provider keys stored with BYOK.
+Every content request also sends `cf-aig-collect-log-payload: false` and `cf-aig-skip-cache: true`,
+so the Gateway keeps neither prompt and response bodies in logs nor a response cache entry.
+Metadata-only operational logging is allowed. The Worker requests a non-streaming completion and
+validates the complete JSON response with Zod; upstream wait time therefore does not consume Worker
+CPU parsing incremental stream events.
 
-Upstream provider retention is a separate provider policy and must be verified when the provider is
+Upstream provider retention is a separate provider policy and must be verified when each provider is
 configured. `packages/ai-core` owns this compatibility contract. Application code asks it to run a
 content skill and does not construct provider URLs or headers.
 
@@ -103,9 +106,8 @@ MCP createArticle
   -> MCP returns { status: accepted, jobId }
   -> the Worker's queue handler claims the job in a separate invocation
   -> packages/skills selects Waza and project-owned rich-content skills
-  -> packages/ai-core calls the custom provider
-  -> Vectorize compares the finished article
-  -> the queue handler stores the private result and updates the D1 job
+  -> packages/ai-core calls the dynamic route
+  -> the queue handler stores the result, indexes it in AI Search, and updates the D1 job
   -> MCP getArticleJob resolves status or the terminal result
 ```
 
@@ -116,16 +118,16 @@ There is no Workflow, staging bucket, temporary R2 object, or stored provider pa
 
 ## Storage
 
-| Store     | Purpose                                            |
-| :-------- | :------------------------------------------------- |
-| D1        | Article index, creation jobs, and Better Auth      |
-| R2        | Final Chinese Markdown with YAML frontmatter       |
-| KV        | Public article cache and expiring job input        |
-| Vectorize | Rebuildable similarity and semantic-search vectors |
+| Store     | Purpose                                           |
+| :-------- | :------------------------------------------------ |
+| D1        | Article index, creation jobs, and Better Auth     |
+| R2        | Final Markdown editions with YAML frontmatter     |
+| KV        | Public article cache and expiring job input       |
+| AI Search | Managed index for hybrid search and grounded chat |
 
 D1 is authoritative for existence and visibility. R2 is authoritative for Markdown, title, summary,
 and tags. D1 keeps compact metadata, tag, and link JSON projections to serve lists and Graph without
-an R2 read per row. KV and Vectorize are rebuildable and never authorize access.
+an R2 read per row. KV and the AI Search index are rebuildable and never authorize access.
 
 The concrete schema, normalization rules, indexes, object keys, and cross-store mutation order are
 defined once in [Database](DATABASE.md).
@@ -139,26 +141,28 @@ defined once in [Database](DATABASE.md).
 - Public queries include visibility in D1 before reading R2.
 - Public article reads check D1, then read through the versioned KV entry, and use R2 on a cache miss
   or observable cache failure.
-- Vector results are filtered through D1 before titles or bodies are returned.
-- Create/update conditionally writes the human-readable R2 paths using object ETags, then writes the
-  vector before switching the D1 row hash; a failed switch restores the prior Markdown.
+- Search results are re-authorized through D1 before titles or bodies are returned.
+- Create/update conditionally writes the human-readable R2 paths using object ETags, then uploads the
+  article editions to AI Search before switching the D1 row hash; a failed switch restores the prior
+  Markdown.
 - Update invalidates the previous hash-keyed KV entry; making an article private or deleting it
   invalidates the current version.
-- Delete makes the D1 row private before removing KV, R2, Vectorize, and finally the row.
+- Delete makes the D1 row private before removing KV, R2, AI Search items, and finally the row.
 - Repeating a completed delete returns not found and performs no further write.
 - Failed generation stores only a sanitized terminal job result and deletes its temporary input.
 
-## Similarity and graph
+## Search and graph
 
-Use multilingual Workers AI `@cf/baai/bge-m3` for semantic search. It produces 1,024-dimensional vectors;
-create Vectorize with 1,024 dimensions and cosine distance. The canonical embedding input is the
-Chinese title, summary, and body with frontmatter removed. Inputs beyond the model context fail
-instead of being silently truncated.
+AI Search owns vectorization and retrieval. Each article's three Markdown editions are uploaded under
+a deterministic item key derived from the article ID. One instance, `my-knowledge`, holds every article and
+serves both consumption modes: owner search and chat, and anonymous hybrid search. The index itself
+never authorizes a result: anonymous results are re-authorized through D1 (published rows only)
+before titles or bodies are returned, the same gate that guards keyword search, lists, the graph,
+and feeds.
 
-Query the nearest authorized articles before saving. The code constant starts at `0.92` and can be
-calibrated with real articles. Scores at or above it stop creation and return the closest article.
-Lower-scoring neighbors become article-page semantic relationships at read time. The graph uses
-explicit wiki links and shared tags from the D1 JSON projections; no relation records are stored.
+Duplicate protection keeps the exact content-hash check in D1; the former vector similarity
+threshold is removed. The graph uses explicit wiki links and shared tags from the D1 JSON
+projections; no relation records are stored.
 
 ## Web module boundaries
 
@@ -166,8 +170,8 @@ explicit wiki links and shared tags from the D1 JSON projections; no relation re
 directory, application operations under `application/`, and Cloudflare/Drizzle adapters under
 `persistence/`. `articles/index.ts` is the article domain entrypoint used by pages, Route Handlers,
 MCP, and other domains; code inside `articles` imports its concrete siblings directly. Article
-persistence separates D1 query, R2/KV document, Vectorize, relation, row-mapping, and mutation
-responsibilities rather than mixing all reads in one repository file.
+persistence separates D1 query, R2/KV document, AI Search indexing, relation, row-mapping, and
+mutation responsibilities rather than mixing all reads in one repository file.
 
 `shell/` owns the shared page layout and primary navigation. MCP separates Bearer authentication,
 tool operations, and HTTP transport. Search is a deterministic authorized D1 read. Storage files may

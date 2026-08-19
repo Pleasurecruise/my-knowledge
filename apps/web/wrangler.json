@@ -52,17 +52,13 @@
       "remote": true
     }
   ],
-  "vectorize": [
+  "ai_search_namespaces": [
     {
-      "binding": "KNOWLEDGE_INDEX",
-      "index_name": "my-knowledge",
+      "binding": "AI_SEARCH",
+      "namespace": "default",
       "remote": true
     }
   ],
-  "ai": {
-    "binding": "AI",
-    "remote": true
-  },
   "queues": {
     "producers": [
       {

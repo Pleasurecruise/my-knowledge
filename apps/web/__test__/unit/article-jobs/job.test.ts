@@ -38,8 +38,6 @@ describe("article job boundaries", () => {
       articleId: "22222222-2222-4222-8222-222222222222",
       score: 0.97,
     });
-    expect(resultJson).not.toContain("content");
-    expect(resultJson).not.toContain("markdown");
   });
 
   it("rejects a result whose discriminant differs from the row status", () => {

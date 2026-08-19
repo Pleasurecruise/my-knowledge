@@ -30,11 +30,5 @@
       "requiredReusedTag": "technology/ai",
       "maxNewTags": 1
     }
-  ],
-  "duplicates": [
-    { "id": "duplicate", "label": true },
-    { "id": "near-duplicate", "label": false },
-    { "id": "related", "label": false },
-    { "id": "unrelated", "label": false }
   ]
 }

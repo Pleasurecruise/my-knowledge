@@ -22,8 +22,7 @@ Translation into `en` and `ja` runs afterward as its own model call over the fin
 it does not consume or select a skill and is documented in [Workflows](WORKFLOWS.md).
 
 Summary, hierarchical tags, and proposed wiki links are outputs of the writing call. They are not
-separate skills. Embedding, similarity, CRUD, indexing, authorization, and rendering remain
-deterministic TypeScript.
+separate skills. CRUD, indexing, authorization, and rendering remain deterministic TypeScript.
 
 ## Build-time acquisition
 

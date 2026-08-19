@@ -1,13 +1,13 @@
 export type CreateArticleStorage<Row> = {
   writeDocuments: () => Promise<void>;
-  writeVector: () => Promise<void>;
+  writeIndex: () => Promise<void>;
   insertRow: () => Promise<Row>;
   cleanupNewVersion: () => Promise<void>;
 };
 
 export type UpdateArticleStorage<Row> = {
   writeDocuments: () => Promise<void>;
-  writeVector: () => Promise<void>;
+  writeIndex: () => Promise<void>;
   switchRow: () => Promise<Row | undefined>;
   cleanupNewVersion: () => Promise<void>;
   cleanupPreviousVersion: () => Promise<void>;
