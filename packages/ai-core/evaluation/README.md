@@ -1,14 +1,12 @@
 # Frozen offline evaluation
 
-This synthetic version-1 corpus covers four Chinese writing domains, tag reuse/new-leaf limits, and
-duplicate/near/related/unrelated decisions.
+This synthetic version-1 corpus covers four Chinese writing domains and tag reuse/new-leaf limits.
 `baseline.json` retains the Chinese output from the former multilingual pipeline; `candidate.json`
 retains the Chinese-only pipeline output. `evaluate.ts` validates and scores both instead of trusting
 hand-written summary values.
 
-The deterministic summary measures schema success, tag compliance and reuse, duplicate
-precision/recall, and hard invariant failures. Translation is intentionally absent from the candidate
-pipeline. Candidate latency and cost
+The deterministic summary measures schema success, tag compliance and reuse, and hard invariant
+failures. Translation is intentionally absent from the candidate pipeline. Candidate latency and cost
 remain `null`: they require an opt-in live Gateway run with real account metadata and must not be
 invented from synthetic fixtures.
 

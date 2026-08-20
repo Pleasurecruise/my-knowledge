@@ -144,23 +144,3 @@ export async function listTags(env: CloudflareEnv, principal: Principal): Promis
     .all<TagCount>();
   return results;
 }
-
-export async function findArticleByHash(
-  env: CloudflareEnv,
-  hash: string,
-): Promise<ArticleSummary | undefined> {
-  const row = await drizzle(env.DB)
-    .select()
-    .from(articles)
-    .where(eq(articles.contentHash, hash))
-    .get();
-  return row ? articleSummary(row) : undefined;
-}
-
-export async function findArticleSummaryById(
-  env: CloudflareEnv,
-  id: string,
-): Promise<ArticleSummary | undefined> {
-  const row = await drizzle(env.DB).select().from(articles).where(eq(articles.id, id)).get();
-  return row ? articleSummary(row) : undefined;
-}

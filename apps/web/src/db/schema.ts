@@ -3,7 +3,7 @@ import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqli
 export const articleJobs = sqliteTable("articleJobs", {
   id: text("id").primaryKey(),
   status: text("status", {
-    enum: ["pending", "processing", "created", "duplicate", "failed"],
+    enum: ["pending", "processing", "created", "failed"],
   }).notNull(),
   resultJson: text("resultJson"),
   createdAt: text("createdAt").notNull(),
@@ -27,7 +27,6 @@ export const articles = sqliteTable(
   },
   (table) => [
     uniqueIndex("articles_slug_unique").on(table.slug),
-    uniqueIndex("articles_contentHash_unique").on(table.contentHash),
     index("articles_visibility_updatedAt_idx").on(table.visibility, table.updatedAt),
   ],
 );

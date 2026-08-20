@@ -2,7 +2,26 @@
 
 A private-first personal knowledge publication. It lets AI understand conversation content in any
 language and turn it into a finished Chinese Markdown article with a summary, nested tags, and
-similarity checks. New articles are always private until the owner explicitly publishes them.
+English and Japanese editions. New articles are always private until the owner explicitly publishes
+them.
+
+## Processing flow
+
+`createArticle` returns a job ID immediately. The Queue consumer generates the Chinese article,
+translates English and Japanese concurrently, validates the three editions, and saves a new private
+article. There is no pre-save duplicate lookup.
+
+```mermaid
+flowchart LR
+  submit[Submit content] --> queue[Queue job]
+  queue --> write[Generate Chinese article]
+  write --> en[Translate English]
+  write --> ja[Translate Japanese]
+  en --> validate[Validate three editions]
+  ja --> validate
+  validate --> save[Save private article]
+  save --> done[Created]
+```
 
 ## Connect with MCP
 
@@ -29,7 +48,7 @@ owner-level article access. The server accepts requests through `POST /api/mcp`.
 [MCP tools](docs/MCP.md) for the available operations and [Deployment](docs/DEPLOYMENT.md) for
 configuring the key and Cloudflare resources.
 
-`createArticle` runs the writing model, embeddings, Vectorize lookup, and storage writes. On a free
+`createArticle` runs the writing and translation models plus storage and search-index writes. On a free
 Cloudflare plan, call it serially and wait for one creation to finish before starting the next; bursts
 or concurrent creations can exhaust provider or platform allowances quickly. Check the current limits
 in the Cloudflare dashboard because this repository does not pin changing quota numbers. To test the

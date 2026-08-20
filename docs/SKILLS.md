@@ -18,8 +18,8 @@ The deterministic `selectSkills` function reads short catalog descriptions and r
 zero or more visual skill IDs. It does not draft the article or become another prompt. The writing
 call receives the project article contract, pinned Waza material, and only the selected project-owned
 rich-content skills; the writing model understands source content in any language and emits Chinese.
-Translation into `en` and `ja` runs afterward as its own model call over the finished Chinese result;
-it does not consume or select a skill and is documented in [Workflows](WORKFLOWS.md).
+Independent `en` and `ja` translation calls run concurrently afterward over the finished Chinese
+result; they do not consume or select a skill and are documented in [Workflows](WORKFLOWS.md).
 
 Summary, hierarchical tags, and proposed wiki links are outputs of the writing call. They are not
 separate skills. CRUD, indexing, authorization, and rendering remain deterministic TypeScript.

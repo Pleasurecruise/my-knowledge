@@ -1,4 +1,4 @@
-import type { Article, ArticleSummary } from "@my-knowledge/content";
+import type { Article } from "@my-knowledge/content";
 import { z } from "zod";
 
 export const articleJobMessageSchema = z.object({ jobId: z.uuid() }).strict();
@@ -17,10 +17,4 @@ export type AcceptedArticleJob = {
 export type ArticleJobResult =
   | { status: "pending" | "processing"; jobId: string }
   | { status: "created"; jobId: string; article: Article }
-  | {
-      status: "duplicate";
-      jobId: string;
-      similarArticle: ArticleSummary;
-      score: number;
-    }
   | { status: "failed"; jobId: string; error: string };

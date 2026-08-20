@@ -51,7 +51,7 @@ function serverFor(env: CloudflareEnv) {
     "getArticleJob",
     {
       description:
-        "Poll an article creation job by ID until it is created, duplicate, or failed. Pending and processing jobs are still active and must not be resubmitted.",
+        "Poll an article creation job by ID until it is created or failed. Pending and processing jobs are still active and must not be resubmitted.",
       inputSchema: getArticleJobInput,
       annotations: {
         readOnlyHint: true,

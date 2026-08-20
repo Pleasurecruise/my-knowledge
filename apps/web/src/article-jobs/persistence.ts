@@ -6,7 +6,6 @@ import { articleJobs } from "@/db/schema";
 
 const terminalResultSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("created"), articleId: z.uuid() }).strict(),
-  z.object({ status: z.literal("duplicate"), articleId: z.uuid(), score: z.number() }).strict(),
   z.object({ status: z.literal("failed"), error: z.string().min(1) }).strict(),
 ]);
 

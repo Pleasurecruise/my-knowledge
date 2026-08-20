@@ -39,15 +39,15 @@ type CreateArticleResult = { status: "accepted"; jobId: string };
 Annotations: not read-only, non-destructive, non-idempotent, and open-world because it calls the
 configured model provider.
 
-Submission uses KV, D1, and Queue. The consumer serializes creation to protect provider allowances;
-each job may therefore wait in `pending` and take several minutes once `processing`. The Worker cannot
-hold the request open until a terminal result exists — processing routinely outlives the request's own
-time limit — so returning only the job ID is deliberate, not a shortcut a client should compensate for
-by polling in a tight loop. Returning the job ID is the complete result of this call; keep it and check
-`getArticleJob` again later, on whatever cadence suits the client, and never resubmit the same content
-while that job remains active. Consult the account dashboard for current limits rather than relying on
-numbers copied into this repository. Use `listTags` or `listArticles` for a connection check;
-`createArticle` creates durable work and is not a health-check operation.
+Submission uses KV, D1, and Queue with Cloudflare's default consumer settings. A job may wait in
+`pending` and take several minutes once `processing`. The Worker cannot hold the request open until a
+terminal result exists — processing routinely outlives the request's own time limit — so returning only
+the job ID is deliberate, not a shortcut a client should compensate for by polling in a tight loop.
+Returning the job ID is the complete result of this call; keep it and check `getArticleJob` again later,
+on whatever cadence suits the client, and never resubmit the same content while that job remains
+active. Consult the account dashboard for current limits rather than relying on numbers copied into
+this repository. Use `listTags` or `listArticles` for a connection check; `createArticle` creates
+durable work and is not a health-check operation.
 
 ## `getArticleJob`
 
@@ -57,13 +57,12 @@ Input: `{ jobId: string }`. Returns `pending` or `processing`, or one terminal r
 type ArticleJobResult =
   | { status: "pending" | "processing"; jobId: string }
   | { status: "created"; jobId: string; article: Article }
-  | { status: "duplicate"; jobId: string; similarArticle: ArticleSummary; score: number }
   | { status: "failed"; jobId: string; error: string };
 ```
 
 A missing job returns not found. An accepted client polls this read-only, idempotent, closed-world tool
-until the status is `created`, `duplicate`, or `failed`. `pending` and `processing` mean the original
-job is still active, not that the client should call `createArticle` again.
+until the status is `created` or `failed`. `pending` and `processing` mean the original job is still
+active, not that the client should call `createArticle` again.
 
 ## `getArticle`
 
@@ -149,5 +148,5 @@ or raw skill tools. Skills are an internal implementation detail of the queued c
 The local contract covers modern discovery, job polling discovery/not-found behavior, direct reads,
 legacy initialize, Bearer authentication, required headers, Chinese document schemas, annotations,
 nested tags, stale writes, visibility changes, and private non-disclosure against the generated
-Worker. Queue delivery, duplicate creation, AI Search-backed updates, and destructive cleanup require
+Worker. Queue delivery, article creation, AI Search-backed updates, and destructive cleanup require
 the owner's live bindings at release smoke.

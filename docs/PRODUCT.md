@@ -4,7 +4,7 @@ Status: Implemented locally; production release awaits owner-controlled configur
 
 `my-knowledge` is a personal Chinese long-form knowledge base. It lets AI understand useful
 conversation content in any language and turn it into a finished Chinese article without requiring
-the owner to rewrite, summarize, classify, tag, or compare it manually.
+the owner to rewrite, summarize, classify, or tag it manually.
 
 ## Users
 
@@ -17,7 +17,7 @@ the owner to rewrite, summarize, classify, tag, or compare it manually.
 
 1. Send conversation content to `createArticle`.
 2. Receive a job ID immediately, then check `getArticleJob` later for one finished article (with its
-   Chinese, English, and Japanese editions) or a similar-article conflict.
+   Chinese, English, and Japanese editions) or a useful failure.
 3. Find it through anonymous hybrid search, keywords, tags, links, the graph, or authenticated MCP
    search.
 4. Review and edit it in the browser, then publish it from the browser or MCP when ready.
@@ -74,7 +74,7 @@ The first release is complete when:
 - only the allowed email can reveal or mutate private content from the web UI;
 - MCP creates one polished article — Chinese plus its English and Japanese translations — from one
   temporarily held input, then deletes that input;
-- a highly similar article prevents a duplicate write and returns the existing article;
+- each valid submission creates a new article without a pre-save duplicate lookup;
 - every created article is private regardless of model output or client input;
 - MCP can list, read, update, delete, search, tag, link, and change article visibility;
 - the web UI contains exactly three primary tabs—Home, Articles, and Graph—plus Article detail and

@@ -160,9 +160,10 @@ never authorizes a result: anonymous results are re-authorized through D1 (publi
 before titles or bodies are returned, the same gate that guards keyword search, lists, the graph,
 and feeds.
 
-Duplicate protection keeps the exact content-hash check in D1; the former vector similarity
-threshold is removed. The graph uses explicit wiki links and shared tags from the D1 JSON
-projections; no relation records are stored.
+Creation does not query D1 or AI Search for duplicates before storage. `contentHash` remains version
+metadata for concurrency, caches, and index authorization, and different article rows may share it.
+The graph uses explicit wiki links and shared tags from the D1 JSON projections; no relation records
+are stored.
 
 ## Web module boundaries
 

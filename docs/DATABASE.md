@@ -18,15 +18,15 @@ The application owns two tables. `articles` stores:
 - `visibility`, `createdAt`, `updatedAt`.
 
 `articleJobs` stores only `id`, `status`, nullable `resultJson`, `createdAt`, and `updatedAt`. Status is
-`pending`, `processing`, `created`, `duplicate`, or `failed`. Pending and processing rows have no
-result. Terminal JSON contains either an article ID, an article ID plus duplicate score, or a
-sanitized error. It never contains submitted content, generated Markdown, prompts, or search index
-entries.
+`pending`, `processing`, `created`, or `failed`. Pending and processing rows have no result. Terminal
+JSON contains either an article ID or a sanitized error. It never contains submitted content,
+generated Markdown, prompts, or search index entries.
 
 Better Auth owns its standard `user`, `session`, `account`, and `verification` tables. Do not add a
 profile, role, token, tag, link, revision, relation, source, or deletion table.
 
-Make `id` the primary key and `slug` and `contentHash` unique. Add only one project index on
+Make `id` the primary key and `slug` unique. `contentHash` is intentionally non-unique because
+separate submissions may produce identical Chinese content. Add only one project index on
 `(visibility, updatedAt)`. Store timestamps as UTC ISO strings. Generate IDs with
 `crypto.randomUUID()` and keep slugs stable after creation.
 
@@ -75,8 +75,8 @@ Cloudflare stores do not share a transaction.
 
 Create or update in this order:
 
-1. validate and canonicalize the Chinese document, then translate it into `en` and `ja`, and validate
-   those two as well;
+1. validate the generated Chinese structure, translate it into `en` and `ja` concurrently, then
+   canonicalize and validate the complete three-edition set;
 2. read the current R2 document set and ETags for an update, including legacy editions;
 3. conditionally write all three documents: an unchanged path must match its previous ETag and a moved
    or new path must not already exist;

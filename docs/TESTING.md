@@ -64,8 +64,8 @@ empty database and from the immediately previous schema.
 ## Contract and black-box tests
 
 - MCP tests use real clients for both supported protocol versions and cover discovery, Bearer auth,
-  schemas, annotations, accepted jobs, polling states, duplicate results, stale updates, and
-  destructive deletion.
+  schemas, annotations, accepted jobs, polling states, created and failed results, stale updates,
+  and destructive deletion.
 - HTTP tests cover the complete anonymous/allowed-email matrix for Home, Articles, Article, Graph,
   browser authoring, visibility changes, and deletion. Unauthorized private resources return not
   found, and the removed AI-search route remains absent.
@@ -122,11 +122,10 @@ Keep synthetic or explicitly approved test corpora for:
 - long-form writing across technology, politics, economics, and mixed-domain articles;
 - tag reuse and new-leaf decisions;
 - Chinese output from source conversations across languages;
-- labeled duplicate, near-duplicate, related, and unrelated article pairs;
 
-Measure schema success, tag-limit compliance, tag reuse, duplicate precision/recall, latency, and
-model cost. Hard invariants must never regress. A subjective writing change requires blinded owner
-review; an aggregate score cannot override privacy or schema failures. Store evaluation fixtures and
+Measure schema success, tag-limit compliance, tag reuse, translation preservation, latency, and model
+cost. Hard invariants must never regress. A subjective writing change requires blinded owner review;
+an aggregate score cannot override privacy or schema failures. Store evaluation fixtures and
 summaries, not production conversations or full provider traces.
 
 ## Cloudflare ADLC experiment

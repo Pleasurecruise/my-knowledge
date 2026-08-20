@@ -15,10 +15,11 @@ immediately. AI Gateway payload logging and caching are disabled; the configured
 must meet the owner's retention requirement.
 
 The Worker's Queue handler conditionally changes a pending job to processing in an invocation separate
-from the MCP request. A 20-minute claim lease lets a redelivery recover interrupted work, while
-terminal jobs are acknowledged without rerunning. KV's eventual consistency is handled as a
-retryable missing-input condition. Processing retries three times; the final failure records one
-sanitized error and deletes the input.
+from the MCP request. A 20-minute claim lease prevents overlapping work, while terminal jobs are
+acknowledged without rerunning. A caught processing failure releases the claim before using
+Cloudflare's default retry behavior. KV's eventual consistency is handled through the same path.
+After the default three retries, the fourth failure records one sanitized error, deletes the input,
+and acknowledges the message.
 
 ### 1. Prepare skills
 
@@ -40,29 +41,23 @@ returns Chinese YAML frontmatter and Markdown:
 The model prefers existing tags and may propose at most one new leaf. Invalid structured output stores
 nothing.
 
-### 3. Compare
+### 3. Translate in parallel
 
-Compute the canonical Chinese `contentHash` and check it against D1. An exact hash match returns the
-existing article and stores nothing — a duplicate never reaches translation.
+Start independent `en` and `ja` translation calls from the finished Chinese article and wait for both.
+Each call only mirrors the already-written Chinese result; it does not draft, summarize, tag, or link
+independently. There is no pre-save content-hash or similarity lookup. Invalid or incomplete output
+stores nothing, the same as an invalid writing result.
 
-### 4. Translate
-
-Once comparison clears the Chinese article for storage, translate its title, summary, and body into
-`en` and `ja` editions. This step only mirrors the already-written Chinese result; it does not draft,
-summarize, tag, or link independently. Invalid or incomplete translation output stores nothing, the
-same as an invalid writing result.
-
-### 5. Save
+### 4. Validate and save
 
 Parse all three Markdown editions, validate tags, resolve wiki links, and validate supported blocks.
 Use the conditional R2, AI Search, and D1 order defined in [Database](DATABASE.md), with visibility
-forced to `private`.
 
-Record the created article ID or duplicate article ID and score in the terminal job result, then
-delete the KV input. `getArticleJob` resolves those IDs through the normal authorized article read and
-returns the current state or terminal result. `createArticle` already returned its complete result (the
-job ID); calling `getArticleJob` again to learn `created`, `duplicate`, or `failed` is the client's
-choice and cadence, not a loop the server expects it to run continuously.
+Record the created article ID in the terminal job result, then delete the KV input. `getArticleJob`
+resolves that ID through the normal authorized article read and returns the current state or terminal
+result. `createArticle` already returned its complete result (the job ID); calling `getArticleJob`
+again to learn `created` or `failed` is the client's choice and cadence, not a loop the server expects
+it to run continuously.
 
 ## Web discovery
 
@@ -77,18 +72,18 @@ discovery never calls a model.
 The allowed-email owner can create or edit canonical Chinese Markdown from the Article surface. The
 New action appears only with the Chinese interface, and the new-article editor always uses Chinese
 labels; direct route access remains owner-authorized. A save regenerates its one-sentence Chinese
-summary, translates the result into `en` and `ja`, validates all three documents, and replaces the
-version through the existing R2, AI Search, and D1 write order. A legacy edition outside the current
-three is removed. New articles start private. Publish, withdraw, and delete remain explicit
-operations guarded by the current content hash.
+summary, translates the result into `en` and `ja` concurrently, validates all three documents, and
+replaces the version through the existing R2, AI Search, and D1 write order. A legacy edition outside
+the current three is removed. New articles start private. Publish, withdraw, and delete remain
+explicit operations guarded by the current content hash.
 
 ## MCP mutations, reads, and search
 
 - `getArticle` reads one authorized article with its Chinese, English, and Japanese editions.
 - `listArticles` uses a stable updated-time/ID cursor and filters by visibility and nested tags.
 - `updateArticle` saves edited final Chinese Markdown, tags, links, and hash with an expected hash,
-  translating the submitted document into refreshed `en`/`ja` editions and syncing all three to AI
-  Search.
+  translating the submitted document into refreshed `en`/`ja` editions concurrently and syncing all
+  three to AI Search.
 - `deleteArticle` makes the D1 row private before removing cached editions, Markdown, AI Search
   items, and the row.
 - `searchArticles` combines text/tag filters with semantic search and re-authorizes every result.
@@ -107,7 +102,7 @@ fallbacks.
 - Invalid MCP input returns a validation error.
 - Provider, frontmatter, or block validation failures retry and eventually produce a sanitized failed
   job without storing an article.
-- Duplicate content produces the closest article result and does not write another article.
+- Repeated content is accepted as a new private article; creation performs no duplicate lookup.
 - Translation failure blocks create/update so an article is never stored with a missing or invalid
   edition.
 - Unauthorized reads behave as not found.

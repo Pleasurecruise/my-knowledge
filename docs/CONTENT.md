@@ -32,12 +32,13 @@ type Article = {
 update produces alongside it, so a current record always carries all three. `createArticle` and the
 browser editor accept only Chinese input; `createArticle` receives no locale choice, and AI
 understands the source conversation in whatever language it uses and writes Simplified Chinese.
-Hashing and duplicate comparison use the Chinese edition only. Reading an article renders
-whichever edition matches the caller's locale, falling back to Chinese when one is missing — possible
-only for content saved before a locale existed. `ArticleSummary` omits every Markdown body. List,
-search, related, and graph responses use summaries unless the caller requests one article. Timestamps
-are UTC ISO strings. The slug is created from the Chinese title, made unique once, and never changes
-during updates.
+The content hash uses the Chinese edition only and identifies a version for optimistic concurrency,
+cache keys, and search-index authorization; it does not identify duplicate articles. Reading an
+article renders whichever edition matches the caller's locale, falling back to Chinese when one is
+missing — possible only for content saved before a locale existed. `ArticleSummary` omits every
+Markdown body. List, search, related, and graph responses use summaries unless the caller requests
+one article. Timestamps are UTC ISO strings. The slug is created from the Chinese title, made unique
+once, and never changes during updates.
 
 ## Markdown
 
@@ -69,9 +70,10 @@ no-SSR bundle boundaries and never pass through Shiki.
 ## Generation and update
 
 Article creation receives conversation content in any language. The model first writes one finished
-Chinese article; a separate translation step then produces the `en` and `ja` title, summary, and body
-from that Chinese result. All three editions are validated and stored together. It stores neither the
-submitted input nor an intermediate result.
+Chinese article; independent `en` and `ja` translation calls then run concurrently from that Chinese
+result. All three editions converge for validation and are stored together. Creation performs no
+content-hash or similarity lookup, so identical submissions may create separate articles. It stores
+neither the submitted input nor an intermediate result.
 
 `updateArticle` receives one complete Chinese `document` plus `expectedHash`. It does not accept
 partial field patches or call the writing model, but it does run the same translation step to refresh

@@ -32,15 +32,16 @@ translation into English and Japanese editions, asynchronous MCP `createArticle`
 and bounded KV input lifetime are implemented.
 
 Exit: one MCP submission returns a job ID; checking `getArticleJob` later returns one complete private
-article with its Chinese, English, and Japanese editions, or a duplicate, and temporary input is
+article with its Chinese, English, and Japanese editions, or a useful failure, and temporary input is
 deleted after terminal processing.
 
-## 4. Search and discovery — Vectorize similarity replaced by AI Search
+## 4. Search and discovery — AI Search
 
 Authorized keyword/tag search and the bounded graph view are implemented; Workers AI embeddings and
-the Vectorize duplicate threshold were replaced by Cloudflare AI Search owner search and chat.
+Vectorize were replaced by Cloudflare AI Search owner search and chat. Creation no longer performs a
+similarity or content-hash lookup.
 
-Exit: duplicates do not write, search respects visibility, and the graph links related knowledge.
+Exit: search respects visibility, and the graph links related knowledge.
 
 ## 5. Publication surface — complete locally
 

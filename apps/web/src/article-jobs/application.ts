@@ -1,4 +1,4 @@
-import { findArticleSummaryById, getArticleById } from "@/articles";
+import { getArticleById } from "@/articles";
 
 import {
   deleteArticleJob,
@@ -62,12 +62,7 @@ export async function getArticleJob(
   const terminal = parseArticleJobResult(row);
   if (!terminal) throw new Error("Terminal article job has no parsed result");
   if (terminal.status === "failed") return { status: "failed", jobId, error: terminal.error };
-  if (terminal.status === "created") {
-    const article = await getArticleById(env, "owner", terminal.articleId);
-    if (!article) throw new Error("Created article job references a missing article");
-    return { status: "created", jobId, article };
-  }
-  const similarArticle = await findArticleSummaryById(env, terminal.articleId);
-  if (!similarArticle) throw new Error("Duplicate article job references a missing article");
-  return { status: "duplicate", jobId, similarArticle, score: terminal.score };
+  const article = await getArticleById(env, "owner", terminal.articleId);
+  if (!article) throw new Error("Created article job references a missing article");
+  return { status: "created", jobId, article };
 }

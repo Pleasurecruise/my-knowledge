@@ -11,7 +11,6 @@ CREATE TABLE `articles` (
 );
 
 CREATE UNIQUE INDEX `articles_slug_unique` ON `articles` (`slug`);
-CREATE UNIQUE INDEX `articles_contentHash_unique` ON `articles` (`contentHash`);
 CREATE INDEX `articles_visibility_updatedAt_idx` ON `articles` (`visibility`, `updatedAt`);
 
 CREATE TABLE `user` (

@@ -5,7 +5,7 @@ without manual organization.
 
 ## Outcomes
 
-- Capture: one MCP submission produces one valid Chinese article or a useful duplicate result through
+- Capture: one MCP submission produces one valid private Chinese article or a useful failure through
   a queryable job.
 - Retrieval: the owner can find knowledge through tags, links, graph, keywords, and grounded AI search.
 - Publication: public articles read like a calm long-form knowledge library and produce complete,
