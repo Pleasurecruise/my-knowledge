@@ -47,10 +47,9 @@ KV caches parsed public editions under `articles/{articleId}/{contentHash}/{loca
 hours. D1 authorization always precedes cache or R2 reads. A cached or stored translation is selected
 only through a current `articleTranslations.sourceHash`; otherwise the caller falls back to Chinese.
 
-Creation input lives only at `article-jobs/{articleId}/input` with a 48-hour TTL. A terminal creation
-failure may leave one sanitized receipt at `article-jobs/{articleId}/failure` with the same TTL. The
-future article ID is returned as the job ID. D1 never stores submitted input, prompts, provider
-output, job state, or failure receipts.
+Creation input lives only at `article-jobs/{articleId}/input` with a 48-hour TTL. The future article
+ID is returned directly. D1 and KV never retain a task result, failure receipt, submitted input after
+terminal processing, prompt, or provider output.
 
 ## Writes
 

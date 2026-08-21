@@ -103,17 +103,17 @@ content skill and does not construct provider URLs or headers.
 ```text
 MCP createArticle
   -> KV stores expiring input, Queue receives { type: create, articleId }
-  -> MCP returns { status: accepted, jobId: articleId }
+  -> MCP returns { status: accepted, articleId }
   -> packages/skills selects guidance and packages/ai-core generates Chinese
   -> R2 writes zh.md, AI Search accepts zh.md, D1 inserts the public article
   -> Queue receives independent en and ja translation messages
   -> translation messages write derived R2 objects and D1 child metadata only
-  -> MCP getArticleJob resolves temporary KV state or the article row
+  -> MCP getArticle reads the article directly by that ID
 ```
 
-Submitted input and sanitized failures use expiring KV keys. Queue messages contain IDs, locale, and
-source hash but never content. Terminal Chinese processing deletes the input immediately; there is no
-D1 job table, Workflow, staging bucket, or stored provider payload.
+Submitted input uses one expiring KV key. Queue messages contain IDs, locale, and source hash but
+never content. Terminal Chinese processing deletes the input immediately; there is no D1 job table,
+failure receipt, Workflow, staging bucket, or stored provider payload.
 
 ## Storage
 
@@ -121,7 +121,7 @@ D1 job table, Workflow, staging bucket, or stored provider payload.
 | :-------- | :------------------------------------------------ |
 | D1        | Chinese article index, translation metadata, auth |
 | R2        | Chinese and derived translation Markdown          |
-| KV        | Public cache plus expiring input/failure receipts |
+| KV        | Public cache plus expiring creation input         |
 | AI Search | Chinese-only hybrid search and grounded chat      |
 
 D1 is authoritative for existence, visibility, and list metadata. R2 is authoritative for Markdown.

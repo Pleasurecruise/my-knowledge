@@ -7,7 +7,6 @@ import {
   translateChineseEdition,
 } from "@/articles";
 
-import { articleJobTtlSeconds } from "./application";
 import { articleJobMessageSchema, type ArticleJobMessage } from "./types";
 
 export async function consumeArticleJob(
@@ -32,21 +31,13 @@ export async function consumeArticleJob(
         const article = await createArticleFromContent(env, articleId, content);
         await enqueueArticleTranslations(env, articleId, article.contentHash);
       }
-      await Promise.all([
-        env.KNOWLEDGE_CACHE.delete(`article-jobs/${articleId}/input`),
-        env.KNOWLEDGE_CACHE.delete(`article-jobs/${articleId}/failure`),
-      ]);
+      await env.KNOWLEDGE_CACHE.delete(`article-jobs/${articleId}/input`);
       message.ack();
     } catch {
       if (message.attempts <= 3) {
         message.retry();
         return;
       }
-      await env.KNOWLEDGE_CACHE.put(
-        `article-jobs/${articleId}/failure`,
-        JSON.stringify({ error: "Article creation failed" }),
-        { expirationTtl: articleJobTtlSeconds },
-      );
       await env.KNOWLEDGE_CACHE.delete(`article-jobs/${articleId}/input`);
       message.ack();
     }

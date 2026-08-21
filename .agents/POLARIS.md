@@ -5,8 +5,8 @@ without manual organization.
 
 ## Outcomes
 
-- Capture: one MCP submission produces one valid public Chinese article or a useful failure through
-  a queryable TTL-bound receipt; English and Japanese translations derive independently afterward.
+- Capture: one MCP submission returns its future article ID and produces one valid public Chinese
+  article; English and Japanese translations derive independently afterward.
 - Retrieval: the owner can find knowledge through tags, links, graph, keywords, and grounded AI search.
 - Publication: public articles read like a calm long-form knowledge library and produce complete,
   recognizable link previews.

@@ -20,29 +20,13 @@ article. The MCP request stores input in TTL-bound KV, publishes the future arti
 create message, and returns promptly without calling model or search providers:
 
 ```ts
-type CreateArticleResult = { status: "accepted"; jobId: string };
+type CreateArticleResult = { status: "accepted"; articleId: string };
 ```
 
-The job ID is also the future article ID. Independent Queue messages derive English and Japanese only
-after Chinese R2, AI Search, and D1 writes succeed. The request accepts no locale, visibility, tags,
-model, skill, or provider override. Annotations: not read-only, non-destructive, non-idempotent, and
-open-world.
-
-## `getArticleJob`
-
-Input: `{ jobId: string }`:
-
-```ts
-type ArticleJobResult =
-  | { status: "pending"; jobId: string }
-  | { status: "created"; jobId: string; article: Article }
-  | { status: "failed"; jobId: string; error: string };
-```
-
-`pending` is derived from the input KV entry, `created` from the article row, and `failed` from a
-sanitized TTL receipt. There is no D1 job row or `processing` state. A missing or expired receipt
-returns not found. A created result may initially contain Chinese only while translations finish.
-Annotations: read-only, non-destructive, idempotent, closed-world.
+Use that ID with `getArticle`; not found means creation has not completed or did not produce an
+article. Independent Queue messages derive English and Japanese only after Chinese R2, AI Search, and
+D1 writes succeed. The request accepts no locale, visibility, tags, model, skill, or provider
+override. Annotations: not read-only, non-destructive, non-idempotent, and open-world.
 
 ## `getArticle`
 
@@ -97,8 +81,8 @@ destructive, idempotent, closed-world.
 
 ## Not exposed and verification
 
-There are no cancellation, reindex, classify, explicit translate, relation, model-selection,
-provider, prompt, or raw skill tools. The local contract covers discovery, auth, schemas, annotations,
-temporary job lookup, direct reads, nested tags, stale writes, visibility, private non-disclosure, and
-legacy initialize. Queue delivery, model calls, AI Search mutation, and destructive remote cleanup
-remain release smoke work.
+There are no task-status, cancellation, reindex, classify, explicit translate, relation,
+model-selection, provider, prompt, or raw skill tools. The local contract covers discovery, auth,
+schemas, annotations, direct reads, nested tags, stale writes, visibility, private non-disclosure,
+and legacy initialize. Queue delivery, model calls, AI Search mutation, and destructive remote
+cleanup remain release smoke work.

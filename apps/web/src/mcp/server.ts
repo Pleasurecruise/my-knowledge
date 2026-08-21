@@ -10,8 +10,6 @@ import {
   deleteArticleInput,
   deleteArticleOperation,
   getArticleInput,
-  getArticleJobInput,
-  getArticleJobOperation,
   getArticleOperation,
   listArticlesInput,
   listArticlesOperation,
@@ -35,7 +33,7 @@ function serverFor(env: CloudflareEnv) {
     "createArticle",
     {
       description:
-        "Queue one public Chinese article and return its future article ID as the job ID immediately. Check getArticleJob later without polling in a tight loop. English and Japanese translations are derived independently after Chinese creation and do not delay the created result.",
+        "Queue one public Chinese article and return its future article ID immediately. Use getArticle with that ID later; not found means creation has not completed. English and Japanese translations are derived independently after Chinese creation.",
       inputSchema: createArticleInput,
       annotations: {
         readOnlyHint: false,
@@ -45,22 +43,6 @@ function serverFor(env: CloudflareEnv) {
       },
     },
     (input) => createArticleOperation(env, input),
-  );
-
-  server.registerTool(
-    "getArticleJob",
-    {
-      description:
-        "Check an article creation ID until it is created or failed. Pending means its TTL-bound input is still awaiting or undergoing Chinese creation.",
-      inputSchema: getArticleJobInput,
-      annotations: {
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
-    },
-    (input) => getArticleJobOperation(env, input),
   );
 
   server.registerTool(

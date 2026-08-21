@@ -29,11 +29,10 @@ AI summary generation and cross-store cleanup remain live account gates.
 
 The custom provider adapter, pinned Waza and project-owned rich-content skills, Chinese-first writing,
 independent derived translations, asynchronous MCP `createArticle`, tags, wiki links, and bounded KV
-input/failure lifetime are implemented.
+input lifetime are implemented.
 
-Exit: one MCP submission returns the future article ID; checking `getArticleJob` later returns one
-public Chinese article or a useful failure, temporary input is deleted, and translations may settle
-independently afterward.
+Exit: one MCP submission returns the future article ID; `getArticle` reads it after creation,
+temporary input is deleted, and translations may settle independently afterward.
 
 ## 4. Search and discovery — AI Search
 

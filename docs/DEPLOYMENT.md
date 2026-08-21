@@ -124,7 +124,7 @@ before adding storage layers or database abstractions.
    `0001_initial.sql`, and retain the former database until the new Worker passes production smoke;
 5. run `pnpm d1:migrate:local`, `pnpm check`, `pnpm test`, `pnpm build`, `pnpm dry-run`, and
    `pnpm preview`;
-6. deploy, then verify login, TTL job submission/polling, Chinese-first creation, derived
+6. deploy, then verify login, accepted article IDs and direct reads, Chinese-first creation, derived
    translations, MCP mutations, authenticated deletion, public search, owner-authorized private
    search, and private non-disclosure.
 

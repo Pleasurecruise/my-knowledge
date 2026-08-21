@@ -6,8 +6,7 @@ Status: Implemented locally; live provider and remote-store smoke await owner ap
 
 `createArticle` accepts conversation content in any language, generates the future article UUID,
 stores the input in a 48-hour KV entry, publishes `{ type: "create", articleId }`, and returns that ID.
-No D1 job row is created. `getArticleJob` derives `pending` from the input KV entry, `created` from the
-article row, and `failed` from a sanitized TTL-bound KV receipt.
+No task row or task-status API is created. MCP clients use the returned ID with `getArticle`.
 
 The Queue consumer selects the bounded project skills and asks the configured model for one finished
 Simplified Chinese article. After Markdown validation it:
@@ -21,8 +20,8 @@ Simplified Chinese article. After Markdown validation it:
 
 Queue delivery is at least once. The future article ID is also the D1 primary key, R2 directory, and
 AI Search key prefix. Redelivery reuses an existing completed article; an R2 object without its D1 row
-remains an explicit error. Processing retries three times; a fourth Chinese failure records one
-sanitized KV receipt, deletes the input, and acknowledges the message.
+remains an explicit error. Processing retries three times; a fourth Chinese failure deletes the input
+and acknowledges the message without retaining task status.
 
 ## Derived translations
 
@@ -50,8 +49,6 @@ row and cascaded translation metadata.
 
 ## MCP mutations, reads, and search
 
-- `getArticleJob` returns `pending`, the created Chinese-first article, a sanitized failure, or not
-  found after its temporary receipt expires.
 - `getArticle` reads Chinese plus any current translation child records and R2 objects.
 - `listArticles`, tags, links, and Graph use canonical Chinese D1 projections.
 - `updateArticle` stores submitted Chinese immediately and queues derived translations.

@@ -13,7 +13,7 @@ import {
   setArticleVisibility,
   updateArticle,
 } from "@/articles";
-import { getArticleJob, submitArticleJob } from "@/article-jobs";
+import { submitArticleJob } from "@/article-jobs";
 import { getArticleRow } from "@/articles/persistence/document";
 
 type McpResult = {
@@ -49,16 +49,6 @@ export async function createArticleOperation(
   input: z.infer<typeof createArticleInput>,
 ) {
   return result(await submitArticleJob(env, input.content));
-}
-
-export const getArticleJobInput = z.object({ jobId: z.uuid() });
-
-export async function getArticleJobOperation(
-  env: CloudflareEnv,
-  input: z.infer<typeof getArticleJobInput>,
-) {
-  const job = await getArticleJob(env, input.jobId);
-  return job ? result(job) : notFound("Article job not found");
 }
 
 export const getArticleInput = z.object({ id: z.string().uuid() });

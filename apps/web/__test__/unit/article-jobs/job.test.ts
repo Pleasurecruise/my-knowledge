@@ -3,14 +3,11 @@ import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vite-plus/test";
 
 import { articleJobTtlSeconds } from "@/article-jobs/application";
-import { articleJobFailureSchema, articleJobMessageSchema } from "@/article-jobs/types";
+import { articleJobMessageSchema } from "@/article-jobs/types";
 
 describe("article job boundaries", () => {
-  it("keeps create input and failure receipts in expiring KV namespaces", () => {
+  it("keeps create input temporary", () => {
     expect(articleJobTtlSeconds).toBe(48 * 60 * 60);
-    expect(articleJobFailureSchema.parse({ error: "Article creation failed" })).toEqual({
-      error: "Article creation failed",
-    });
   });
 
   it("accepts create and locale-specific translation messages without article content", () => {

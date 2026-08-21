@@ -64,8 +64,7 @@ writes are detected. Initialize the authoritative schema from an empty database.
 ## Contract and black-box tests
 
 - MCP tests use real clients for both supported protocol versions and cover discovery, Bearer auth,
-  schemas, annotations, accepted jobs, polling states, created and failed results, stale updates,
-  and destructive deletion.
+  schemas, annotations, accepted article IDs, direct reads, stale updates, and destructive deletion.
 - HTTP tests cover the complete anonymous/allowed-email matrix for Home, Articles, Article, Graph,
   browser authoring, visibility changes, and deletion. Unauthorized private resources return not
   found, and the removed AI-search route remains absent.

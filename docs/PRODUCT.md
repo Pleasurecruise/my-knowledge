@@ -16,8 +16,8 @@ the owner to rewrite, summarize, classify, or tag it manually.
 ## Main experience
 
 1. Send conversation content to `createArticle`.
-2. Receive the future article ID immediately, then check `getArticleJob` later for one finished public
-   Chinese article or a useful failure. English and Japanese translations appear independently later.
+2. Receive the future article ID immediately, then read it with `getArticle` after creation finishes.
+   English and Japanese translations appear independently later.
 3. Find it through anonymous hybrid search, keywords, tags, links, the graph, or authenticated MCP
    search.
 4. Review and edit it in the browser, then publish it from the browser or MCP when ready.
