@@ -106,12 +106,11 @@ paginated list queries, bounded AI Search results, one Queue consumer, no databa
 cached list blobs. KV caches versioned public Chinese articles and temporarily holds submitted job
 input, while R2 remains canonical.
 
-Article generation and translation are CPU-heavier than ordinary fetch requests. The Worker therefore
-sets the Queue-compatible `limits.cpu_ms` to 300,000 and fixes `article-jobs` batches at one message.
-Cloudflare's Queue limits apply this configurable consumer allowance to Free and Paid plans; this
-setting does not change the account plan. The one-message batch prevents unrelated article jobs from
-sharing one invocation's CPU allowance. The consumer does not override `max_retries`, so Cloudflare
-applies its default limit of three retries without application-owned retry code.
+Article generation and translation are CPU-heavier than ordinary fetch requests. The Cloudflare Free
+plan rejects custom Worker CPU limits, so `wrangler.json` must not declare `limits.cpu_ms`. The
+`article-jobs` consumer instead fixes batches at one message so unrelated jobs do not share one
+invocation's CPU allowance. It does not override `max_retries`, so Cloudflare applies its default limit
+of three retries without application-owned retry code.
 
 Do not copy unrelated numeric platform quotas into this repository because Cloudflare changes them.
 Before each release, run `pnpm build` followed by `pnpm dry-run` and confirm Wrangler's compressed
