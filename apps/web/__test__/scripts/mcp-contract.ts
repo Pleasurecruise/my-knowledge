@@ -117,7 +117,6 @@ assert.deepEqual(
     "deleteArticle",
     "searchArticles",
     "listTags",
-    "chatArticles",
     "setVisibility",
   ],
 );

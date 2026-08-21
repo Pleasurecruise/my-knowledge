@@ -58,16 +58,3 @@ export async function searchAiArticles(
   }
   return ranked;
 }
-
-export async function chatAboutKnowledge(
-  env: CloudflareEnv,
-  messages: { role: "user" | "assistant"; content: string }[],
-): Promise<{ answer: string; articleIds: string[] }> {
-  const response = await env.AI_SEARCH.get(MY_KNOWLEDGE_INSTANCE).chatCompletions({ messages });
-  const articleIds = new Set<string>();
-  for (const chunk of response.chunks) {
-    const [articleId = ""] = chunk.item.key.split("/");
-    if (articleId.length > 0) articleIds.add(articleId);
-  }
-  return { answer: response.choices[0]?.message.content ?? "", articleIds: [...articleIds] };
-}

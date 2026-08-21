@@ -16,7 +16,7 @@ Create these resources once and declare them in `apps/web/wrangler.json`:
 | `DB`               | Configured D1 database       | Article index and auth |
 | `KNOWLEDGE_BUCKET` | Dedicated or approved shared | Canonical Markdown     |
 | `KNOWLEDGE_CACHE`  | `my-knowledge`               | Cache and job input    |
-| `AI_SEARCH`        | `default` namespace          | Search index and chat  |
+| `AI_SEARCH`        | `default` namespace          | Article search index   |
 | `ARTICLE_JOBS`     | `article-jobs` Queue         | Job publication        |
 
 These are Worker bindings injected by Cloudflare, not environment variables. Resource IDs and names
@@ -30,8 +30,8 @@ bindings.
 Create only missing resources. A dedicated setup uses the `my-knowledge` name throughout; keep a
 different R2 bucket name in `wrangler.json` only when sharing that bucket is an explicit decision.
 Create one AI Search instance in the `default` namespace: `my-knowledge` (builtin type, programmatic
-item upload). It holds only canonical Chinese items and serves owner search/chat plus anonymous hybrid
-search, whose results are re-authorized through D1. Translation objects never enter this instance.
+item upload). It holds only canonical Chinese items for article search, whose results are
+re-authorized through D1. Translation objects never enter this instance.
 
 ```text
 pnpm --filter @my-knowledge/web exec wrangler d1 create my-knowledge
@@ -106,12 +106,19 @@ paginated list queries, bounded AI Search results, one Queue consumer, no databa
 cached list blobs. KV caches versioned public Chinese articles and temporarily holds submitted job
 input, while R2 remains canonical.
 
-Do not copy numeric platform quotas into this repository because Cloudflare changes them. Before each
-release, run `pnpm build` followed by `pnpm dry-run` and confirm Wrangler's compressed upload remains
-within the target account's current Worker limit. The production build intentionally uses webpack;
-changing the Next.js bundler or moving client-only renderers across the dynamic boundary requires a
-fresh size comparison. If CPU becomes the limit, reduce dynamic rendering and precompute public output
-before adding storage layers or database abstractions.
+Article generation and translation are CPU-heavier than ordinary fetch requests. The Worker therefore
+sets the Queue-compatible `limits.cpu_ms` to 300,000 and fixes `article-jobs` batches at one message.
+Cloudflare's Queue limits apply this configurable consumer allowance to Free and Paid plans; this
+setting does not change the account plan. The one-message batch prevents unrelated article jobs from
+sharing one invocation's CPU allowance. The consumer does not override `max_retries`, so Cloudflare
+applies its default limit of three retries without application-owned retry code.
+
+Do not copy unrelated numeric platform quotas into this repository because Cloudflare changes them.
+Before each release, run `pnpm build` followed by `pnpm dry-run` and confirm Wrangler's compressed
+upload remains within the target account's current Worker limit. The production build intentionally
+uses webpack; changing the Next.js bundler or moving client-only renderers across the dynamic boundary
+requires a fresh size comparison. If CPU becomes the limit, reduce dynamic rendering and precompute
+public output before adding storage layers or database abstractions.
 
 ## Release
 

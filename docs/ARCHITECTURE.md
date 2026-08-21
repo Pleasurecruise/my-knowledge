@@ -122,7 +122,7 @@ failure receipt, Workflow, staging bucket, or stored provider payload.
 | D1        | Chinese article index, translation metadata, auth |
 | R2        | Chinese and derived translation Markdown          |
 | KV        | Public cache plus expiring creation input         |
-| AI Search | Chinese-only hybrid search and grounded chat      |
+| AI Search | Chinese-only hybrid article search                |
 
 D1 is authoritative for existence, visibility, and list metadata. R2 is authoritative for Markdown.
 D1 keeps compact title, summary, tag, and link projections to serve lists and Graph without
@@ -152,9 +152,9 @@ defined once in [Database](DATABASE.md).
 ## Search and graph
 
 AI Search owns vectorization and retrieval. Each article uploads only Chinese Markdown under a
-deterministic item key derived from the article ID. One instance, `my-knowledge`, holds every article and
-serves both consumption modes: owner search and chat, and anonymous hybrid search. The index itself
-never authorizes a result: anonymous results are re-authorized through D1 (published rows only)
+deterministic item key derived from the article ID. One instance, `my-knowledge`, serves article
+search. The index itself never authorizes a result: anonymous results are re-authorized through D1
+(published rows only)
 before titles or bodies are returned, the same gate that guards keyword search, lists, the graph,
 and feeds.
 

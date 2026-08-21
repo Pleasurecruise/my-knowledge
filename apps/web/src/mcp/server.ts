@@ -3,8 +3,6 @@ import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/valida
 
 import { isMcpAuthorized } from "@/mcp/auth";
 import {
-  chatArticlesInput,
-  chatArticlesOperation,
   createArticleInput,
   createArticleOperation,
   deleteArticleInput,
@@ -133,21 +131,6 @@ function serverFor(env: CloudflareEnv) {
       },
     },
     (input) => listTagsOperation(env, input),
-  );
-
-  server.registerTool(
-    "chatArticles",
-    {
-      description: "Answer a question grounded in the owner's knowledge base.",
-      inputSchema: chatArticlesInput,
-      annotations: {
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: true,
-      },
-    },
-    (input) => chatArticlesOperation(env, input),
   );
 
   server.registerTool(

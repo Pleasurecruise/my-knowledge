@@ -37,7 +37,7 @@ temporary input is deleted, and translations may settle independently afterward.
 ## 4. Search and discovery — AI Search
 
 Authorized keyword/tag search and the bounded graph view are implemented; Workers AI embeddings and
-Vectorize were replaced by Cloudflare AI Search owner search and chat. Creation no longer performs a
+Vectorize were replaced by Cloudflare AI Search article retrieval. Creation no longer performs a
 similarity or content-hash lookup.
 
 Exit: search respects visibility, and the graph links related knowledge.

@@ -2,7 +2,6 @@ import { canonicalizeTags, parseArticleDocuments } from "@my-knowledge/content";
 import { z } from "zod";
 
 import {
-  chatAboutKnowledge,
   deleteArticle,
   enqueueArticleTranslations,
   getArticleById,
@@ -14,7 +13,6 @@ import {
   updateArticle,
 } from "@/articles";
 import { submitArticleJob } from "@/article-jobs";
-import { getArticleRow } from "@/articles/persistence/document";
 
 type McpResult = {
   content: [{ type: "text"; text: string }];
@@ -150,29 +148,6 @@ export async function searchArticlesOperation(
       score,
     })),
   });
-}
-
-export const chatArticlesInput = z.object({
-  messages: z
-    .array(
-      z.object({
-        role: z.enum(["user", "assistant"]),
-        content: z.string().min(1).max(20_000),
-      }),
-    )
-    .min(1),
-});
-
-export async function chatArticlesOperation(
-  env: CloudflareEnv,
-  input: z.infer<typeof chatArticlesInput>,
-) {
-  const { answer, articleIds } = await chatAboutKnowledge(env, input.messages);
-  const resolved: string[] = [];
-  for (const articleId of articleIds) {
-    if (await getArticleRow(env, "owner", "id", articleId)) resolved.push(articleId);
-  }
-  return result({ answer, articleIds: resolved });
 }
 
 export const listTagsInput = z.object({ parent: z.string().min(1).optional() });

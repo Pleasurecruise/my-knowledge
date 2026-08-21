@@ -9,15 +9,6 @@ export async function submitArticleJob(
   const articleId = crypto.randomUUID();
   const inputKey = `article-jobs/${articleId}/input`;
   await env.KNOWLEDGE_CACHE.put(inputKey, content, { expirationTtl: articleJobTtlSeconds });
-  try {
-    await env.ARTICLE_JOBS.send({ type: "create", articleId });
-  } catch (error) {
-    try {
-      await env.KNOWLEDGE_CACHE.delete(inputKey);
-    } catch (cleanupError) {
-      throw new AggregateError([error, cleanupError], "Article submission and cleanup both failed");
-    }
-    throw error;
-  }
+  await env.ARTICLE_JOBS.send({ type: "create", articleId });
   return { status: "accepted", articleId };
 }

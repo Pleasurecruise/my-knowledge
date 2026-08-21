@@ -62,12 +62,6 @@ Input: `{ query: string; tags?: string[]; limit?: number }`. Runs Chinese-only A
 retrieval, re-authorizes every article ID through D1, and returns canonical Chinese titles, summaries,
 tags, excerpts, and scores. Annotations: read-only, non-destructive, idempotent, open-world.
 
-## `chatArticles`
-
-Input: `{ messages: { role: "user" | "assistant"; content: string }[] }`. Answers from the
-Chinese-only knowledge index and returns authorized article IDs as citations. Annotations: read-only,
-non-destructive, idempotent, open-world.
-
 ## `listTags`
 
 Input: `{ parent?: string }`. Returns canonical hierarchical tag paths and counts, optionally below a
@@ -81,7 +75,7 @@ destructive, idempotent, closed-world.
 
 ## Not exposed and verification
 
-There are no task-status, cancellation, reindex, classify, explicit translate, relation,
+There are no task-status, chat, cancellation, reindex, classify, explicit translate, relation,
 model-selection, provider, prompt, or raw skill tools. The local contract covers discovery, auth,
 schemas, annotations, direct reads, nested tags, stale writes, visibility, private non-disclosure,
 and legacy initialize. Queue delivery, model calls, AI Search mutation, and destructive remote
