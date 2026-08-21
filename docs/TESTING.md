@@ -42,7 +42,7 @@ Use Vite Plus tests for:
 - article visibility predicates, anonymous result filtering, and hierarchical tag SQL;
 - AI Search item-key and write-path sync boundaries, validated authorization metadata, and
   stale-hash concurrency checks;
-- model-output schemas and cross-edition structural parity;
+- model-output schemas, Chinese-first persistence, and cross-edition structural parity;
 - prompt construction that disables payload logging and never accepts client visibility overrides;
 - concise camelCase domain names and exhaustive error mapping where behavior is security-sensitive.
 
@@ -56,10 +56,10 @@ Run Worker-facing integration tests in the Workers runtime with isolated local D
 Use a narrow in-memory adapter only where the local platform cannot reproduce a binding, such as an
 AI Search query; keep a separate contract fixture for its real response shape.
 
-Cover job submission/claim/retry, create, update, visibility, and delete failure at every write
-boundary. Assert both the visible result and leftover objects so submitted KV input, R2/AI Search
-orphans, stale cache, and partial D1 writes are detected. Run the numbered SQL migrations from an
-empty database and from the immediately previous schema.
+Cover TTL job submission/retry, stable-ID redelivery, Chinese create/update, independent translation,
+visibility, and delete failure at every write boundary. Assert both the visible result and leftover
+objects so submitted KV input, R2/AI Search orphans, stale translations, stale cache, and partial D1
+writes are detected. Initialize the authoritative schema from an empty database.
 
 ## Contract and black-box tests
 
@@ -70,8 +70,8 @@ empty database and from the immediately previous schema.
   browser authoring, visibility changes, and deletion. Unauthorized private resources return not
   found, and the removed AI-search route remains absent.
 - Provider tests replay recorded response shapes without real secrets, then run a small opt-in live
-  smoke against AI Gateway before release. They verify headers, no payload logging/cache,
-  streamed completion assembly, terminal usage events, timeouts, and schema failures.
+  smoke against AI Gateway before release. They verify streamed completion assembly, terminal usage
+  events, timeouts, Chinese output, and independent translation validation.
 - Renderer tests parse every supported Markdown fixture and prove that unsupported raw HTML and unsafe
   URLs cannot reach the DOM.
 
@@ -98,8 +98,8 @@ The core journey set is intentionally small:
    publishes canonical metadata plus a renderable dynamic social image only when public;
 7. Graph has no filter controls, opens linked articles, keeps both columns inside the wide shell, and
    preserves keyboard-accessible relationships plus hidden-scrollbar internal scrolling;
-8. the Header language action changes interface copy and the compatible article edition together in
-   Chinese, English, and Japanese, falling back to Chinese when an optional edition is absent;
+8. the Header language action changes interface copy and uses a current English or Japanese
+   translation when available, falling back to Chinese when it is absent or stale;
 9. robots and sitemap metadata routes advertise only public surfaces and articles;
 10. unknown paths render the quiet branded 404 surface with working Home and Articles recovery
     actions.

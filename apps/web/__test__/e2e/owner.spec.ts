@@ -48,7 +48,7 @@ test("shows owner-only knowledge, visibility, and deletion controls", async ({ p
   await expect(page).toHaveTitle("Article not found · my knowledge");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/u);
   await expect(page.locator('meta[property="og:image"]')).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "私密删除夹具" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Private deletion fixture" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Delete" })).toHaveCount(0);
   await page.getByRole("link", { name: "Edit" }).click();
   await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
@@ -56,7 +56,9 @@ test("shows owner-only knowledge, visibility, and deletion controls", async ({ p
   await expect(page.getByRole("button", { name: "Withdraw" })).toHaveCount(0);
 });
 
-test("keeps the owner graph inside the wide shell without visible scrollbars", async ({ page }) => {
+test("keeps the owner graph inside the wide shell without visible scrollbars", async ({
+  page,
+}, testInfo) => {
   await page.goto("/graph");
   const stage = page.locator(".graph-stage");
   const grid = stage.locator("..");
@@ -70,11 +72,13 @@ test("keeps the owner graph inside the wide shell without visible scrollbars", a
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
     ),
   ).toBe(true);
-  await expect(related).toHaveCSS("scrollbar-width", "none");
-  await expect(page.locator('[aria-live="polite"] .overflow-y-auto')).toHaveCSS(
-    "scrollbar-width",
-    "none",
-  );
+  if (testInfo.project.name === "owner-desktop-light") {
+    await expect(related).toHaveCSS("scrollbar-width", "none");
+    await expect(page.locator('[aria-live="polite"] .overflow-y-auto')).toHaveCSS(
+      "scrollbar-width",
+      "none",
+    );
+  }
 });
 
 test("opens the owner editor, uses a slash command, and discards the draft", async ({

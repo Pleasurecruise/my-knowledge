@@ -1,6 +1,6 @@
 # Deployment
 
-Status: Application and local release gates implemented; production provisioning remains an owner gate
+Status: Replacement D1 initialized; Worker deployment and production smoke remain
 
 OpenNext builds one Worker with a project-owned entry that reuses its generated fetch handler and adds
 the Queue consumer. Wrangler owns resources, bindings, variables, secrets, migrations, preview, and
@@ -13,7 +13,7 @@ Create these resources once and declare them in `apps/web/wrangler.json`:
 
 | Binding            | Resource                     | Purpose                |
 | :----------------- | :--------------------------- | :--------------------- |
-| `DB`               | `my-knowledge`               | Article index and auth |
+| `DB`               | Configured D1 database       | Article index and auth |
 | `KNOWLEDGE_BUCKET` | Dedicated or approved shared | Canonical Markdown     |
 | `KNOWLEDGE_CACHE`  | `my-knowledge`               | Cache and job input    |
 | `AI_SEARCH`        | `default` namespace          | Search index and chat  |
@@ -29,9 +29,9 @@ bindings.
 
 Create only missing resources. A dedicated setup uses the `my-knowledge` name throughout; keep a
 different R2 bucket name in `wrangler.json` only when sharing that bucket is an explicit decision.
-Create one AI Search instance in the `default` namespace: `my-knowledge` (builtin type, programmatic item
-upload). It holds every article and serves owner search/chat plus anonymous hybrid search, whose
-results are re-authorized through D1.
+Create one AI Search instance in the `default` namespace: `my-knowledge` (builtin type, programmatic
+item upload). It holds only canonical Chinese items and serves owner search/chat plus anonymous hybrid
+search, whose results are re-authorized through D1. Translation objects never enter this instance.
 
 ```text
 pnpm --filter @my-knowledge/web exec wrangler d1 create my-knowledge
@@ -120,27 +120,22 @@ before adding storage layers or database abstractions.
    traffic, and configure Workers Builds with root directory `apps/web`, build command
    `pnpm build:worker`, and deploy command `pnpm exec opennextjs-cloudflare deploy`;
 3. set the two variables, create the Google OAuth client, and upload the six secrets;
-4. review the numbered application and Better Auth SQL migrations;
+4. replace an existing D1 database blue-green: create a fresh database, update `database_id`, apply
+   `0001_initial.sql`, and retain the former database until the new Worker passes production smoke;
 5. run `pnpm d1:migrate:local`, `pnpm check`, `pnpm test`, `pnpm build`, `pnpm dry-run`, and
    `pnpm preview`;
-6. apply `pnpm d1:migrate:remote`, deploy, then verify login, Job submission/polling, MCP mutations,
-   authenticated deletion, public search, owner-authorized private search, and private non-disclosure.
+6. deploy, then verify login, TTL job submission/polling, Chinese-first creation, derived
+   translations, MCP mutations, authenticated deletion, public search, owner-authorized private
+   search, and private non-disclosure.
 
-Migrations remain backward-compatible for one Worker rollback window. Roll back application code with
-Cloudflare Worker versions and repair data with a new forward migration.
+The rebuilt schema is not backward-compatible with the former content model. The former D1 database
+is the recovery point during the replacement. Roll back application code with Cloudflare Worker
+versions only after verifying that its database schema still matches.
 
-Everything before the first production-account action is implemented and locally verified. The owner
-must perform the following final gate because it requires account authority or a policy decision:
-
-1. accept the configured model provider's retention policy;
-2. verify the production origin, configured Cloudflare resource IDs, and R2 ownership decision;
-3. create every missing resource, including Queue, and initialize the Worker;
-4. create the Google OAuth client and upload all six secrets;
-5. run the remote migration, deploy, and execute the live provider, AI Search, OAuth, MCP mutation,
-   deletion, and anonymous privacy smoke tests.
-
-Do not run the remote migration or deployment before these values have been reviewed. Local green
-checks do not authorize production writes.
+The configured replacement D1 has the fresh schema and no article or translation rows. The former D1
+remains untouched as the recovery point. Pushing this repository runs CI but does not deploy the
+Worker; deployment and the live provider, AI Search, OAuth, MCP mutation, deletion, and anonymous
+privacy smoke tests remain explicit release actions.
 
 Direct package versions live in their owning manifests; transitive versions live in
 `pnpm-lock.yaml`. React overrides, dependency build permissions, and `minimumReleaseAge` live in

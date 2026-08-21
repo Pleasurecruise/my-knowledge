@@ -1,26 +1,25 @@
 # my-knowledge
 
-A private-first personal knowledge publication. It lets AI understand conversation content in any
-language and turn it into a finished Chinese Markdown article with a summary, nested tags, and
-English and Japanese editions. New articles are always private until the owner explicitly publishes
-them.
+A personal knowledge publication that turns useful conversations in any language into finished
+public Chinese Markdown articles with summaries, nested tags, and derived English and Japanese
+translations.
 
 ## Processing flow
 
-`createArticle` returns a job ID immediately. The Queue consumer generates the Chinese article,
-translates English and Japanese concurrently, validates the three editions, and saves a new private
-article. There is no pre-save duplicate lookup.
+`createArticle` returns the future article ID immediately. The Queue consumer generates, validates,
+stores, and indexes the public Chinese article first. Independent Queue messages add English and
+Japanese translations afterward; translations never enter AI Search or block Chinese creation.
 
 ```mermaid
 flowchart LR
   submit[Submit content] --> queue[Queue job]
   queue --> write[Generate Chinese article]
-  write --> en[Translate English]
-  write --> ja[Translate Japanese]
-  en --> validate[Validate three editions]
-  ja --> validate
-  validate --> save[Save private article]
+  write --> r2[Write Chinese Markdown]
+  r2 --> index[Index Chinese in AI Search]
+  index --> save[Insert public article]
   save --> done[Created]
+  done --> en[Derive English]
+  done --> ja[Derive Japanese]
 ```
 
 ## Connect with MCP
@@ -48,12 +47,10 @@ owner-level article access. The server accepts requests through `POST /api/mcp`.
 [MCP tools](docs/MCP.md) for the available operations and [Deployment](docs/DEPLOYMENT.md) for
 configuring the key and Cloudflare resources.
 
-`createArticle` runs the writing and translation models plus storage and search-index writes. On a free
-Cloudflare plan, call it serially and wait for one creation to finish before starting the next; bursts
-or concurrent creations can exhaust provider or platform allowances quickly. Check the current limits
-in the Cloudflare dashboard because this repository does not pin changing quota numbers. To test the
-connection without spending AI or Vectorize allowance, call `listTags` or `listArticles`; do not use
-`createArticle` as a health check.
+`createArticle` queues Chinese writing plus two later translation calls. On a free Cloudflare plan,
+call it serially; bursts can exhaust provider or platform allowances quickly. Check current limits in
+the Cloudflare dashboard because this repository does not pin changing quota numbers. For a connection
+check, call `listTags` or `listArticles`; do not use `createArticle` as a health check.
 
 ## Local development
 

@@ -1,108 +1,89 @@
 # Database and persistence
 
-Status: Implemented locally; production resources await owner setup
+Status: Implemented; replacement production D1 initialized, Worker deployment pending
 
-D1 is the query index and job state store, R2 owns Markdown, KV holds disposable cached output and
-expiring job input, AI Search owns vectorization and retrieval, and Drizzle is the typed D1 query
-layer. The content model keeps frontmatter properties, nested tag paths, wiki links, backlinks, and
-graph views without adding a database server or normalized relation tables.
+D1 indexes canonical Chinese articles and the smallest useful translation metadata. R2 owns every
+Markdown body, KV owns disposable caches and TTL-bound creation receipts, and AI Search indexes only
+canonical Chinese Markdown.
 
 ## D1
 
-The application owns two tables. `articles` stores:
+The application owns two content tables. `articles` stores `id`, stable `slug`, Chinese `title` and
+`summary`, Chinese `contentHash`, `tagsJson`, `linksJson`, `visibility`, `createdAt`, and `updatedAt`.
+New rows default to `public`; the owner may explicitly withdraw them to `private`.
 
-- `id`, `slug`, `contentHash`;
-- `metaJson`: title and summary keyed by edition, `zh`/`en`/`ja` required on every current row;
-- `tagsJson`: normalized tag paths;
-- `linksJson`: referenced wiki-link slugs;
-- `visibility`, `createdAt`, `updatedAt`.
+`articleTranslations` is a derived child table with exactly `articleId`, `locale`, translated `title`
+and `summary`, and `sourceHash`. Its composite primary key is `(articleId, locale)`, locales are
+limited to `en` and `ja`, and article deletion cascades. A translation is readable only when
+`sourceHash` equals the current Chinese `articles.contentHash`; no status, timestamps, paths, tags,
+links, visibility, or body are duplicated into this table.
 
-`articleJobs` stores only `id`, `status`, nullable `resultJson`, `createdAt`, and `updatedAt`. Status is
-`pending`, `processing`, `created`, or `failed`. Pending and processing rows have no result. Terminal
-JSON contains either an article ID or a sanitized error. It never contains submitted content,
-generated Markdown, prompts, or search index entries.
+There is no D1 job table. Better Auth owns its standard `user`, `session`, `account`, and
+`verification` tables. Do not add profile, role, token, revision, relation, source, or deletion
+tables.
 
-Better Auth owns its standard `user`, `session`, `account`, and `verification` tables. Do not add a
-profile, role, token, tag, link, revision, relation, source, or deletion table.
+`id` is the article identity, Queue creation identity, R2 directory, and AI Search key prefix. Slugs
+remain stable and unique for web URLs. `contentHash` is intentionally non-unique because repeated
+submissions create distinct articles. The only project index is `(visibility, updatedAt)`.
 
-Make `id` the primary key and `slug` unique. `contentHash` is intentionally non-unique because
-separate submissions may produce identical Chinese content. Add only one project index on
-`(visibility, updatedAt)`. Store timestamps as UTC ISO strings. Generate IDs with
-`crypto.randomUUID()` and keep slugs stable after creation.
-
-Tag counts use one recursive SQLite query over `json_each(tagsJson)`. It expands every hierarchical
-prefix and counts an article once per prefix; anonymous execution filters public rows inside the same
-query. Wiki links and backlinks join `json_each(linksJson)` to `articles.slug`; Graph combines those
-links with shared tags. Normalize into more tables only after a measured D1 bottleneck.
+Tag counts use one recursive SQLite query over `json_each(tagsJson)`. Wiki links and backlinks join
+`json_each(linksJson)` to `articles.slug`; Graph combines those links with shared tags.
 
 ## R2 and KV
 
-R2 stores the three current editions side by side:
+R2 uses stable article-ID keys:
 
 ```text
-knowledge/{primaryTagPath?}/{articleSlug}/zh.md
-knowledge/{primaryTagPath?}/{articleSlug}/en.md
-knowledge/{primaryTagPath?}/{articleSlug}/ja.md
+knowledge/{articleId}/zh.md
+knowledge/{articleId}/i18n/en.md
+knowledge/{articleId}/i18n/ja.md
 ```
 
-The complete first tag is the optional folder path, so `engineering/frontend` produces nested
-folders; an untagged article begins directly with its stable slug. Changing the first tag moves every
-edition together. Keys remain derived from existing D1 projections, so D1 does not store a path or
-category field. Hashes never appear in R2 paths. Canonical Markdown uses LF line endings, one final
-newline, and frontmatter ordered as `title`, `summary`, then `tags` for every edition. `contentHash`
-remains lowercase SHA-256 over `zh`, one NUL byte, the canonical Chinese Markdown bytes, and one NUL
-byte — only the authored Chinese edition participates in the hash, since `en`/`ja` are derived from it.
-It is concurrency metadata for D1, KV, and the AI Search index rather than a folder name. A create or
-update writes all three editions together; a legacy edition outside this set is removed rather than
-kept.
+Chinese Markdown is canonical. Translation objects are derived and may be absent. Every write stores
+the Chinese source hash as R2 custom metadata. Markdown frontmatter remains `title`, `summary`, then
+`tags`; translations preserve Chinese tags, wiki-link targets, and supported structured blocks.
 
-D1 `metaJson`, `tagsJson`, and `linksJson` are parsed projections used for lists, filters, backlinks,
-and Graph, avoiding an R2 read for every row; `metaJson` carries title and summary for all three
-editions. KV caches each parsed public edition under `articles/{articleId}/{contentHash}/{locale}.json`
-with a 24-hour TTL. A public read first authorizes the D1 row, then checks KV for the requested
-locale, reads canonical R2 Markdown on a miss, validates it, and writes the parsed edition back to KV.
-Private articles never read from or write to KV. Invalid or unavailable cache data is observable and
-falls back to canonical R2; KV never authorizes access.
+KV caches parsed public editions under `articles/{articleId}/{contentHash}/{locale}.json` for 24
+hours. D1 authorization always precedes cache or R2 reads. A cached or stored translation is selected
+only through a current `articleTranslations.sourceHash`; otherwise the caller falls back to Chinese.
 
-KV also stores submitted creation input under `article-jobs/{jobId}/input` with a 48-hour TTL. This
-entry is a transient handoff to the Queue consumer, not canonical knowledge. The producer deletes it
-if D1 insertion or Queue publication fails; the consumer deletes it after any terminal result. Queue
-messages contain only the job ID, and D1 never stores the input.
+Creation input lives only at `article-jobs/{articleId}/input` with a 48-hour TTL. A terminal creation
+failure may leave one sanitized receipt at `article-jobs/{articleId}/failure` with the same TTL. The
+future article ID is returned as the job ID. D1 never stores submitted input, prompts, provider
+output, job state, or failure receipts.
 
 ## Writes
 
-Cloudflare stores do not share a transaction.
+Cloudflare stores do not share a transaction. Chinese create uses this order:
 
-Create or update in this order:
+1. generate, parse, and validate Chinese Markdown;
+2. conditionally write `knowledge/{articleId}/zh.md`;
+3. upload only `{articleId}/zh.md` to AI Search;
+4. insert the public Chinese D1 row;
+5. enqueue independent `en` and `ja` translation messages;
+6. delete the input KV entry.
 
-1. validate the generated Chinese structure, translate it into `en` and `ja` concurrently, then
-   canonicalize and validate the complete three-edition set;
-2. read the current R2 document set and ETags for an update, including legacy editions;
-3. conditionally write all three documents: an unchanged path must match its previous ETag and a moved
-   or new path must not already exist;
-4. upload the three Markdown editions to the AI Search `my-knowledge` instance under deterministic item keys
-   derived from the article ID, which overwrite the previous version on update;
-5. insert the D1 row, or update it with `WHERE id = ? AND contentHash = expectedHash`;
-6. after success, invalidate the previous KV version and delete superseded edition paths. A failed
-   update restores the previous AI Search items instead of leaving a partial index.
+If a step before the D1 insert fails, remove only artifacts written by that attempt whose ETags still
+match, then retry the Queue message. Redelivery reuses the same article ID; an existing D1 row is
+treated as completed, while an R2 object without its D1 row remains an explicit error.
 
-Visibility changes touch only D1 and the cache. The index keeps every article under its item key
-regardless of visibility; consumption re-authorizes each result through D1, so a withdrawn or
-deleted article never reaches an anonymous response.
+Chinese update conditionally replaces `zh.md`, uploads the same Chinese AI Search key, and switches
+the D1 row with `WHERE id = ? AND contentHash = expectedHash`. It then invalidates the previous cache
+and queues translations. Existing translation rows become unreadable immediately because their
+`sourceHash` no longer matches; translation failure never rolls back Chinese.
 
-If a later write fails, restore overwritten objects with the ETags returned by the conditional write,
-delete newly created paths, and remove the new AI Search items. A conflicting object write fails
-rather than overwriting another update. Search results are re-authorized through D1 and must match
-the current article ID and hash, so the index never authorizes a result and an orphan is never
-visible.
+Each translation message reads current Chinese, derives one locale, rechecks the source hash,
+conditionally writes its R2 object, then upserts the five-field child row. Translation Markdown is
+never uploaded to AI Search. English and Japanese retry and complete independently.
 
-Delete snapshots the current R2 ETags, sets D1 visibility to `private`, then deletes unchanged
-KV/R2/AI Search items before deleting the D1 row. If external cleanup fails, the private row remains
-for a retry. Public reads
-always check D1 visibility before KV or R2.
+Delete first hides the D1 row, then removes current caches, the Chinese R2 object and translation
+objects represented by child rows, the single Chinese AI Search item, and finally the article row;
+the translation rows cascade. An external cleanup failure leaves the hidden row available for an
+owner retry.
 
 ## Migrations
 
-Numbered SQL under `apps/web/migrations` is authoritative. Keep the Drizzle schema as a typed mirror.
-Apply migrations only with the root `d1:migrate:local` and `d1:migrate:remote` Wrangler commands.
-Never edit an applied migration; add a forward migration.
+`apps/web/migrations/0001_initial.sql` is the authoritative schema for a fresh database. The old
+article and article-job history has been removed instead of preserved as incremental migrations.
+Initializing this schema therefore requires a new or explicitly reset D1 database. R2 and AI Search
+cleanup is a separate owner-approved operation and is not performed by SQL.

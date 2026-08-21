@@ -1,16 +1,27 @@
-import { translateArticle } from "@my-knowledge/ai-core";
-import { parseArticleDocuments, type ArticleDocumentSet } from "@my-knowledge/content";
+import { translateArticle, type TranslationLocale } from "@my-knowledge/ai-core";
+import { parseArticleDocuments } from "@my-knowledge/content";
 
 import { modelConfig } from "@/model/config";
 
-export async function translateChineseDocument(
+export async function enqueueArticleTranslations(
   env: CloudflareEnv,
-  zhMarkdown: string,
-): Promise<ArticleDocumentSet> {
-  const gateway = modelConfig(env);
-  const [en, ja] = await Promise.all([
-    translateArticle(gateway, "en", zhMarkdown),
-    translateArticle(gateway, "ja", zhMarkdown),
+  articleId: string,
+  sourceHash: string,
+): Promise<void> {
+  await Promise.all([
+    env.ARTICLE_JOBS.send({ type: "translate", articleId, locale: "en", sourceHash }),
+    env.ARTICLE_JOBS.send({ type: "translate", articleId, locale: "ja", sourceHash }),
   ]);
-  return parseArticleDocuments({ zh: zhMarkdown, en, ja });
+}
+
+export async function translateChineseEdition(
+  env: CloudflareEnv,
+  locale: TranslationLocale,
+  zhMarkdown: string,
+) {
+  const markdown = await translateArticle(modelConfig(env), locale, zhMarkdown);
+  const document = await parseArticleDocuments({ zh: zhMarkdown, [locale]: markdown });
+  const translation = document.editions[locale];
+  if (!translation) throw new Error(`Parsed translation is missing: ${locale}`);
+  return translation;
 }

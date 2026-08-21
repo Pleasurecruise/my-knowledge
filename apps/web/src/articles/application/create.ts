@@ -1,11 +1,11 @@
 import { writeChineseArticle } from "@my-knowledge/ai-core";
+import { parseArticleDocuments } from "@my-knowledge/content";
 import { selectSkills, skillRegistry } from "@my-knowledge/skills";
 
 import { modelConfig } from "@/model/config";
 
 import { listTags } from "../persistence/query";
 import { createArticle } from "../persistence/write";
-import { translateChineseDocument } from "./translation";
 
 function requireSkill(id: "write" | "vega" | "canvas") {
   const skill = skillRegistry.get(id);
@@ -13,7 +13,7 @@ function requireSkill(id: "write" | "vega" | "canvas") {
   return skill;
 }
 
-export async function createArticleFromContent(env: CloudflareEnv, content: string) {
+export async function createArticleFromContent(env: CloudflareEnv, id: string, content: string) {
   const gateway = modelConfig(env);
   const tags = await listTags(env, "owner");
   const selected = selectSkills(content).map(requireSkill);
@@ -24,6 +24,6 @@ export async function createArticleFromContent(env: CloudflareEnv, content: stri
     [],
     tags.map((tag) => tag.path),
   );
-  const document = await translateChineseDocument(env, zhMarkdown);
-  return createArticle(env, document);
+  const document = await parseArticleDocuments({ zh: zhMarkdown });
+  return createArticle(env, id, document);
 }

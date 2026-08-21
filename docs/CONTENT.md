@@ -28,21 +28,22 @@ type Article = {
 };
 ```
 
-`zh` is the authored, canonical edition; `en` and `ja` are translations that every creation and
-update produces alongside it, so a current record always carries all three. `createArticle` and the
+`zh` is the authored, canonical edition; `en` and `ja` are optional derived translations stored after
+Chinese creation or update completes. `createArticle` and the
 browser editor accept only Chinese input; `createArticle` receives no locale choice, and AI
 understands the source conversation in whatever language it uses and writes Simplified Chinese.
 The content hash uses the Chinese edition only and identifies a version for optimistic concurrency,
 cache keys, and search-index authorization; it does not identify duplicate articles. Reading an
-article renders whichever edition matches the caller's locale, falling back to Chinese when one is
-missing — possible only for content saved before a locale existed. `ArticleSummary` omits every
+article renders a translation only when its source hash matches the current Chinese hash, falling
+back to Chinese while a translation is absent, failed, or stale. `ArticleSummary` omits every
 Markdown body. List, search, related, and graph responses use summaries unless the caller requests
 one article. Timestamps are UTC ISO strings. The slug is created from the Chinese title, made unique
 once, and never changes during updates.
 
 ## Markdown
 
-R2 stores three Markdown documents, one at each of the `zh`, `en`, and `ja` object keys. Every edition
+R2 stores canonical Chinese Markdown and any derived translation Markdown under stable article-ID
+keys. Every edition
 begins with YAML frontmatter containing only `title`, `summary`, and `tags` in that order, and the
 translated `en`/`ja` editions carry the same (untranslated) tags as `zh`. The body may contain
 CommonMark/GFM, fenced code, math, Mermaid, Vega/Vega-Lite JSON, JSON Canvas, callouts, and `[[slug]]`
@@ -69,18 +70,15 @@ no-SSR bundle boundaries and never pass through Shiki.
 
 ## Generation and update
 
-Article creation receives conversation content in any language. The model first writes one finished
-Chinese article; independent `en` and `ja` translation calls then run concurrently from that Chinese
-result. All three editions converge for validation and are stored together. Creation performs no
-content-hash or similarity lookup, so identical submissions may create separate articles. It stores
-neither the submitted input nor an intermediate result.
+Article creation receives conversation content in any language. The model writes one finished Chinese
+article, which is validated, stored in R2, uploaded to AI Search, and recorded in D1 as public. Only
+then do independent `en` and `ja` Queue messages derive translations. Creation performs no
+content-hash or similarity lookup, so identical submissions may create separate articles.
 
-`updateArticle` receives one complete Chinese `document` plus `expectedHash`. It does not accept
-partial field patches or call the writing model, but it does run the same translation step to refresh
-`en` and `ja` from the new Chinese document before storing all three. Visibility changes remain a
-separate MCP operation.
+`updateArticle` receives one complete Chinese `document` plus `expectedHash`. It stores and indexes
+that Chinese version without waiting for translation, then queues fresh `en` and `ja` derivatives.
+Visibility changes remain a separate MCP operation.
 
 The browser editor accepts a Chinese title, body, and tags. Save regenerates the Chinese one-sentence
-summary, translates the result into `en` and `ja`, then runs the same canonical validation and
-conditional R2/AI Search/D1 write for all three editions. This is one coordinated mutation; a failed
-summary, translation, validation, or write leaves the current version unchanged.
+summary and runs the canonical R2/AI Search/D1 write for Chinese only. Translation is subsequent
+derived work and cannot roll back a successful Chinese save.

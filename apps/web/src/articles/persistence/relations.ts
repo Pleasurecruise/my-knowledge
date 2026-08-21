@@ -28,5 +28,5 @@ export async function listArticleBacklinks(
     )
     .orderBy(desc(articles.updatedAt), desc(articles.id))
     .limit(limit);
-  return rows.map(articleSummary);
+  return rows.map((row) => articleSummary(row));
 }

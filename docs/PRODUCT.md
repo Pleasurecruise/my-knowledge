@@ -16,8 +16,8 @@ the owner to rewrite, summarize, classify, or tag it manually.
 ## Main experience
 
 1. Send conversation content to `createArticle`.
-2. Receive a job ID immediately, then check `getArticleJob` later for one finished article (with its
-   Chinese, English, and Japanese editions) or a useful failure.
+2. Receive the future article ID immediately, then check `getArticleJob` later for one finished public
+   Chinese article or a useful failure. English and Japanese translations appear independently later.
 3. Find it through anonymous hybrid search, keywords, tags, links, the graph, or authenticated MCP
    search.
 4. Review and edit it in the browser, then publish it from the browser or MCP when ready.
@@ -32,7 +32,7 @@ not a fourth tab.
 | :------------------- | :--------------------------------------------- | :--------------------------------------- |
 | `/`                  | Public hybrid AI search                        | Keyword and tag search across all        |
 | `/articles`          | Public chronological list                      | Full list; New in the Chinese interface  |
-| `/articles/new`      | Not found                                      | Create a private article in Chinese      |
+| `/articles/new`      | Not found                                      | Create a public article in Chinese       |
 | `/articles/[slug]`   | Public article or not found                    | Any article, with edit action            |
 | `/graph`             | Bounded public graph                           | Bounded graph including private articles |
 | `/api/auth/[...all]` | Google sign-in callback                        | Session operations                       |
@@ -48,7 +48,7 @@ visibility is never authorization. MCP retains the separate owner credential des
 An article stores only:
 
 - identity and slug;
-- one canonical Chinese Markdown document plus its English and Japanese translations;
+- one canonical Chinese Markdown document plus optional derived English and Japanese translations;
 - Obsidian-style hierarchical tags;
 - private or public visibility;
 - content hash and timestamps.
@@ -72,10 +72,11 @@ Home search and Graph expose this hierarchy without adding filters to the chrono
 The first release is complete when:
 
 - only the allowed email can reveal or mutate private content from the web UI;
-- MCP creates one polished article — Chinese plus its English and Japanese translations — from one
-  temporarily held input, then deletes that input;
+- MCP creates one polished public Chinese article from one temporarily held input, deletes that input,
+  then derives English and Japanese translations independently;
 - each valid submission creates a new article without a pre-save duplicate lookup;
-- every created article is private regardless of model output or client input;
+- every created article is public after canonical Chinese storage succeeds; the owner may explicitly
+  withdraw it afterward;
 - MCP can list, read, update, delete, search, tag, link, and change article visibility;
 - the web UI contains exactly three primary tabs—Home, Articles, and Graph—plus Article detail and
   header language, theme, and authentication actions;
@@ -92,5 +93,5 @@ The first release is complete when:
 - Multiple owners, teams, comments, or social features
 - Owner dashboard
 - Automatic publication, revisions, or stored source history
-- Editorial approval pipelines or background jobs beyond MCP article creation
+- Editorial approval pipelines
 - Unbounded tag creation or typed entity relations

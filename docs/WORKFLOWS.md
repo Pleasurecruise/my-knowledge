@@ -1,110 +1,71 @@
 # Simple content flow
 
-Status: Implemented; live provider smoke awaits owner credentials and retention approval
+Status: Implemented locally; live provider and remote-store smoke await owner approval
 
-The cloud product keeps docu.md's core flow: AI creates semantic Markdown and the publication surface
-makes it finished. Storage, tags, links, search, privacy, and MCP are cloud additions, not an editorial
-approval pipeline.
+## Queue creation
 
-## Create
+`createArticle` accepts conversation content in any language, generates the future article UUID,
+stores the input in a 48-hour KV entry, publishes `{ type: "create", articleId }`, and returns that ID.
+No D1 job row is created. `getArticleJob` derives `pending` from the input KV entry, `created` from the
+article row, and `failed` from a sanitized TTL-bound KV receipt.
 
-`createArticle` accepts conversation content in any language. The AI understands that input and
-always writes one Simplified Chinese article. The web Worker stores the content in an expiring KV
-entry, creates a pending D1 job without the content, publishes only its job ID to Queue, and returns
-immediately. AI Gateway payload logging and caching are disabled; the configured upstream provider
-must meet the owner's retention requirement.
+The Queue consumer selects the bounded project skills and asks the configured model for one finished
+Simplified Chinese article. After Markdown validation it:
 
-The Worker's Queue handler conditionally changes a pending job to processing in an invocation separate
-from the MCP request. A 20-minute claim lease prevents overlapping work, while terminal jobs are
-acknowledged without rerunning. A caught processing failure releases the claim before using
-Cloudflare's default retry behavior. KV's eventual consistency is handled through the same path.
-After the default three retries, the fourth failure records one sanitized error, deletes the input,
-and acknowledges the message.
+1. conditionally writes the stable Chinese R2 object;
+2. uploads only Chinese to AI Search;
+3. inserts the public Chinese D1 row;
+4. publishes independent `translate` messages for `en` and `ja`;
+5. deletes the submitted input;
+6. acknowledges the create message.
 
-### 1. Prepare skills
+Queue delivery is at least once. The future article ID is also the D1 primary key, R2 directory, and
+AI Search key prefix. Redelivery reuses an existing completed article; an R2 object without its D1 row
+remains an explicit error. Processing retries three times; a fourth Chinese failure records one
+sanitized KV receipt, deletes the input, and acknowledges the message.
 
-Read the existing tag tree, then let the small project-owned selector choose the minimal skill set.
-Waza `write` is always present. It adds `vega` for real quantitative data and `canvas` for a useful
-concept map. Ordinary prose loads neither visual skill.
+## Derived translations
 
-### 2. Write
+Each locale message contains `articleId`, `locale`, and the Chinese `sourceHash`. It reads the current
+Chinese article, acknowledges obsolete messages whose hash no longer matches, and skips a translation
+whose child row and R2 object are already current. Otherwise it translates one locale, validates it
+against Chinese structure, writes the deterministic translation R2 object, and upserts the minimal
+child row. English and Japanese retry and finish independently. Exhausted translation failures are
+acknowledged without changing or withdrawing Chinese.
 
-The custom provider receives the article contract, bounded knowledge context, adapted Waza material,
-and selected project-owned rich-content guidance. Project rules override upstream output wrappers. It
-returns Chinese YAML frontmatter and Markdown:
-
-- title and one-sentence summary;
-- at most five Obsidian-compatible hierarchical tags;
-- optional `[[wiki links]]` to known articles;
-- polished body with only supported source blocks.
-
-The model prefers existing tags and may propose at most one new leaf. Invalid structured output stores
-nothing.
-
-### 3. Translate in parallel
-
-Start independent `en` and `ja` translation calls from the finished Chinese article and wait for both.
-Each call only mirrors the already-written Chinese result; it does not draft, summarize, tag, or link
-independently. There is no pre-save content-hash or similarity lookup. Invalid or incomplete output
-stores nothing, the same as an invalid writing result.
-
-### 4. Validate and save
-
-Parse all three Markdown editions, validate tags, resolve wiki links, and validate supported blocks.
-Use the conditional R2, AI Search, and D1 order defined in [Database](DATABASE.md), with visibility
-
-Record the created article ID in the terminal job result, then delete the KV input. `getArticleJob`
-resolves that ID through the normal authorized article read and returns the current state or terminal
-result. `createArticle` already returned its complete result (the job ID); calling `getArticleJob`
-again to learn `created` or `failed` is the client's choice and cadence, not a loop the server expects
-it to run continuously.
-
-## Web discovery
-
-Home routes anonymous queries through the AI Search `my-knowledge` instance: hybrid retrieval ranked by
-score, with every result re-authorized through D1 (published rows only) so private content never
-leaks. Owner queries keep D1 keyword/tag matching across all rows; body full-text search is outside
-the first release. Articles is a chronological index and has no search or filter controls. Web
-discovery never calls a model.
+Translations are presentation derivatives: they never enter AI Search, never authorize an article,
+and never block a created result. A missing or stale translation falls back to Chinese.
 
 ## Browser authoring
 
-The allowed-email owner can create or edit canonical Chinese Markdown from the Article surface. The
-New action appears only with the Chinese interface, and the new-article editor always uses Chinese
-labels; direct route access remains owner-authorized. A save regenerates its one-sentence Chinese
-summary, translates the result into `en` and `ja` concurrently, validates all three documents, and
-replaces the version through the existing R2, AI Search, and D1 write order. A legacy edition outside
-the current three is removed. New articles start private. Publish, withdraw, and delete remain
-explicit operations guarded by the current content hash.
+The allowed-email owner creates or edits canonical Chinese Markdown from the existing Article
+surface. Browser create regenerates the Chinese summary, commits the public Chinese article through
+R2, AI Search, and D1, then requests both translations. Browser update performs the same Chinese-only
+conditional write and queues fresh translations. Translation enqueue errors are returned to the
+caller; they are not swallowed or converted into success.
+
+Publish, withdraw, and delete remain explicit operations. Delete first withdraws the row, cleans the
+stable Chinese and translation R2 objects, the Chinese AI Search item, and caches, then deletes the D1
+row and cascaded translation metadata.
 
 ## MCP mutations, reads, and search
 
-- `getArticle` reads one authorized article with its Chinese, English, and Japanese editions.
-- `listArticles` uses a stable updated-time/ID cursor and filters by visibility and nested tags.
-- `updateArticle` saves edited final Chinese Markdown, tags, links, and hash with an expected hash,
-  translating the submitted document into refreshed `en`/`ja` editions concurrently and syncing all
-  three to AI Search.
-- `deleteArticle` makes the D1 row private before removing cached editions, Markdown, AI Search
-  items, and the row.
-- `searchArticles` combines text/tag filters with semantic search and re-authorizes every result.
-- `listTags` expands and counts canonical hierarchical tag paths in one D1 `json_each` query while
-  applying the caller's visibility boundary.
-- `setVisibility` is the explicit owner-only private/public action.
-
-MCP and browser authoring share the same Article persistence boundaries and the same translation step
-for `en`/`ja`. Browser saves own automatic Chinese summary generation; MCP `updateArticle` accepts one
-complete validated Chinese Markdown document. Only MCP conversation creation uses a job; browser
-authoring and other mutations remain synchronous and create no revisions, audit records, or hidden
-fallbacks.
+- `getArticleJob` returns `pending`, the created Chinese-first article, a sanitized failure, or not
+  found after its temporary receipt expires.
+- `getArticle` reads Chinese plus any current translation child records and R2 objects.
+- `listArticles`, tags, links, and Graph use canonical Chinese D1 projections.
+- `updateArticle` stores submitted Chinese immediately and queues derived translations.
+- `searchArticles` and `chatArticles` use Chinese-only AI Search and re-authorize every article ID
+  through D1.
+- `setVisibility` explicitly publishes or withdraws an existing article.
 
 ## Failure behavior
 
-- Invalid MCP input returns a validation error.
-- Provider, frontmatter, or block validation failures retry and eventually produce a sanitized failed
-  job without storing an article.
-- Repeated content is accepted as a new private article; creation performs no duplicate lookup.
-- Translation failure blocks create/update so an article is never stored with a missing or invalid
-  edition.
-- Unauthorized reads behave as not found.
-- Cache failure is logged, reads canonical R2, and never bypasses the preceding D1 authorization.
-- AI Search index failure blocks create/update so search never silently becomes stale.
+- Invalid input or model Markdown stores no article.
+- R2, AI Search, or D1 failure before Chinese commit rolls back artifacts owned by that attempt and
+  retries creation.
+- Translation execution never rolls back canonical Chinese; translation enqueue errors remain
+  observable to the caller or retrying create message.
+- A stale translation message or row is ignored by source-hash comparison.
+- Unauthorized reads behave as not found; anonymous access still depends on D1 visibility.
+- Cache failure is observable and falls back to authorized canonical R2.

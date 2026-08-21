@@ -6,10 +6,19 @@ import { readArticleCache, writeArticleCache } from "./cache";
 import { authorizedCondition } from "./query";
 import { articleObjectKey, articleSummary, type ArticleRow } from "./record";
 import type { Principal } from "@/auth/types";
-import { articles } from "@/db/schema";
+import { articles, articleTranslations } from "@/db/schema";
 
 export async function readArticle(env: CloudflareEnv, row: ArticleRow): Promise<Article> {
-  const summary = articleSummary(row);
+  const translations = await drizzle(env.DB)
+    .select()
+    .from(articleTranslations)
+    .where(
+      and(
+        eq(articleTranslations.articleId, row.id),
+        eq(articleTranslations.sourceHash, row.contentHash),
+      ),
+    );
+  const summary = articleSummary(row, translations);
   const entries = await Promise.all(
     Object.keys(summary.editions).map(async (locale): Promise<[string, ArticleText]> => {
       if (summary.visibility === "public") {
@@ -25,9 +34,7 @@ export async function readArticle(env: CloudflareEnv, row: ArticleRow): Promise<
           console.error("Article cache read failed", error);
         }
       }
-      const object = await env.KNOWLEDGE_BUCKET.get(
-        articleObjectKey(row.slug, summary.tags, locale),
-      );
+      const object = await env.KNOWLEDGE_BUCKET.get(articleObjectKey(row.id, locale));
       if (!object) throw new Error(`Canonical ${locale} Markdown is missing for article ${row.id}`);
       const document = parseArticleDocument(await object.text());
       const articleText = {

@@ -8,9 +8,9 @@ const appDirectory = new URL("../../", import.meta.url);
 const knowledgeBucket = "cherry-studio";
 
 const objects: Array<[fixture: string, objectPath: string]> = [
-  ["rich", "engineering/architecture/extensible-knowledge-boundaries"],
-  ["related", "engineering/architecture/related-article"],
-  ["private", "testing/privacy/private-deletion-fixture"],
+  ["rich", "11111111-1111-4111-8111-111111111111"],
+  ["related", "22222222-2222-4222-8222-222222222222"],
+  ["private", "33333333-3333-4333-8333-333333333333"],
 ];
 
 function wrangler(args: string[]) {
@@ -93,11 +93,12 @@ await writeFile(
 
 for (const [fixture, objectPath] of objects) {
   for (const locale of ["zh", "en", "ja"]) {
+    const key = locale === "zh" ? "zh.md" : `i18n/${locale}.md`;
     wrangler([
       "r2",
       "object",
       "put",
-      `${knowledgeBucket}/knowledge/${objectPath}/${locale}.md`,
+      `${knowledgeBucket}/knowledge/${objectPath}/${key}`,
       "--local",
       "--persist-to",
       ".wrangler/state",

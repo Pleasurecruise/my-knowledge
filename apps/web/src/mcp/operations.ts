@@ -1,16 +1,16 @@
-import { canonicalizeTags } from "@my-knowledge/content";
+import { canonicalizeTags, parseArticleDocuments } from "@my-knowledge/content";
 import { z } from "zod";
 
 import {
   chatAboutKnowledge,
   deleteArticle,
+  enqueueArticleTranslations,
   getArticleById,
   hasArticleVersion,
   listArticles,
   listTags,
   searchAiArticles,
   setArticleVisibility,
-  translateChineseDocument,
   updateArticle,
 } from "@/articles";
 import { getArticleJob, submitArticleJob } from "@/article-jobs";
@@ -105,8 +105,9 @@ export async function updateArticleOperation(
   if (!(await hasArticleVersion(env, input.id, input.expectedHash))) {
     return notFound("Article not found");
   }
-  const document = await translateChineseDocument(env, input.document);
+  const document = await parseArticleDocuments({ zh: input.document });
   const article = await updateArticle(env, input.id, input.expectedHash, document);
+  if (article) await enqueueArticleTranslations(env, article.id, article.contentHash);
   return article ? result(article) : notFound("Article not found");
 }
 

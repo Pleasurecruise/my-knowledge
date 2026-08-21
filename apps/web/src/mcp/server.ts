@@ -35,7 +35,7 @@ function serverFor(env: CloudflareEnv) {
     "createArticle",
     {
       description:
-        "Queue one private Chinese article and return a job ID immediately; that job ID is the complete result of this call. Serial processing can take several minutes, so check getArticleJob again later instead of polling in a tight loop. Do not submit the same content again while its job is pending or processing.",
+        "Queue one public Chinese article and return its future article ID as the job ID immediately. Check getArticleJob later without polling in a tight loop. English and Japanese translations are derived independently after Chinese creation and do not delay the created result.",
       inputSchema: createArticleInput,
       annotations: {
         readOnlyHint: false,
@@ -51,7 +51,7 @@ function serverFor(env: CloudflareEnv) {
     "getArticleJob",
     {
       description:
-        "Poll an article creation job by ID until it is created or failed. Pending and processing jobs are still active and must not be resubmitted.",
+        "Check an article creation ID until it is created or failed. Pending means its TTL-bound input is still awaiting or undergoing Chinese creation.",
       inputSchema: getArticleJobInput,
       annotations: {
         readOnlyHint: true,

@@ -1,29 +1,14 @@
-import { createArticleFromContent } from "@/articles";
-
 import {
-  claimArticleJob,
-  finishArticleJob,
-  getArticleJobRow,
-  parseArticleJobResult,
-  releaseArticleJob,
-} from "./persistence";
-import { articleJobInputKey, articleJobMessageSchema, type ArticleJobMessage } from "./types";
+  createArticleFromContent,
+  enqueueArticleTranslations,
+  getArticleById,
+  hasCurrentTranslation,
+  saveArticleTranslation,
+  translateChineseEdition,
+} from "@/articles";
 
-const claimLeaseMilliseconds = 20 * 60 * 1_000;
-
-async function settleKnownTerminalJob(
-  env: CloudflareEnv,
-  jobId: string,
-  message: Message<ArticleJobMessage>,
-): Promise<boolean> {
-  const row = await getArticleJobRow(env, jobId);
-  if (!row || parseArticleJobResult(row)) {
-    await env.KNOWLEDGE_CACHE.delete(articleJobInputKey(jobId));
-    message.ack();
-    return true;
-  }
-  return false;
-}
+import { articleJobTtlSeconds } from "./application";
+import { articleJobMessageSchema, type ArticleJobMessage } from "./types";
 
 export async function consumeArticleJob(
   env: CloudflareEnv,
@@ -35,56 +20,70 @@ export async function consumeArticleJob(
     message.ack();
     return;
   }
-
-  const { jobId } = parsed.data;
-  const now = new Date();
-  const claimed = await claimArticleJob(
-    env,
-    jobId,
-    now.toISOString(),
-    new Date(now.getTime() - claimLeaseMilliseconds).toISOString(),
-  );
-  if (!claimed) {
-    if (await settleKnownTerminalJob(env, jobId, message)) return;
-    message.retry();
+  if (parsed.data.type === "create") {
+    const { articleId } = parsed.data;
+    try {
+      const existing = await getArticleById(env, "owner", articleId);
+      if (existing) {
+        await enqueueArticleTranslations(env, articleId, existing.contentHash);
+      } else {
+        const content = await env.KNOWLEDGE_CACHE.get(`article-jobs/${articleId}/input`);
+        if (!content) throw new Error("Article job input is not available");
+        const article = await createArticleFromContent(env, articleId, content);
+        await enqueueArticleTranslations(env, articleId, article.contentHash);
+      }
+      await Promise.all([
+        env.KNOWLEDGE_CACHE.delete(`article-jobs/${articleId}/input`),
+        env.KNOWLEDGE_CACHE.delete(`article-jobs/${articleId}/failure`),
+      ]);
+      message.ack();
+    } catch {
+      if (message.attempts <= 3) {
+        message.retry();
+        return;
+      }
+      await env.KNOWLEDGE_CACHE.put(
+        `article-jobs/${articleId}/failure`,
+        JSON.stringify({ error: "Article creation failed" }),
+        { expirationTtl: articleJobTtlSeconds },
+      );
+      await env.KNOWLEDGE_CACHE.delete(`article-jobs/${articleId}/input`);
+      message.ack();
+    }
     return;
   }
-
   try {
-    const content = await env.KNOWLEDGE_CACHE.get(articleJobInputKey(jobId));
-    if (!content) throw new Error("Article job input is not available");
-    const article = await createArticleFromContent(env, content);
-    if (
-      !(await finishArticleJob(
-        env,
-        jobId,
-        { status: "created", articleId: article.id },
-        new Date().toISOString(),
-      ))
-    ) {
-      throw new Error("Article job claim expired before completion");
-    }
-  } catch {
-    const failedAt = new Date().toISOString();
-    if (message.attempts <= 3) {
-      await releaseArticleJob(env, jobId, failedAt);
-      message.retry();
+    const article = await getArticleById(env, "owner", parsed.data.articleId);
+    if (!article || article.contentHash !== parsed.data.sourceHash) {
+      message.ack();
       return;
     }
     if (
-      !(await finishArticleJob(
+      await hasCurrentTranslation(
         env,
-        jobId,
-        { status: "failed", error: "Article creation failed" },
-        failedAt,
-      ))
+        parsed.data.articleId,
+        parsed.data.locale,
+        parsed.data.sourceHash,
+      )
     ) {
-      throw new Error("Article job could not record its terminal failure");
+      message.ack();
+      return;
     }
-    await env.KNOWLEDGE_CACHE.delete(articleJobInputKey(jobId));
+    const translation = await translateChineseEdition(
+      env,
+      parsed.data.locale,
+      article.editions.zh.markdown,
+    );
+    await saveArticleTranslation(
+      env,
+      parsed.data.articleId,
+      parsed.data.locale,
+      parsed.data.sourceHash,
+      translation,
+    );
     message.ack();
-    return;
+  } catch {
+    if (message.attempts <= 3) message.retry();
+    else message.ack();
   }
-  await env.KNOWLEDGE_CACHE.delete(articleJobInputKey(jobId));
-  message.ack();
 }

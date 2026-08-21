@@ -32,8 +32,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "my-knowledge",
-      "database_id": "36db48dc-d9d7-4754-992b-2df0ea0cf794",
+      "database_name": "my-knowledge-v2",
+      "database_id": "b75b2946-eed6-448a-8fb0-7f8a60f3ceda",
       "migrations_dir": "migrations",
       "remote": true
     }

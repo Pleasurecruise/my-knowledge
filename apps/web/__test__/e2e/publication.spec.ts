@@ -31,7 +31,9 @@ test.afterEach(async ({ page }, testInfo) => {
   expect(errors).toEqual([]);
 });
 
-test("renders the Chinese rich article under a Japanese interface", async ({ page }, testInfo) => {
+test("renders the current Japanese translation under a Japanese interface", async ({
+  page,
+}, testInfo) => {
   await page.goto("/articles/extensible-knowledge-boundaries");
   await page.getByRole("button", { name: "切换语言: English" }).click();
   await page.getByRole("button", { name: "Change language: 日本語" }).click();
@@ -54,7 +56,7 @@ test("renders the Chinese rich article under a Japanese interface", async ({ pag
   );
   expect(openGraphResponse.status()).toBe(200);
   expect(openGraphResponse.headers()["content-type"]).toContain("image/png");
-  await expect(page.locator("article")).toHaveAttribute("lang", "zh-CN");
+  await expect(page.locator("article")).toHaveAttribute("lang", "ja");
   await expect(
     page.getByRole("navigation", { name: "メインナビゲーション" }).getByRole("link"),
   ).toHaveCount(3);

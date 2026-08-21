@@ -4,10 +4,12 @@ export { listArticles, listGraphArticles, listTags, searchArticles } from "./per
 export { chatAboutKnowledge, searchAiArticles } from "./persistence/ai-search";
 export { createArticleFromContent } from "./application/create";
 export { createArticleFromDraft, updateArticleFromDraft } from "./application/authoring";
-export { translateChineseDocument } from "./application/translation";
+export { enqueueArticleTranslations, translateChineseEdition } from "./application/translation";
 export {
   createArticle,
   deleteArticle,
+  hasCurrentTranslation,
+  saveArticleTranslation,
   setArticleVisibility,
   updateArticle,
 } from "./persistence/write";

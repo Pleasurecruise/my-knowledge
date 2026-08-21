@@ -1,4 +1,4 @@
-import { parseArticleDocument, type ArticleDocumentSet } from "@my-knowledge/content";
+import { parseArticleDocument } from "@my-knowledge/content";
 
 import type { Principal } from "@/auth/types";
 
@@ -8,39 +8,22 @@ import { articleObjectKey, articleSummary } from "./record";
 
 export const MY_KNOWLEDGE_INSTANCE = "my-knowledge";
 
-export async function indexArticleItems(
+export async function indexChineseArticle(
   env: CloudflareEnv,
   articleId: string,
-  document: ArticleDocumentSet,
+  markdown: string,
 ): Promise<void> {
-  for (const [locale, value] of Object.entries(document.editions)) {
-    const item = await env.AI_SEARCH.get(MY_KNOWLEDGE_INSTANCE).items.upload(
-      `${articleId}/${locale}.md`,
-      value.markdown,
-    );
-    if (item.status === "error")
-      throw new Error(`AI Search indexing failed for ${articleId}/${locale}`);
-  }
+  const item = await env.AI_SEARCH.get(MY_KNOWLEDGE_INSTANCE).items.upload(
+    `${articleId}/zh.md`,
+    markdown,
+  );
+  if (item.status === "error") throw new Error(`AI Search indexing failed for ${articleId}`);
 }
 
-export async function deleteSearchItems(
-  env: CloudflareEnv,
-  articleId: string,
-  locales: readonly string[],
-): Promise<void> {
+export async function deleteSearchItem(env: CloudflareEnv, articleId: string): Promise<void> {
   const items = env.AI_SEARCH.get(MY_KNOWLEDGE_INSTANCE).items;
-  const deletions = locales.map(async (locale) => {
-    const { result } = await items.list({ key: `${articleId}/${locale}.md` });
-    await Promise.all(result.map((item) => items.delete(item.id)));
-  });
-  const results = await Promise.allSettled(deletions);
-  const failures = results.filter((result) => result.status === "rejected");
-  if (failures.length > 0) {
-    throw new AggregateError(
-      failures.map((failure) => failure.reason),
-      "AI Search cleanup failed",
-    );
-  }
+  const { result } = await items.list({ key: `${articleId}/zh.md` });
+  await Promise.all(result.map((item) => items.delete(item.id)));
 }
 
 export async function searchAiArticles(
@@ -65,7 +48,7 @@ export async function searchAiArticles(
     const row = await getArticleRow(env, principal, "id", articleId);
     if (!row) continue;
     const summary = articleSummary(row);
-    const object = await env.KNOWLEDGE_BUCKET.get(articleObjectKey(row.slug, summary.tags, "zh"));
+    const object = await env.KNOWLEDGE_BUCKET.get(articleObjectKey(row.id, "zh"));
     if (!object) continue;
     ranked.push({
       article: summary,

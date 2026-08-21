@@ -118,6 +118,7 @@ assert.deepEqual(
     "deleteArticle",
     "searchArticles",
     "listTags",
+    "chatArticles",
     "setVisibility",
   ],
 );
@@ -127,13 +128,15 @@ assert.equal(deleteTool.annotations.destructiveHint, true);
 const createTool = toolsBody.result.tools.find((tool) => tool.name === "createArticle");
 if (!createTool) throw new Error("createArticle was not discovered");
 assert.deepEqual(createTool.inputSchema.required, ["content"]);
-assert.match(createTool.description, /complete result of this call/u);
-assert.match(createTool.description, /check getArticleJob again later/u);
-assert.match(createTool.description, /Do not submit the same content again/u);
+assert.match(createTool.description, /future article ID/u);
+assert.match(
+  createTool.description,
+  /English and Japanese translations are derived independently/u,
+);
 const getJobTool = toolsBody.result.tools.find((tool) => tool.name === "getArticleJob");
 if (!getJobTool) throw new Error("getArticleJob was not discovered");
 assert.deepEqual(getJobTool.inputSchema.required, ["jobId"]);
-assert.match(getJobTool.description, /Pending and processing jobs are still active/u);
+assert.match(getJobTool.description, /TTL-bound input/u);
 const missingJob = await callTool(
   100,
   "getArticleJob",
@@ -146,7 +149,7 @@ if (!updateTool) throw new Error("updateArticle was not discovered");
 assert.deepEqual(updateTool.inputSchema.required, ["id", "expectedHash", "document"]);
 
 const fixtureId = "11111111-1111-4111-8111-111111111111";
-const fixtureHash = "99565281b97b58653d28bb2a051ccc2ff0be870cd2f1f2116f9a45b5c6c071b5";
+const fixtureHash = "60a93252b4aad827daa74851a0b1ff889226fef40b87c55e74cde3493f8c9370";
 const listed = await callTool(4, "listArticles", { limit: 10 }, articleListResultSchema);
 assert.deepEqual(
   listed.structuredContent.articles.map((article) => article.id),

@@ -63,7 +63,7 @@ export async function listArticles(
   const pageRows = rows.slice(0, input.limit);
   const next = rows.length > input.limit ? pageRows.at(-1) : undefined;
   return {
-    articles: pageRows.map(articleSummary),
+    articles: pageRows.map((row) => articleSummary(row)),
     cursor: next ? encodeCursor(next) : undefined,
   };
 }
@@ -77,7 +77,8 @@ export async function searchArticles(
   const term = query.trim().toLocaleLowerCase("en-US");
   const matches = or(
     sql`instr(lower(${articles.slug}), ${term}) > 0`,
-    sql`instr(lower(${articles.metaJson}), ${term}) > 0`,
+    sql`instr(lower(${articles.title}), ${term}) > 0`,
+    sql`instr(lower(${articles.summary}), ${term}) > 0`,
     sql`exists (
       select 1 from json_each(${articles.tagsJson})
       where instr(lower(json_each.value), ${term}) > 0
@@ -89,7 +90,7 @@ export async function searchArticles(
     .where(and(authorizedCondition(principal), matches))
     .orderBy(desc(articles.updatedAt), desc(articles.id))
     .limit(limit);
-  return rows.map(articleSummary);
+  return rows.map((row) => articleSummary(row));
 }
 
 export async function listGraphArticles(

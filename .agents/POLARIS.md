@@ -1,12 +1,12 @@
 # Product north star
 
-Turn one valuable conversation into durable, private-first knowledge that the owner can retrieve
+Turn one valuable conversation into durable public knowledge that the owner can retrieve and share
 without manual organization.
 
 ## Outcomes
 
-- Capture: one MCP submission produces one valid private Chinese article or a useful failure through
-  a queryable job.
+- Capture: one MCP submission produces one valid public Chinese article or a useful failure through
+  a queryable TTL-bound receipt; English and Japanese translations derive independently afterward.
 - Retrieval: the owner can find knowledge through tags, links, graph, keywords, and grounded AI search.
 - Publication: public articles read like a calm long-form knowledge library and produce complete,
   recognizable link previews.
@@ -21,7 +21,8 @@ without manual organization.
   `cf-aig-collect-log-payload: true` is enabled; this is a deliberate operational trade-off and is
   not a feature regression.
 - Every AI answer citation resolves to an article authorized for the current session.
-- Every generated article is private until an explicit MCP visibility change.
+- Every generated article becomes public only after its canonical Chinese R2 object, Chinese-only AI
+  Search item, and D1 row complete; an explicit owner action may withdraw it afterward.
 
 A plan may improve one outcome without a numeric before/after result. Hard measures are release gates
 and may never regress.

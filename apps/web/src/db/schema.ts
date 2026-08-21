@@ -1,27 +1,25 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
-
-export const articleJobs = sqliteTable("articleJobs", {
-  id: text("id").primaryKey(),
-  status: text("status", {
-    enum: ["pending", "processing", "created", "failed"],
-  }).notNull(),
-  resultJson: text("resultJson"),
-  createdAt: text("createdAt").notNull(),
-  updatedAt: text("updatedAt").notNull(),
-});
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const articles = sqliteTable(
   "articles",
   {
     id: text("id").primaryKey(),
     slug: text("slug").notNull(),
+    title: text("title").notNull(),
+    summary: text("summary").notNull(),
     contentHash: text("contentHash").notNull(),
-    metaJson: text("metaJson").notNull(),
     tagsJson: text("tagsJson").notNull(),
     linksJson: text("linksJson").notNull(),
     visibility: text("visibility", { enum: ["private", "public"] })
       .notNull()
-      .default("private"),
+      .default("public"),
     createdAt: text("createdAt").notNull(),
     updatedAt: text("updatedAt").notNull(),
   },
@@ -29,6 +27,20 @@ export const articles = sqliteTable(
     uniqueIndex("articles_slug_unique").on(table.slug),
     index("articles_visibility_updatedAt_idx").on(table.visibility, table.updatedAt),
   ],
+);
+
+export const articleTranslations = sqliteTable(
+  "articleTranslations",
+  {
+    articleId: text("articleId")
+      .notNull()
+      .references(() => articles.id, { onDelete: "cascade" }),
+    locale: text("locale", { enum: ["en", "ja"] }).notNull(),
+    title: text("title").notNull(),
+    summary: text("summary").notNull(),
+    sourceHash: text("sourceHash").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.articleId, table.locale] })],
 );
 
 export const user = sqliteTable(

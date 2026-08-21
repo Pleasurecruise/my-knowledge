@@ -31,7 +31,7 @@ KV, AI Search, Queue, auth, and transport. Domain packages never import from `ap
 | Worker build     | `@opennextjs/cloudflare` and Wrangler                |
 | Package manager  | pnpm workspaces                                      |
 | Toolchain        | Vite Plus for format, lint, types, and unit tests    |
-| Model runtime    | Strict non-streaming OpenAI-compatible completion    |
+| Model runtime    | Strict streamed OpenAI-compatible completion         |
 | Model route      | Cloudflare AI Gateway Dynamic Route with BYOK keys   |
 | Validation       | Zod at MCP, model-output, and storage boundaries     |
 | Persistence      | Numbered SQL migrations and typed Drizzle queries    |
@@ -64,8 +64,8 @@ the current App Router route. This changes interface labels and the rendered Art
 search, and Graph summaries always use the canonical Chinese title and summary, while the Article page
 renders whichever stored edition matches the current interface locale, falling back to Chinese when
 one is missing. AI handles the source conversation's language during article creation, and a separate
-internal translation step produces the English and Japanese editions, rather than exposing content
-locale choice to the caller. The New action is shown only for the Chinese interface, and the
+internal Queue step derives English and Japanese editions after Chinese commits, rather than exposing
+content locale choice to the caller. The New action is shown only for the Chinese interface, and the
 owner-authorized new-article route keeps its editor labels in Chinese; editing an existing article
 still follows the selected interface locale.
 
@@ -102,31 +102,30 @@ content skill and does not construct provider URLs or headers.
 
 ```text
 MCP createArticle
-  -> D1 inserts articleJobs(pending), KV stores expiring input, Queue receives { jobId }
-  -> MCP returns { status: accepted, jobId }
-  -> the Worker's queue handler claims the job in a separate invocation
-  -> packages/skills selects Waza and project-owned rich-content skills
-  -> packages/ai-core calls the dynamic route
-  -> the queue handler stores the result, indexes it in AI Search, and updates the D1 job
-  -> MCP getArticleJob resolves status or the terminal result
+  -> KV stores expiring input, Queue receives { type: create, articleId }
+  -> MCP returns { status: accepted, jobId: articleId }
+  -> packages/skills selects guidance and packages/ai-core generates Chinese
+  -> R2 writes zh.md, AI Search accepts zh.md, D1 inserts the public article
+  -> Queue receives independent en and ja translation messages
+  -> translation messages write derived R2 objects and D1 child metadata only
+  -> MCP getArticleJob resolves temporary KV state or the article row
 ```
 
-Submitted input is stored only under an expiring, namespaced KV key. Queue messages contain only the
-job UUID. Terminal processing deletes the input immediately; the TTL cleans abandoned submissions.
-Job rows contain state and final article references, never submitted content or generated Markdown.
-There is no Workflow, staging bucket, temporary R2 object, or stored provider payload.
+Submitted input and sanitized failures use expiring KV keys. Queue messages contain IDs, locale, and
+source hash but never content. Terminal Chinese processing deletes the input immediately; there is no
+D1 job table, Workflow, staging bucket, or stored provider payload.
 
 ## Storage
 
 | Store     | Purpose                                           |
 | :-------- | :------------------------------------------------ |
-| D1        | Article index, creation jobs, and Better Auth     |
-| R2        | Final Markdown editions with YAML frontmatter     |
-| KV        | Public article cache and expiring job input       |
-| AI Search | Managed index for hybrid search and grounded chat |
+| D1        | Chinese article index, translation metadata, auth |
+| R2        | Chinese and derived translation Markdown          |
+| KV        | Public cache plus expiring input/failure receipts |
+| AI Search | Chinese-only hybrid search and grounded chat      |
 
-D1 is authoritative for existence and visibility. R2 is authoritative for Markdown, title, summary,
-and tags. D1 keeps compact metadata, tag, and link JSON projections to serve lists and Graph without
+D1 is authoritative for existence, visibility, and list metadata. R2 is authoritative for Markdown.
+D1 keeps compact title, summary, tag, and link projections to serve lists and Graph without
 an R2 read per row. KV and the AI Search index are rebuildable and never authorize access.
 
 The concrete schema, normalization rules, indexes, object keys, and cross-store mutation order are
@@ -134,27 +133,26 @@ defined once in [Database](DATABASE.md).
 
 ## Read and write rules
 
-- Every create writes `private`; neither MCP input nor model output can override it.
+- Every create writes `public`; the owner may explicitly withdraw it later.
 - `createArticle` has no visibility input.
-- Queue delivery is at least once; a conditional D1 claim makes terminal jobs idempotent, and a stale
-  processing lease permits recovery after an interrupted consumer.
+- Queue delivery is at least once; one stable article ID across Queue, R2, AI Search, and D1 makes
+  Chinese creation and locale-specific translation messages idempotent.
 - Public queries include visibility in D1 before reading R2.
 - Public article reads check D1, then read through the versioned KV entry, and use R2 on a cache miss
   or observable cache failure.
 - Search results are re-authorized through D1 before titles or bodies are returned.
-- Create/update conditionally writes the human-readable R2 paths using object ETags, then uploads the
-  article editions to AI Search before switching the D1 row hash; a failed switch restores the prior
-  Markdown.
+- Create/update conditionally writes the stable Chinese R2 path using object ETags, then uploads
+  Chinese to AI Search before switching the D1 row hash. Translation messages run afterward.
 - Update invalidates the previous hash-keyed KV entry; making an article private or deleting it
   invalidates the current version.
 - Delete makes the D1 row private before removing KV, R2, AI Search items, and finally the row.
 - Repeating a completed delete returns not found and performs no further write.
-- Failed generation stores only a sanitized terminal job result and deletes its temporary input.
+- Failed generation stores only a sanitized TTL-bound KV receipt and deletes its temporary input.
 
 ## Search and graph
 
-AI Search owns vectorization and retrieval. Each article's three Markdown editions are uploaded under
-a deterministic item key derived from the article ID. One instance, `my-knowledge`, holds every article and
+AI Search owns vectorization and retrieval. Each article uploads only Chinese Markdown under a
+deterministic item key derived from the article ID. One instance, `my-knowledge`, holds every article and
 serves both consumption modes: owner search and chat, and anonymous hybrid search. The index itself
 never authorizes a result: anonymous results are re-authorized through D1 (published rows only)
 before titles or bodies are returned, the same gate that guards keyword search, lists, the graph,

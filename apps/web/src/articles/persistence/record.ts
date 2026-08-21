@@ -1,5 +1,4 @@
 import {
-  type ArticleDocumentSet,
   type ArticleSummary,
   createSlug,
   normalizeLocale,
@@ -9,28 +8,37 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { z } from "zod";
 
-import { articles } from "@/db/schema";
+import { articles, articleTranslations } from "@/db/schema";
 
-const editionMetaSchema = z.object({ title: z.string(), summary: z.string() });
-const metaSchema = z.object({ zh: editionMetaSchema }).catchall(editionMetaSchema);
 const stringArraySchema = z.array(z.string());
 
 export type ArticleRow = typeof articles.$inferSelect;
+export type ArticleTranslationRow = typeof articleTranslations.$inferSelect;
 
-export function articleObjectKey(slug: string, tags: readonly string[], locale: string): string {
-  const category = tags.at(0);
-  const articlePath = category ? `${category}/${slug}` : slug;
-  return `knowledge/${articlePath}/${normalizeLocale(locale)}.md`;
+export function articleObjectKey(articleId: string, locale: string): string {
+  const normalized = normalizeLocale(locale);
+  return normalized === "zh"
+    ? `knowledge/${articleId}/zh.md`
+    : `knowledge/${articleId}/i18n/${normalized}.md`;
 }
 
-export function articleSummary(row: ArticleRow): ArticleSummary {
-  const parsedMeta: unknown = JSON.parse(row.metaJson);
+export function articleSummary(
+  row: ArticleRow,
+  translations: readonly ArticleTranslationRow[] = [],
+): ArticleSummary {
   const parsedTags: unknown = JSON.parse(row.tagsJson);
-  const meta = metaSchema.parse(parsedMeta);
+  const editions = Object.fromEntries(
+    translations
+      .filter((translation) => translation.sourceHash === row.contentHash)
+      .map((translation) => [
+        translation.locale,
+        { title: translation.title, summary: translation.summary },
+      ]),
+  );
   return {
     id: row.id,
     slug: row.slug,
-    editions: meta,
+    editions: { ...editions, zh: { title: row.title, summary: row.summary } },
     tags: stringArraySchema.parse(parsedTags),
     visibility: visibilitySchema.parse(row.visibility),
     contentHash: row.contentHash,
@@ -42,19 +50,6 @@ export function articleSummary(row: ArticleRow): ArticleSummary {
 export function articleLinks(row: ArticleRow): string[] {
   const parsed: unknown = JSON.parse(row.linksJson);
   return stringArraySchema.parse(parsed);
-}
-
-export function articleDocumentMeta(document: ArticleDocumentSet) {
-  return Object.fromEntries(
-    Object.entries(document.editions).map(([locale, value]) => [
-      locale,
-      { title: value.title, summary: value.summary },
-    ]),
-  );
-}
-
-export function requiredChineseEdition(document: ArticleDocumentSet) {
-  return document.editions.zh;
 }
 
 export async function allocateArticleSlug(env: CloudflareEnv, title: string): Promise<string> {

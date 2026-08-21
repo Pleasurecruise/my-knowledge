@@ -1,17 +1,28 @@
 CREATE TABLE `articles` (
   `id` text PRIMARY KEY NOT NULL,
   `slug` text NOT NULL,
+  `title` text NOT NULL,
+  `summary` text NOT NULL,
   `contentHash` text NOT NULL,
-  `metaJson` text NOT NULL,
   `tagsJson` text NOT NULL,
   `linksJson` text NOT NULL,
-  `visibility` text DEFAULT 'private' NOT NULL CHECK (`visibility` IN ('private', 'public')),
+  `visibility` text DEFAULT 'public' NOT NULL CHECK (`visibility` IN ('private', 'public')),
   `createdAt` text NOT NULL,
   `updatedAt` text NOT NULL
 );
 
 CREATE UNIQUE INDEX `articles_slug_unique` ON `articles` (`slug`);
 CREATE INDEX `articles_visibility_updatedAt_idx` ON `articles` (`visibility`, `updatedAt`);
+
+CREATE TABLE `articleTranslations` (
+  `articleId` text NOT NULL,
+  `locale` text NOT NULL CHECK (`locale` IN ('en', 'ja')),
+  `title` text NOT NULL,
+  `summary` text NOT NULL,
+  `sourceHash` text NOT NULL,
+  PRIMARY KEY (`articleId`, `locale`),
+  FOREIGN KEY (`articleId`) REFERENCES `articles` (`id`) ON UPDATE no action ON DELETE cascade
+);
 
 CREATE TABLE `user` (
   `id` text PRIMARY KEY NOT NULL,

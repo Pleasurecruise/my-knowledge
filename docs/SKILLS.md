@@ -18,8 +18,8 @@ The deterministic `selectSkills` function reads short catalog descriptions and r
 zero or more visual skill IDs. It does not draft the article or become another prompt. The writing
 call receives the project article contract, pinned Waza material, and only the selected project-owned
 rich-content skills; the writing model understands source content in any language and emits Chinese.
-Independent `en` and `ja` translation calls run concurrently afterward over the finished Chinese
-result; they do not consume or select a skill and are documented in [Workflows](WORKFLOWS.md).
+Independent Queue messages derive `en` and `ja` after the finished Chinese article commits; they do
+not consume or select a skill and are documented in [Workflows](WORKFLOWS.md).
 
 Summary, hierarchical tags, and proposed wiki links are outputs of the writing call. They are not
 separate skills. CRUD, indexing, authorization, and rendering remain deterministic TypeScript.
@@ -45,7 +45,7 @@ mutable latest-version lookup. Updating a skill is an explicit dependency update
 
 Upstream skills are source material, not an authority above the product contract. Prompt order is:
 
-1. privacy, output schema, supported Markdown, and default-private project rules;
+1. privacy, output schema, supported Markdown, and canonical-Chinese project rules;
 2. adapted Waza editorial rules and selected project-owned rich-content guidance;
 3. the submitted content and existing tag/link context.
 

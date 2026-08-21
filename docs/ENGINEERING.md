@@ -100,8 +100,8 @@ needs isolation, tests, explanation, and a removal condition.
 
 ## Data and concurrency
 
-- D1 migrations are append-only after deployment and include a tested rollback or forward-repair
-  strategy.
+- `0001_initial.sql` owns initialization until the rebuilt schema is deployed. After that deployment,
+  D1 migrations are append-only and destructive changes require a tested forward-repair strategy.
 - Numbered SQL migrations are authoritative; the Drizzle schema mirrors them for typed queries. Do
   not add a migration generator, schema push, or a runtime migration endpoint.
 - Every mutation declares its write order, idempotency, and cleanup behavior.
@@ -199,8 +199,8 @@ another document. Status labels distinguish locally verified work from productio
   incomplete dictionaries fail type checking.
 - The interface cookie is validated against that registry. Only the documented default may replace an
   absent or unsupported interface choice; article content has no analogous fallback.
-- Interface locale affects labels and which stored article edition renders. Every create or update
-  saves the Chinese, English, and Japanese editions together; reading an article renders whichever
-  edition matches the interface locale, falling back to Chinese when one is missing.
+- Interface locale affects labels and which current article translation renders. Every create or
+  update commits Chinese first; independent Queue messages derive English and Japanese afterward.
+  Missing or source-hash-stale translations fall back to Chinese.
 - User-facing interface labels may be translated. Placeholders, operational errors, protocol errors,
   and thrown diagnostics remain English.
