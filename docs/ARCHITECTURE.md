@@ -90,9 +90,9 @@ references the route name. The Worker sends `cf-aig-authorization` and deliberat
 `Authorization` and `x-api-key`; Cloudflare AI Gateway injects the provider keys stored with BYOK.
 Every content request also sends `cf-aig-collect-log-payload: false` and `cf-aig-skip-cache: true`,
 so the Gateway keeps neither prompt and response bodies in logs nor a response cache entry.
-Metadata-only operational logging is allowed. The Worker requests a non-streaming completion and
-validates the complete JSON response with Zod; upstream wait time therefore does not consume Worker
-CPU parsing incremental stream events.
+Metadata-only operational logging is allowed. The Worker requests an SSE stream so long generations
+start a response before the Dynamic Route model-node timeout, validates each completion event with
+Zod, and concatenates the deltas into one complete string before returning to application code.
 
 Upstream provider retention is a separate provider policy and must be verified when each provider is
 configured. `packages/ai-core` owns this compatibility contract. Application code asks it to run a

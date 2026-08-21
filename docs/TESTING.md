@@ -71,7 +71,7 @@ empty database and from the immediately previous schema.
   found, and the removed AI-search route remains absent.
 - Provider tests replay recorded response shapes without real secrets, then run a small opt-in live
   smoke against AI Gateway before release. They verify headers, no payload logging/cache,
-  non-streaming completion, timeouts, and schema failures.
+  streamed completion assembly, terminal usage events, timeouts, and schema failures.
 - Renderer tests parse every supported Markdown fixture and prove that unsupported raw HTML and unsafe
   URLs cannot reach the DOM.
 
