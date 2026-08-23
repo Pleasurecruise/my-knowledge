@@ -126,7 +126,8 @@ The header is a publication masthead within the same measure as the main pages. 
 square from the supplied cat image, the `my knowledge` wordmark, and a compact localized subtitle.
 Home, Articles, and Graph are the only three primary tabs. Home is explicit rather than being hidden
 behind the wordmark; the wordmark still links home as a conventional shortcut. The active tab uses a
-quiet secondary treatment. Interface language, theme, and account are compact actions. On small
+quiet secondary treatment. Interface language, owner API credential, theme, and account are compact
+actions. The credential action sits immediately before theme and reveals a generated key only once. On small
 screens the three tabs occupy their own row while the global actions remain directly available.
 
 Authentication mirrors the compact avatar/popover rhythm of `my-memos`: anonymous users see a sign-in
@@ -193,7 +194,7 @@ inside image generation; it does not introduce another design palette for applic
 On wide screens the fixed left TOC copies the Notes collapsed bars, delayed text reveal, heading
 indentation, active marker, and smooth navigation. It is hidden on smaller screens. Neither rail
 participates in the document grid. The owner editor copies the Notes save/cancel/delete rhythm and
-keeps Markdown canonical; the Chinese summary regenerates when Save completes.
+keeps Markdown canonical; the owner edits the Chinese summary explicitly.
 Wide-page title edges align with the Header content edges while the page body may use the larger
 canvas. The new-article editor uses that Header-aligned wide shell, always presents Chinese editing
 copy, and lets its metadata and editing surface share the available measure. Existing-article editing
@@ -220,7 +221,7 @@ or conversion-style CTA pair.
 
 ## Content boundary
 
-Content skills produce semantic Markdown only: prose, lists, tables, code, math, Mermaid, Vega-Lite,
+Local tools produce semantic Markdown only: prose, lists, tables, code, math, Mermaid, Vega-Lite,
 JSON Canvas, links, and callouts. They never persist React, page HTML, CSS, rendered SVG, or
 screenshots. The Next.js frontend parses and sanitizes the AST, maps approved nodes to UI renderers,
 and owns typography, theme, responsiveness, and accessibility.

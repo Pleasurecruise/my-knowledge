@@ -47,18 +47,16 @@ needs isolation, tests, explanation, and a removal condition.
 
 ## Boundaries
 
-- Validate HTTP, MCP, AI output, configuration, persisted JSON, and provider responses once.
+- Validate HTTP, MCP, configuration, persisted JSON, and external responses once.
 - A constraint has one owning schema. Consumers import or derive from that schema instead of
   restating the same Zod shape, regular expression, or parser at another boundary.
 - Routes authenticate, validate, call an application operation, and map the result.
 - Cloudflare types stay in app adapters.
-- Model prompts and output schemas stay versioned beside the module that owns the operation; provider
-  request code stays in `src/platform`.
 - Authorization belongs in server data access, not UI filtering.
 - Every temporary/staged/derived resource has cleanup ownership.
 - Imports follow the module entrypoints described in [Architecture](ARCHITECTURE.md). Deep imports
   across modules and circular dependencies are forbidden.
-- Domain rules do not import React, Next.js, Cloudflare bindings, model SDKs, or storage drivers.
+- Domain rules do not import React, Next.js, Cloudflare bindings, or storage drivers.
 - Route Handlers contain transport work only and call package entrypoints.
 
 ## Functions and state
@@ -106,18 +104,14 @@ needs isolation, tests, explanation, and a removal condition.
   not add a migration generator, schema push, or a runtime migration endpoint.
 - Every mutation declares its write order, idempotency, and cleanup behavior.
 - Compare content hashes before the D1 row switch to prevent stale writes across R2 and AI Search.
-- Time, IDs, randomness, models, and external services enter through explicit boundaries so critical
+- Time, IDs, randomness, and external services enter through explicit boundaries so critical
   logic is deterministic in tests.
 
 ## Security
 
 - Better Auth + Google OAuth + `ALLOWED_EMAIL` for web ownership.
-- Fixed high-entropy MCP key for Agent ownership.
-- No submitted conversation, article body, secret, email, or private title in logs.
-- AI Gateway calls enable payload logging (`cf-aig-collect-log-payload: true`) and disable
-  response caching (`cf-aig-skip-cache: true`); Cloudflare's AI Gateway log store retains the
-  request and response bodies for its default retention window. Metadata-only metrics stay
-  in the application.
+- One rotatable, digest-only API credential for REST and MCP ownership.
+- No article body, secret, email, private title, API payload, or search question in logs.
 - Raw HTML and unsafe Markdown URLs are rejected/sanitized.
 - Private AI Search candidates are re-authorized through D1.
 - Local development and preview use local state and test credentials; they do not use production
@@ -136,7 +130,7 @@ The root exposes these quality commands:
 format | lint | test | check | build | dry-run | test:mcp | test:e2e
 ```
 
-[Testing](TESTING.md) owns test layers, fixtures, model evaluation, browser coverage, and release
+[Testing](TESTING.md) owns test layers, fixtures, retrieval evaluation, browser coverage, and release
 evidence. Report only commands actually run; a mock unit test does not prove deployment or the real
 Worker entrypoint.
 
@@ -200,7 +194,7 @@ another document. Status labels distinguish locally verified work from productio
 - The interface cookie is validated against that registry. Only the documented default may replace an
   absent or unsupported interface choice; article content has no analogous fallback.
 - Interface locale affects labels and which current article translation renders. Every create or
-  update commits Chinese first; independent Queue messages derive English and Japanese afterward.
+  update commits Chinese first; REST may store supplied English and Japanese editions afterward.
   Missing or source-hash-stale translations fall back to Chinese.
 - User-facing interface labels may be translated. Placeholders, operational errors, protocol errors,
   and thrown diagnostics remain English.

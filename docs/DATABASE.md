@@ -3,14 +3,14 @@
 Status: Implemented; replacement production D1 initialized, Worker deployment pending
 
 D1 indexes canonical Chinese articles and the smallest useful translation metadata. R2 owns every
-Markdown body, KV owns disposable caches and TTL-bound creation receipts, and AI Search indexes only
-canonical Chinese Markdown.
+Markdown body, KV owns disposable article caches, and AI Search indexes only canonical Chinese
+Markdown. The project Durable Object owns the generated API key.
 
 ## D1
 
 The application owns two content tables. `articles` stores `id`, stable `slug`, Chinese `title` and
 `summary`, Chinese `contentHash`, `tagsJson`, `linksJson`, `visibility`, `createdAt`, and `updatedAt`.
-New rows default to `public`; the owner may explicitly withdraw them to `private`.
+Application creates explicitly write `public`; the owner may withdraw them in a separate mutation.
 
 `articleTranslations` is a derived child table with exactly `articleId`, `locale`, translated `title`
 and `summary`, and `sourceHash`. Its composite primary key is `(articleId, locale)`, locales are
@@ -22,7 +22,7 @@ There is no D1 job table. Better Auth owns its standard `user`, `session`, `acco
 `verification` tables. Do not add profile, role, token, revision, relation, source, or deletion
 tables.
 
-`id` is the article identity, Queue creation identity, R2 directory, and AI Search key prefix. Slugs
+`id` is the article identity, R2 directory, and AI Search key prefix. Slugs
 remain stable and unique for web URLs. `contentHash` is intentionally non-unique because repeated
 submissions create distinct articles. The only project index is `(visibility, updatedAt)`.
 
@@ -41,39 +41,38 @@ knowledge/{articleId}/i18n/ja.md
 
 Chinese Markdown is canonical. Translation objects are derived and may be absent. Every write stores
 the Chinese source hash as R2 custom metadata. Markdown frontmatter remains `title`, `summary`, then
-`tags`; translations preserve Chinese tags, wiki-link targets, and supported structured blocks.
+`tags`; translations preserve Chinese tags, wiki-link targets, and supported structured blocks. The
+generated API key is not stored in R2.
 
 KV caches parsed public editions under `articles/{articleId}/{contentHash}/{locale}.json` for 24
 hours. D1 authorization always precedes cache or R2 reads. A cached or stored translation is selected
 only through a current `articleTranslations.sourceHash`; otherwise the caller falls back to Chinese.
+The `my-knowledge-api-key` Durable Object instance stores schema version `1`, a SHA-256 digest, and
+its creation time. Rotation replaces that record and returns the plaintext key only in that response.
+API key reads have no R2 or KV fallback.
 
-Creation input lives only at `article-jobs/{articleId}/input` with a 48-hour TTL. The future article
-ID is returned directly. D1 and KV never retain a task result, failure receipt, submitted input after
-terminal processing, prompt, or provider output.
+There are no job inputs, creation receipts, or task results.
 
 ## Writes
 
 Cloudflare stores do not share a transaction. Chinese create uses this order:
 
-1. generate, parse, and validate Chinese Markdown;
+1. parse and validate submitted Chinese Markdown;
 2. conditionally write `knowledge/{articleId}/zh.md`;
 3. upload only `{articleId}/zh.md` to AI Search;
 4. insert the public Chinese D1 row;
-5. enqueue independent `en` and `ja` translation messages;
-6. delete the input KV entry.
+5. write any supplied `en` and `ja` editions and their child metadata.
 
 If a step before the D1 insert fails, remove only artifacts written by that attempt whose ETags still
-match, then retry the Queue message. Redelivery reuses the same article ID; an existing D1 row is
-treated as completed, while an R2 object without its D1 row remains an explicit error.
+match. An R2 object without its D1 row remains an explicit error.
 
 Chinese update conditionally replaces `zh.md`, uploads the same Chinese AI Search key, and switches
-the D1 row with `WHERE id = ? AND contentHash = expectedHash`. It then invalidates the previous cache
-and queues translations. Existing translation rows become unreadable immediately because their
-`sourceHash` no longer matches; translation failure never rolls back Chinese.
+the D1 row with `WHERE id = ? AND contentHash = expectedHash`. It then invalidates the previous cache.
+Existing translation rows become unreadable immediately because their `sourceHash` no longer matches.
 
-Each translation message reads current Chinese, derives one locale, rechecks the source hash,
-conditionally writes its R2 object, then upserts the five-field child row. Translation Markdown is
-never uploaded to AI Search. English and Japanese retry and complete independently.
+Each supplied translation is validated with Chinese, rechecks the source hash, conditionally writes
+its R2 object, then upserts the five-field child row. Translation Markdown is never uploaded to AI
+Search.
 
 Delete first hides the D1 row, then removes current caches, the Chinese R2 object and translation
 objects represented by child rows, the single Chinese AI Search item, and finally the article row;

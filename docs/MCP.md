@@ -2,35 +2,28 @@
 
 Status: Implemented and locally contract-tested
 
-One authenticated `POST /api/mcp` endpoint uses the official MCP TypeScript server package. One
-high-entropy Bearer key represents the same owner as `ALLOWED_EMAIL`; each transport still checks its
-own credential. Article links follow normal D1 visibility: generated articles are public after
-Chinese creation, while explicitly withdrawn articles require an owner browser session.
+One authenticated `POST /api/mcp` endpoint uses the official MCP TypeScript server package. The
+generated high-entropy Bearer key represents the same owner as `ALLOWED_EMAIL` and is shared with the
+REST API; only the owner browser session may generate or regenerate it. Article links follow normal
+D1 visibility, so private articles require owner authorization.
 
 ## Protocol
 
 - Prefer stateless `2026-07-28`, including discovery and routing headers without a session ID.
 - Accept the stateless `2025-11-25` initialize-era compatibility path.
+- Reject a supplied `Mcp-Session-Id`; the endpoint never creates protocol sessions.
 - Return 405 for GET and DELETE.
 
 ## `createArticle`
 
-Input: `{ content: string }`. Content may use any language; AI writes one finished public Chinese
-article. The MCP request stores input in TTL-bound KV, publishes the future article UUID in a Queue
-create message, and returns promptly without calling model or search providers:
-
-```ts
-type CreateArticleResult = { status: "accepted"; articleId: string };
-```
-
-Use that ID with `getArticle`; not found means creation has not completed or did not produce an
-article. Independent Queue messages derive English and Japanese only after Chinese R2, AI Search, and
-D1 writes succeed. The request accepts no locale, visibility, tags, model, skill, or provider
-override. Annotations: not read-only, non-destructive, non-idempotent, and open-world.
+Input: `{ document: string }`. The document is complete semantic Chinese Markdown with ordered
+`title`, `summary`, and `tags` frontmatter. The server validates it, writes Chinese to R2 and AI
+Search, commits the public D1 row, and returns the stored article immediately. It performs no model
+call or translation. Annotations: not read-only, non-destructive, non-idempotent, and closed-world.
 
 ## `getArticle`
 
-Input: `{ id: string }`. Returns canonical Chinese plus any current derived translations. A missing,
+Input: `{ id: string }`. Returns canonical Chinese plus any current supplied translations. A missing,
 failed, or source-hash-stale translation is omitted so presentation falls back to Chinese. A missing
 or unauthorized article returns not found. Annotations: read-only, non-destructive, idempotent,
 closed-world.
@@ -45,10 +38,10 @@ summaries. Annotations: read-only, non-destructive, idempotent, closed-world.
 ## `updateArticle`
 
 Input: `{ id: string; expectedHash: string; document: string }`. Stores one complete Chinese Markdown
-document, replaces the single Chinese AI Search item, switches D1 projections with optimistic
-concurrency, then queues fresh `en` and `ja` derivatives. It does not call the writing model or
-rewrite submitted Chinese. Translation failure cannot roll back Chinese. Annotations: not read-only,
-not destructive, idempotent for the same hash and content, closed-world.
+document, replaces the single Chinese AI Search item, and switches D1 projections with optimistic
+concurrency. It does not generate, translate, or rewrite submitted Chinese. Existing translations
+become stale until REST supplies replacements for the new hash. Annotations: not read-only, not
+destructive, idempotent for the same hash and content, closed-world.
 
 ## `deleteArticle`
 
@@ -75,8 +68,8 @@ destructive, idempotent, closed-world.
 
 ## Not exposed and verification
 
-There are no task-status, chat, cancellation, reindex, classify, explicit translate, relation,
-model-selection, provider, prompt, or raw skill tools. The local contract covers discovery, auth,
+There are no task-status, chat, cancellation, reindex, classify, translate, relation, model,
+provider, prompt, or skill tools. The local contract covers discovery, auth,
 schemas, annotations, direct reads, nested tags, stale writes, visibility, private non-disclosure,
-and legacy initialize. Queue delivery, model calls, AI Search mutation, and destructive remote
-cleanup remain release smoke work.
+and legacy initialize. Successful live AI Search mutation and destructive remote cleanup remain
+release smoke work.

@@ -27,8 +27,7 @@ Read only the documents that own the affected behavior:
 - [Architecture](docs/ARCHITECTURE.md): workspaces, runtime, auth, providers, and storage boundaries
 - [Content](docs/CONTENT.md): article types, Markdown, tags, and links
 - [Database](docs/DATABASE.md): schema, persistence order, and migrations
-- [Workflows](docs/WORKFLOWS.md): generation, retrieval, and mutations
-- [Skills](docs/SKILLS.md): model instructions and runtime skill loading
+- [Workflows](docs/WORKFLOWS.md): ingestion, retrieval, and mutations
 - [Design](docs/DESIGN.md): frontend system and page composition
 - [Engineering](docs/ENGINEERING.md): code, naming, dependency, and error rules
 - [Testing](docs/TESTING.md): fixtures, test boundaries, evaluation, and release evidence
@@ -42,11 +41,11 @@ facts and split a document only when its scope becomes hard to navigate.
 
 Read and follow the matching specification before implementation:
 
-| Change type                 | Specification                       | Required evidence                         |
-| :-------------------------- | :---------------------------------- | :---------------------------------------- |
-| Frontend or visual          | `.agents/specs/frontend.md`         | Real browser, screenshots, clean console  |
-| Performance                 | `.agents/specs/performance.md`      | Comparable before/after measurements      |
-| Model, prompt, or retrieval | `.agents/specs/model-evaluation.md` | Frozen corpus and baseline/candidate data |
+| Change type        | Specification                           | Required evidence                         |
+| :----------------- | :-------------------------------------- | :---------------------------------------- |
+| Frontend or visual | `.agents/specs/frontend.md`             | Real browser, screenshots, clean console  |
+| Performance        | `.agents/specs/performance.md`          | Comparable before/after measurements      |
+| Retrieval          | `.agents/specs/retrieval-evaluation.md` | Frozen corpus and baseline/candidate data |
 
 Add a specification only when another repeatable feedback loop genuinely needs distinct evidence.
 
@@ -70,16 +69,15 @@ regressed.
 
 - This is one personal application, not a distributed platform.
 - R2 owns Markdown; D1 indexes metadata and visibility; KV and Vectorize are derived.
-- Submitted conversations, AI search questions, retrieved context, and generated answers are not
-  stored.
-- Every generated article starts private. Visibility changes require the MCP credential or the
+- AI search questions, retrieved context, and generated answers are not stored.
+- Every submitted article starts public. Visibility changes require the shared API credential or the
   allowed-email browser session.
 - The web has Home, Articles, Article, and Graph only. The allowed-email owner may create, edit,
   publish, withdraw, and delete Articles from those existing surfaces; there is no owner dashboard.
 - Anonymous users receive keyword/tag search only. AI search requires the allowed-email session.
 - Article metadata, social images, robots, and sitemap use anonymous authorization and never expose
   private titles, tags, timestamps, or bodies.
-- Content skills produce semantic Markdown; the Next.js frontend owns presentation.
+- Local tools submit semantic Markdown; the Next.js frontend owns presentation.
 - Project names are concise camelCase. Foreign naming stops at adapters.
 
 ## Engineering guardrails

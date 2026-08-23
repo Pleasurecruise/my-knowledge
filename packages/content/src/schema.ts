@@ -3,6 +3,7 @@ import { z } from "zod";
 export const MAX_TAGS = 5;
 
 export const visibilitySchema = z.enum(["private", "public"]);
+export const translationLocaleSchema = z.enum(["en", "ja"]);
 
 export const jsonCanvasSchema = z
   .object({
@@ -75,6 +76,8 @@ export const frontmatterSchema = z
   .strict();
 
 export type Visibility = z.infer<typeof visibilitySchema>;
+export const initialArticleVisibility = "public" satisfies Visibility;
+export type TranslationLocale = z.infer<typeof translationLocaleSchema>;
 export type JsonCanvas = z.infer<typeof jsonCanvasSchema>;
 export type ArticleText = z.infer<typeof articleTextSchema>;
 export type Article = z.infer<typeof articleSchema>;

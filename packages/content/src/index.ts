@@ -10,8 +10,10 @@ export { normalizeLocale, resolveLocale } from "./locale";
 export {
   articleSchema,
   articleTextSchema,
+  initialArticleVisibility,
   jsonCanvasSchema,
   MAX_TAGS,
+  translationLocaleSchema,
   visibilitySchema,
   type Article,
   type ArticleDocumentSet,
@@ -19,6 +21,7 @@ export {
   type ArticleText,
   type JsonCanvas,
   type ParsedArticleDocument,
+  type TranslationLocale,
   type Visibility,
 } from "./schema";
 export { canonicalizeTags, validateTagSyntax } from "./tags";

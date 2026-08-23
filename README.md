@@ -1,25 +1,22 @@
 # my-knowledge
 
-A personal knowledge publication that turns useful conversations in any language into finished
-public Chinese Markdown articles with summaries, nested tags, and derived English and Japanese
-translations.
+A personal knowledge publication that stores finished Chinese Markdown articles with summaries,
+nested tags, and optional English and Japanese editions submitted by a local workflow.
 
 ## Processing flow
 
-`createArticle` returns the future article ID immediately. The Queue consumer generates, validates,
-stores, and indexes the public Chinese article first. Independent Queue messages add English and
-Japanese translations afterward; translations never enter AI Search or block Chinese creation.
+The local workflow produces semantic Markdown, then REST or MCP validates and stores it. Chinese is
+written to R2 and AI Search before the public D1 row is committed. Optional English and Japanese
+editions remain presentation-only R2 objects and never enter AI Search.
 
 ```mermaid
 flowchart LR
-  submit[Submit content] --> queue[Queue job]
-  queue --> write[Generate Chinese article]
-  write --> r2[Write Chinese Markdown]
+  local[Local workflow] --> submit[Submit semantic Markdown]
+  submit --> r2[Write Chinese Markdown]
   r2 --> index[Index Chinese in AI Search]
   index --> save[Insert public article]
   save --> done[Created]
-  done --> en[Derive English]
-  done --> ja[Derive Japanese]
+  done --> editions[Store supplied English or Japanese editions]
 ```
 
 ## Connect with MCP
@@ -33,24 +30,24 @@ Connect an MCP client using Streamable HTTP:
       "type": "streamable-http",
       "url": "https://knowledge.you-find.me/api/mcp",
       "headers": {
-        "Authorization": "Bearer ${MCP_API_KEY}"
+        "Authorization": "Bearer ${MY_KNOWLEDGE_API_KEY}"
       }
     }
   }
 }
 ```
 
-Set `MCP_API_KEY` in the environment used to start the client. Some clients use a different syntax for
+Sign in with the allowed email, then call `POST /api/settings/api-key` from that browser session and
+save the returned key as `MY_KNOWLEDGE_API_KEY` in the environment used to start the client. The
+plaintext is shown only in the rotation response. Some clients use a different syntax for
 environment-variable expansion; in that case, follow the client's secret configuration format while
 keeping the same endpoint and `Authorization: Bearer …` header. Keep the key secret because it grants
 owner-level article access. The server accepts requests through `POST /api/mcp`. See
-[MCP tools](docs/MCP.md) for the available operations and [Deployment](docs/DEPLOYMENT.md) for
-configuring the key and Cloudflare resources.
+[MCP tools](docs/MCP.md), the [REST API](docs/API.md), and [Deployment](docs/DEPLOYMENT.md) for the
+available operations, credential lifecycle, and Cloudflare resources.
 
-`createArticle` queues Chinese writing plus two later translation calls. On a free Cloudflare plan,
-call it serially; bursts can exhaust provider or platform allowances quickly. Check current limits in
-the Cloudflare dashboard because this repository does not pin changing quota numbers. For a connection
-check, call `listTags` or `listArticles`; do not use `createArticle` as a health check.
+`createArticle` accepts one complete Chinese Markdown document; it does not generate or translate
+content. For a connection check, call `listTags` or `listArticles`; do not create a throwaway article.
 
 ## Local development
 

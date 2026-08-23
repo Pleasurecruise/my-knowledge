@@ -1,71 +1,54 @@
-# Simple content flow
+# Content flows
 
-Status: Implemented locally; live provider and remote-store smoke await owner approval
+Status: Implemented locally; remote-store smoke awaits owner approval
 
-## Queue creation
+## Local ingestion
 
-`createArticle` accepts conversation content in any language, generates the future article UUID,
-stores the input in a 48-hour KV entry, publishes `{ type: "create", articleId }`, and returns that ID.
-No task row or task-status API is created. MCP clients use the returned ID with `getArticle`.
-If Queue publication fails, the mutation fails and the unpublished KV input expires through the same
-48-hour TTL; submission does not run a second cleanup path.
+Content generation, translation, and editorial decisions run outside this application. The local
+workflow submits completed semantic Markdown through authenticated REST or MCP. The Worker has no
+Queue consumer, temporary job input, model provider, prompt, or runtime skill registry.
 
-The Queue consumer selects the bounded project skills and asks the configured model for one finished
-Simplified Chinese article. After Markdown validation it:
+REST accepts `{ documents: { zh, en?, ja? } }`. MCP `createArticle` accepts one Chinese `document`.
+The server validates frontmatter, Markdown safety, tags, wiki links, and cross-edition structure,
+allocates one UUID and slug, then writes Chinese in this order:
 
-1. conditionally writes the stable Chinese R2 object;
-2. uploads only Chinese to AI Search;
-3. inserts the public Chinese D1 row;
-4. publishes independent `translate` messages for `en` and `ja`;
-5. deletes the submitted input;
-6. acknowledges the create message.
+1. conditionally write the stable Chinese R2 object;
+2. upload Chinese to AI Search;
+3. insert the public D1 row;
+4. store any supplied English or Japanese R2 objects and child metadata.
 
-Queue delivery is at least once. The future article ID is also the D1 primary key, R2 directory, and
-AI Search key prefix. Redelivery reuses an existing completed article; an R2 object without its D1 row
-remains an explicit error. Valid job failures escape the consumer without acknowledgement; Cloudflare
-Queues applies its default three retries and records each failed invocation. Submitted content remains
-only in its 48-hour KV entry until a successful creation deletes it or the TTL expires. No application
-failure log contains submitted content or article text.
-
-## Derived translations
-
-Each locale message contains `articleId`, `locale`, and the Chinese `sourceHash`. It reads the current
-Chinese article, acknowledges obsolete messages whose hash no longer matches, and skips a translation
-whose child row and R2 object are already current. Otherwise it translates one locale, validates it
-against Chinese structure, writes the deterministic translation R2 object, and upserts the minimal
-child row. English and Japanese run, retry, and fail independently. An exhausted translation message
-is discarded without changing or withdrawing Chinese.
-
-Translations are presentation derivatives: they never enter AI Search, never authorize an article,
-and never block a created result. A missing or stale translation falls back to Chinese.
+If Chinese storage, indexing, or D1 insertion fails, the attempt rolls back only artifacts it owns.
+Supplied editions are presentation derivatives: they never enter AI Search or authorize an article.
+A missing or source-hash-stale edition falls back to Chinese.
 
 ## Browser authoring
 
 The allowed-email owner creates or edits canonical Chinese Markdown from the existing Article
-surface. Browser create regenerates the Chinese summary, commits the public Chinese article through
-R2, AI Search, and D1, then requests both translations. Browser update performs the same Chinese-only
-conditional write and queues fresh translations. Translation enqueue errors are returned to the
-caller; they are not swallowed or converted into success.
+surface. The editor requires title, one-sentence summary, body, and tags and performs no model call.
+Create and update use the same R2, AI Search, and D1 persistence operations as external ingestion.
 
 Publish, withdraw, and delete remain explicit operations. Delete first withdraws the row, cleans the
 stable Chinese and translation R2 objects, the Chinese AI Search item, and caches, then deletes the D1
 row and cascaded translation metadata.
 
-## MCP mutations, reads, and search
+## Owner API and MCP
 
-- `getArticle` reads Chinese plus any current translation child records and R2 objects.
-- `listArticles`, tags, links, and Graph use canonical Chinese D1 projections.
-- `updateArticle` stores submitted Chinese immediately and queues derived translations.
-- `searchArticles` uses Chinese-only AI Search and re-authorizes every article ID through D1.
-- `setVisibility` explicitly publishes or withdraws an existing article.
+The allowed-email session may generate or regenerate this project's API key. REST and MCP compare
+the Bearer key against the digest in the `my-knowledge-api-key` Durable Object instance; REST
+also accepts the browser session when no Authorization header is present.
+
+- REST supports paginated list, immediate document create, direct read, document or browser-draft
+  update, visibility change, and delete.
+- MCP supports immediate Chinese document create, direct read, paginated list, Chinese document
+  update, delete, AI Search, tags, and visibility.
+- Chinese update and deletion require `expectedHash` optimistic concurrency.
+- AI Search owns hybrid retrieval and every result is re-authorized through D1.
 
 ## Failure behavior
 
-- Invalid input or model Markdown stores no article.
-- R2, AI Search, or D1 failure before Chinese commit rolls back artifacts owned by that attempt and
-  retries creation.
-- Translation execution never rolls back canonical Chinese; translation enqueue errors remain
-  observable to the caller or retrying create message.
-- A stale translation message or row is ignored by source-hash comparison.
-- Unauthorized reads behave as not found; anonymous access still depends on D1 visibility.
+- Invalid semantic Markdown stores no article.
+- R2, AI Search, or D1 failure before Chinese commit rolls back artifacts owned by that attempt.
+- A failed supplied translation does not withdraw successfully committed Chinese; the caller may
+  retry with the current Chinese hash.
+- Unauthorized reads do not reveal private titles, metadata, or bodies.
 - Cache failure is observable and falls back to authorized canonical R2.

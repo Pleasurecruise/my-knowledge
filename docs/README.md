@@ -12,10 +12,9 @@ Read only the document that owns the question:
 - [Design](DESIGN.md): visual direction, tokens, page composition, components, and accessibility.
 - [Engineering](ENGINEERING.md): coding rules, naming, boundaries, security, and verification.
 - [Testing](TESTING.md): unit, integration, contract, E2E, evaluation, and release evidence.
-- [Skills](SKILLS.md): the runtime skill registry and exact loading behavior.
 - [MCP](MCP.md): authentication, dual-protocol transport, simple tools, and contract tests.
+- [API](API.md): owner API-key lifecycle and article REST resources.
 - [Deployment](DEPLOYMENT.md): Cloudflare dependencies, bindings, environments, and commands.
-- [Roadmap](ROADMAP.md): implementation order and exit evidence.
 - [References](REFERENCES.md): inspiration, external sources, and reuse policy.
 
 One fact has one owner. Other documents link to it instead of copying it. Add another document only

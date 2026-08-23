@@ -1,7 +1,7 @@
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/server/validators/cf-worker";
 
-import { isMcpAuthorized } from "@/mcp/auth";
+import { verifyApiKey } from "@/auth/api-key";
 import {
   createArticleInput,
   createArticleOperation,
@@ -31,7 +31,7 @@ function serverFor(env: CloudflareEnv) {
     "createArticle",
     {
       description:
-        "Queue one public Chinese article and return its future article ID immediately. Use getArticle with that ID later; not found means creation has not completed. English and Japanese translations are derived independently after Chinese creation.",
+        "Validate and store one complete semantic Chinese Markdown document as a public article. The document must contain ordered title, summary, and tags frontmatter followed by the article body.",
       inputSchema: createArticleInput,
       annotations: {
         readOnlyHint: false,
@@ -152,12 +152,18 @@ function serverFor(env: CloudflareEnv) {
 }
 
 export async function handleMcp(env: CloudflareEnv, request: Request): Promise<Response> {
-  if (!(await isMcpAuthorized(env, request))) {
+  if (request.headers.has("mcp-session-id")) {
+    return Response.json({ error: "MCP sessions are not supported." }, { status: 400 });
+  }
+  if (!(await verifyApiKey(request, env.API_KEY))) {
     return Response.json(
       { error: "unauthorized" },
       { status: 401, headers: { "WWW-Authenticate": "Bearer" } },
     );
   }
-  const handler = createMcpHandler(() => serverFor(env), { legacy: "stateless" });
+  const handler = createMcpHandler(() => serverFor(env), {
+    legacy: "stateless",
+    responseMode: "auto",
+  });
   return handler.fetch(request);
 }

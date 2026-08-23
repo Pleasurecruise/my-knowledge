@@ -28,10 +28,8 @@ type Article = {
 };
 ```
 
-`zh` is the authored, canonical edition; `en` and `ja` are optional derived translations stored after
-Chinese creation or update completes. `createArticle` and the
-browser editor accept only Chinese input; `createArticle` receives no locale choice, and AI
-understands the source conversation in whatever language it uses and writes Simplified Chinese.
+`zh` is the authored, canonical edition; `en` and `ja` are optional supplied translations. REST may
+submit all three together, while MCP and the browser editor accept Chinese input.
 The content hash uses the Chinese edition only and identifies a version for optimistic concurrency,
 cache keys, and search-index authorization; it does not identify duplicate articles. Reading an
 article renders a translation only when its source hash matches the current Chinese hash, falling
@@ -42,7 +40,7 @@ once, and never changes during updates.
 
 ## Markdown
 
-R2 stores canonical Chinese Markdown and any derived translation Markdown under stable article-ID
+R2 stores canonical Chinese Markdown and any supplied translation Markdown under stable article-ID
 keys. Every edition
 begins with YAML frontmatter containing only `title`, `summary`, and `tags` in that order, and the
 translated `en`/`ja` editions carry the same (untranslated) tags as `zh`. The body may contain
@@ -68,17 +66,17 @@ and dark themes. It uses Shiki's precompiled grammars and raw JavaScript engine 
 fallback. Mermaid, Vega, and JSON Canvas remain separate structured components behind renderer-level
 no-SSR bundle boundaries and never pass through Shiki.
 
-## Generation and update
+## Ingestion and update
 
-Article creation receives conversation content in any language. The model writes one finished Chinese
-article, which is validated, stored in R2, uploaded to AI Search, and recorded in D1 as public. Only
-then do independent `en` and `ja` Queue messages derive translations. Creation performs no
-content-hash or similarity lookup, so identical submissions may create separate articles.
+REST creation receives completed semantic Markdown from a local workflow. It requires Chinese and
+may include English and Japanese, validates cross-edition tags and wiki-link targets, stores Chinese
+in R2, uploads Chinese to AI Search, and records the public D1 row. Supplied translations are then
+stored in R2 with source-hash metadata. Creation performs no content-hash or similarity lookup, so
+identical submissions may create separate articles.
 
-`updateArticle` receives one complete Chinese `document` plus `expectedHash`. It stores and indexes
-that Chinese version without waiting for translation, then queues fresh `en` and `ja` derivatives.
-Visibility changes remain a separate MCP operation.
+MCP create and update receive one complete Chinese `document`; REST update may submit all supported
+editions with `expectedHash`. A Chinese update immediately makes older translation metadata stale.
+Visibility changes remain separate operations.
 
-The browser editor accepts a Chinese title, body, and tags. Save regenerates the Chinese one-sentence
-summary and runs the canonical R2/AI Search/D1 write for Chinese only. Translation is subsequent
-derived work and cannot roll back a successful Chinese save.
+The browser editor accepts a Chinese title, one-sentence summary, body, and tags. Save serializes that
+input into the same canonical Markdown and performs no model call.

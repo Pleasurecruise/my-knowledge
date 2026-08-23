@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import { z } from "zod";
 
-import authFixture from "../fixtures/auth.json" with { type: "json" };
-
 const endpointArgument = process.argv[2];
 if (!endpointArgument) throw new Error("MCP contract endpoint is required");
 const endpoint = endpointArgument;
 const origin = new URL(endpoint).origin;
-const apiKey = authFixture.mcpApiKey;
+const apiKey = process.env.MY_KNOWLEDGE_API_KEY;
+if (!apiKey) throw new Error("MY_KNOWLEDGE_API_KEY is required");
 
 const editionSchema = z.object({ title: z.string(), markdown: z.string() });
 const articleSchema = z.object({ id: z.string(), visibility: z.enum(["private", "public"]) });
@@ -77,9 +76,7 @@ async function callTool<Output>(
   const response = await modernRequest(id, "tools/call", { name, arguments: args });
   const text = await response.text();
   assert.equal(response.status, 200, text);
-  const body = z
-    .object({ error: z.unknown().optional(), result: z.unknown() })
-    .parse(JSON.parse(text));
+  const body = z.object({ error: z.never().optional(), result: schema }).parse(JSON.parse(text));
   assert.equal(body.error, undefined);
   return schema.parse(body.result);
 }
@@ -125,19 +122,32 @@ if (!deleteTool) throw new Error("deleteArticle was not discovered");
 assert.equal(deleteTool.annotations.destructiveHint, true);
 const createTool = toolsBody.result.tools.find((tool) => tool.name === "createArticle");
 if (!createTool) throw new Error("createArticle was not discovered");
-assert.deepEqual(createTool.inputSchema.required, ["content"]);
-assert.match(createTool.description, /future article ID/u);
-assert.match(createTool.description, /Use getArticle/u);
-assert.match(
-  createTool.description,
-  /English and Japanese translations are derived independently/u,
-);
+assert.deepEqual(createTool.inputSchema.required, ["document"]);
+assert.match(createTool.description, /complete semantic Chinese Markdown document/u);
 const updateTool = toolsBody.result.tools.find((tool) => tool.name === "updateArticle");
 if (!updateTool) throw new Error("updateArticle was not discovered");
 assert.deepEqual(updateTool.inputSchema.required, ["id", "expectedHash", "document"]);
 
 const fixtureId = "11111111-1111-4111-8111-111111111111";
 const fixtureHash = "60a93252b4aad827daa74851a0b1ff889226fef40b87c55e74cde3493f8c9370";
+const restEndpoint = `${origin}/api/articles`;
+const unauthorizedRest = await fetch(restEndpoint);
+assert.equal(unauthorizedRest.status, 401);
+assert.equal(unauthorizedRest.headers.get("www-authenticate"), "Bearer");
+const restList = await fetch(`${restEndpoint}?tag=engineering&limit=10`, {
+  headers: { authorization: `Bearer ${apiKey}` },
+});
+assert.equal(restList.status, 200, await restList.clone().text());
+const restListBody = z.object({ articles: z.array(articleSchema) }).parse(await restList.json());
+assert.deepEqual(
+  restListBody.articles.map((article) => article.id),
+  [fixtureId, "22222222-2222-4222-8222-222222222222"],
+);
+const restArticle = await fetch(`${restEndpoint}/${fixtureId}`, {
+  headers: { authorization: `Bearer ${apiKey}` },
+});
+assert.equal(restArticle.status, 200, await restArticle.clone().text());
+z.object({ article: articleResultSchema.shape.structuredContent }).parse(await restArticle.json());
 const listed = await callTool(4, "listArticles", { limit: 10 }, articleListResultSchema);
 assert.deepEqual(
   listed.structuredContent.articles.map((article) => article.id),
@@ -252,5 +262,5 @@ assert.equal(legacy.status, 200);
 assert.match(await legacy.text(), /"protocolVersion":"2025-11-25"/u);
 
 console.log(
-  "MCP contract passed: auth, discovery, reads, tags, stale writes, visibility, and legacy initialize",
+  "API contract passed: shared auth, REST reads, MCP discovery, tags, stale writes, visibility, and legacy initialize",
 );

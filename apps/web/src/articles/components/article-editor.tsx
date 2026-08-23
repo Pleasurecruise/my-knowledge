@@ -164,11 +164,12 @@ export function ArticleEditor(props: ArticleEditorProps) {
   const { messages } = props;
   const article = props.mode === "edit" ? props.article : null;
   const initialBody = props.mode === "edit" ? props.article.body : "";
-  const initialSummary = props.mode === "edit" ? props.article.summary : null;
+  const initialSummary = props.mode === "edit" ? props.article.summary : "";
   const initialTags = props.mode === "edit" ? props.article.tags : [];
   const initialTitle = props.mode === "edit" ? props.article.title : "";
   const router = useRouter();
   const [title, setTitle] = useState(initialTitle);
+  const [summary, setSummary] = useState(initialSummary);
   const [markdown, setMarkdown] = useState(initialBody);
   const [tags, setTags] = useState(initialTags.join(", "));
   const [saving, setSaving] = useState(false);
@@ -264,6 +265,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
   });
   const dirty =
     title !== initialTitle ||
+    summary !== initialSummary ||
     markdown.trimEnd() !== initialBody.trimEnd() ||
     tags !== initialTags.join(", ");
   const filteredCommands = commands.filter(
@@ -290,7 +292,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
   }
 
   async function save() {
-    if (saving || !title.trim() || !markdown.trim()) return;
+    if (saving || !title.trim() || !summary.trim() || !markdown.trim()) return;
     setSaving(true);
     setError(null);
     try {
@@ -300,8 +302,9 @@ export function ArticleEditor(props: ArticleEditorProps) {
           method: article === null ? "POST" : "PATCH",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            ...(article === null ? {} : { operation: "save", expectedHash: article.contentHash }),
+            ...(article === null ? {} : { expectedHash: article.contentHash }),
             title: title.trim(),
+            summary: summary.trim(),
             body: markdown.trimEnd(),
             tags: [
               ...new Set(
@@ -335,7 +338,6 @@ export function ArticleEditor(props: ArticleEditorProps) {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          operation: "setVisibility",
           expectedHash: article.contentHash,
           visibility: article.visibility === "public" ? "private" : "public",
         }),
@@ -388,7 +390,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
           <Button
             aria-label={messages.save}
             className="-ml-px h-8 w-8 rounded-l-none bg-foreground text-background hover:bg-foreground hover:opacity-90"
-            disabled={saving || !title.trim() || !markdown.trim()}
+            disabled={saving || !title.trim() || !summary.trim() || !markdown.trim()}
             onClick={save}
             size="icon-sm"
           >
@@ -429,12 +431,19 @@ export function ArticleEditor(props: ArticleEditorProps) {
 
       <div className={`mt-4 ${article === null ? "max-w-none" : "max-w-140"}`}>
         <div className="grid gap-2">
-          <span className="text-muted-foreground text-[0.6875rem] font-medium tracking-widest uppercase">
+          <label
+            className="text-muted-foreground text-[0.6875rem] font-medium tracking-widest uppercase"
+            htmlFor="article-summary"
+          >
             {messages.summaryLabel}
-          </span>
-          <p className="text-muted-foreground min-h-9 border-b px-0 py-2 text-sm">
-            {initialSummary === null ? messages.summaryGenerated : initialSummary}
-          </p>
+          </label>
+          <Input
+            disabled={saving}
+            id="article-summary"
+            onChange={(event) => setSummary(event.target.value)}
+            placeholder={messages.summaryHint}
+            value={summary}
+          />
         </div>
       </div>
 

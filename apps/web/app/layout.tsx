@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { AuthAction } from "@/auth/components/auth-action";
+import { ApiKeyAction } from "@/auth/components/api-key-action";
 import { LanguageAction } from "@/i18n/components/language-action";
 import { getInterfaceI18n } from "@/i18n/server";
 import { PrimaryNavigation } from "@/shell/primary-navigation";
@@ -69,6 +70,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               </div>
               <div className="flex items-center gap-1">
                 <LanguageAction />
+                <ApiKeyAction messages={i18n.messages.shell} />
                 <ThemeAction messages={i18n.messages.shell} />
                 <AuthAction messages={i18n.messages.shell} />
               </div>

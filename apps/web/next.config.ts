@@ -7,12 +7,7 @@ const nextConfig = {
     unoptimized: true,
   },
   reactStrictMode: true,
-  transpilePackages: [
-    "@my-knowledge/ai-core",
-    "@my-knowledge/content",
-    "@my-knowledge/skills",
-    "@my-knowledge/ui",
-  ],
+  transpilePackages: ["@my-knowledge/content", "@my-knowledge/ui"],
 } satisfies NextConfig;
 
 export default async function configuration(phase: PHASE_TYPE): Promise<NextConfig> {

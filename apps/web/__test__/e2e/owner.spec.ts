@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { z } from "zod";
 
 const errorsByPage = new WeakMap<Page, string[]>();
 
@@ -81,6 +82,73 @@ test("keeps the owner graph inside the wide shell without visible scrollbars", a
   }
 });
 
+test("places the API credential action immediately before theme", async ({ page, request }) => {
+  expect((await request.put("/api/settings/api-key")).status()).toBe(200);
+  await page.goto("/");
+
+  const credentialAction = page.getByRole("button", { name: "重新生成 API 密钥" });
+  const themeAction = page.getByRole("button", { name: "切换主题" });
+  await expect(credentialAction).toBeVisible();
+  const [credentialBounds, themeBounds] = await Promise.all([
+    credentialAction.boundingBox(),
+    themeAction.boundingBox(),
+  ]);
+  if (!credentialBounds || !themeBounds) throw new Error("Header action bounds are unavailable");
+  expect(credentialBounds.x + credentialBounds.width).toBeLessThanOrEqual(themeBounds.x);
+
+  await credentialAction.click();
+  await expect(page.getByRole("alertdialog")).toContainText(
+    "当前 my-knowledge 密钥将立即失效并被替换。",
+  );
+  await page.getByRole("button", { name: "取消" }).click();
+});
+
+test("shares the generated Bearer credential across REST and MCP", async ({
+  request,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "owner-desktop-light", "One API contract run is enough");
+  const credential = z
+    .object({ apiKey: z.string() })
+    .parse(await (await request.put("/api/settings/api-key")).json());
+  const authorization = `Bearer ${credential.apiKey}`;
+  const rest = await request.get("/api/articles?tag=engineering&limit=10", {
+    headers: { authorization },
+  });
+  expect(rest.status()).toBe(200);
+  const restBody = z
+    .object({ articles: z.array(z.object({ id: z.string() })) })
+    .parse(await rest.json());
+  expect(restBody.articles.map(({ id }) => id)).toEqual([
+    "11111111-1111-4111-8111-111111111111",
+    "22222222-2222-4222-8222-222222222222",
+  ]);
+
+  const mcp = await request.post("/api/mcp", {
+    headers: {
+      authorization,
+      "content-type": "application/json",
+      "mcp-method": "server/discover",
+      "mcp-protocol-version": "2026-07-28",
+    },
+    data: {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "server/discover",
+      params: {
+        _meta: {
+          "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+          "io.modelcontextprotocol/clientCapabilities": {},
+        },
+      },
+    },
+  });
+  expect(mcp.status()).toBe(200);
+  const mcpBody = z
+    .object({ result: z.object({ supportedVersions: z.array(z.string()) }) })
+    .parse(await mcp.json());
+  expect(mcpBody.result.supportedVersions).toEqual(["2026-07-28"]);
+});
+
 test("opens the owner editor, uses a slash command, and discards the draft", async ({
   page,
 }, testInfo) => {
@@ -104,6 +172,7 @@ test("opens the owner editor, uses a slash command, and discards the draft", asy
   expect(editorBox.x + editorBox.width).toBeCloseTo(headerBox.x + headerBox.width, 0);
   expect(tagsBox.x + tagsBox.width).toBeGreaterThan(toolbarBox.x + toolbarBox.width - 2);
   await page.getByLabel("标题").fill("编辑器流程草稿");
+  await page.getByLabel("一句话摘要").fill("这是编辑器流程草稿的测试摘要。");
   await page.getByLabel("标签").fill("engineering/editor");
   const editor = page.locator(".tiptap");
   await editor.click();

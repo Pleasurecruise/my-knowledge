@@ -6,7 +6,7 @@ These sources inform the project but are not automatically runtime dependencies:
   Markdown, properties, nested tags, internal links, backlinks, and graph-based knowledge discovery;
 - [my-memos](https://github.com/Pleasurecruise/my-memos): source reference for the Notes index,
   reading rails, heading hierarchy, and editor interaction, as well as the pnpm/Cloudflare shape,
-  single-owner auth, stateless MCP, and current AI Gateway adapter;
+  single-owner auth, rotatable API credential, REST boundaries, and stateless MCP;
 - `my-profile` (owner-local repository): composition reference for the centered article axis, compact
   header, table of contents, and reading controls; no source, font, or third-party asset is copied;
 - [docu.md](https://docu.md/): Markdown-first rich content and replaceable presentation;

@@ -9,8 +9,6 @@ const workerCommand = [
   `--var BETTER_AUTH_SECRET:${authFixture.secret}`,
   `--var GOOGLE_CLIENT_ID:${authFixture.googleClientId}`,
   `--var GOOGLE_CLIENT_SECRET:${authFixture.googleClientSecret}`,
-  `--var CF_AIG_TOKEN:${authFixture.gatewayToken}`,
-  `--var MCP_API_KEY:${authFixture.mcpApiKey}`,
 ].join(" ");
 
 export default defineConfig({

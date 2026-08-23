@@ -3,8 +3,9 @@ import type {
   ArticleDocumentSet,
   ArticleSummary,
   ParsedArticleDocument,
+  TranslationLocale,
 } from "@my-knowledge/content";
-import type { TranslationLocale } from "@my-knowledge/ai-core";
+import { initialArticleVisibility } from "@my-knowledge/content";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
@@ -126,7 +127,7 @@ export async function createArticle(
         contentHash: document.contentHash,
         tagsJson: JSON.stringify(document.tags),
         linksJson: JSON.stringify(document.links),
-        visibility: "public",
+        visibility: initialArticleVisibility,
         createdAt: timestamp,
         updatedAt: timestamp,
       };

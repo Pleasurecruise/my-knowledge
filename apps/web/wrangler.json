@@ -16,18 +16,10 @@
     }
   ],
   "vars": {
-    "BETTER_AUTH_URL": "https://knowledge.you-find.me",
-    "CF_ACCOUNT_ID": "fb71c4eceaf623ae1b19b8b37d7a38cf"
+    "BETTER_AUTH_URL": "https://knowledge.you-find.me"
   },
   "secrets": {
-    "required": [
-      "ALLOWED_EMAIL",
-      "BETTER_AUTH_SECRET",
-      "GOOGLE_CLIENT_ID",
-      "GOOGLE_CLIENT_SECRET",
-      "CF_AIG_TOKEN",
-      "MCP_API_KEY"
-    ]
+    "required": ["ALLOWED_EMAIL", "BETTER_AUTH_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"]
   },
   "d1_databases": [
     {
@@ -52,6 +44,20 @@
       "remote": true
     }
   ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "API_KEY",
+        "class_name": "ApiKeyDurableObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ApiKeyDurableObject"]
+    }
+  ],
   "ai_search_namespaces": [
     {
       "binding": "AI_SEARCH",
@@ -59,20 +65,6 @@
       "remote": true
     }
   ],
-  "queues": {
-    "producers": [
-      {
-        "binding": "ARTICLE_JOBS",
-        "queue": "article-jobs"
-      }
-    ],
-    "consumers": [
-      {
-        "queue": "article-jobs",
-        "max_batch_size": 1
-      }
-    ]
-  },
   "observability": {
     "logs": {
       "enabled": true,

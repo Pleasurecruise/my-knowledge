@@ -5,22 +5,19 @@ Status: Implemented
 ## Monorepo
 
 ```text
-apps/web                 Next.js, MCP, article orchestration, Queue consumer, auth, and bindings
-packages/ai-core         provider adapter and schema-bound model execution
+apps/web                 Next.js, REST, MCP, article persistence, auth, and bindings
 packages/content         article, Markdown, tag, link, and hash domain rules
-packages/skills          pinned upstream skills, loader, registry, and attribution
 packages/ui              shadcn components, tokens, icons, theme behavior, and Markdown presentation
 ```
 
-This is one product and one Worker deployment. A custom OpenNext entry reuses the generated fetch
-handler and adds the Queue consumer, so HTTP/MCP requests and background jobs remain separate Worker
-invocations without adding another application. Packages exist for reusable ownership and test
-boundaries, not as independent services. Do not add a package until code is genuinely shared or has a
-stable independent responsibility.
+This is one product and one Worker deployment. Content generation and translation run locally outside
+the Worker; the deployed application only validates, stores, indexes, retrieves, renders, and mutates
+finished articles. Packages exist for reusable ownership and test boundaries, not as independent
+services. Do not add a package until code is genuinely shared or has a stable responsibility.
 
-Dependency direction is fixed: `content` and `skills` are independent; `ai-core` may consume both;
-`ui` consumes content types but never platform adapters; `apps/web` composes packages with D1, R2,
-KV, AI Search, Queue, auth, and transport. Domain packages never import from `apps/web`.
+Dependency direction is fixed: `content` is independent; `ui` consumes content types but never
+platform adapters; `apps/web` composes both with D1, R2, KV, Durable Objects, AI Search, auth, and
+transport. Domain packages never import from `apps/web`.
 
 ## Selected stack
 
@@ -31,11 +28,9 @@ KV, AI Search, Queue, auth, and transport. Domain packages never import from `ap
 | Worker build     | `@opennextjs/cloudflare` and Wrangler                |
 | Package manager  | pnpm workspaces                                      |
 | Toolchain        | Vite Plus for format, lint, types, and unit tests    |
-| Model runtime    | Strict streamed OpenAI-compatible completion         |
-| Model route      | Cloudflare AI Gateway Dynamic Route with BYOK keys   |
-| Validation       | Zod at MCP, model-output, and storage boundaries     |
+| Validation       | Zod at REST, MCP, Markdown, and storage boundaries   |
 | Persistence      | Numbered SQL migrations and typed Drizzle queries    |
-| Authentication   | Better Auth, Google OAuth, and one allowed email     |
+| Authentication   | Better Auth plus one generated owner API key         |
 | Styling          | Tailwind CSS v4 backed by project-owned OKLCH tokens |
 | UI primitives    | shadcn Luma source on Base UI                        |
 | Icons            | Tree-shaken Lucide React components                  |
@@ -63,91 +58,68 @@ Client Components. The language action writes that cookie through a Server Actio
 the current App Router route. This changes interface labels and the rendered Article body; list,
 search, and Graph summaries always use the canonical Chinese title and summary, while the Article page
 renders whichever stored edition matches the current interface locale, falling back to Chinese when
-one is missing. AI handles the source conversation's language during article creation, and a separate
-internal Queue step derives English and Japanese editions after Chinese commits, rather than exposing
-content locale choice to the caller. The New action is shown only for the Chinese interface, and the
+one is missing. The local workflow may submit English and Japanese editions with Chinese through REST.
+The New action is shown only for the Chinese interface, and the
 owner-authorized new-article route keeps its editor labels in Chinese; editing an existing article
 still follows the selected interface locale.
 
 Server-rendered authorization resolves the Better Auth session directly from the current request
 headers in each protected page or Route Handler. Article metadata always uses anonymous access, so a
 private title or summary never enters a metadata render and the article page has one owner-session
-decision for its body.
-
-## Model provider
-
-Implement the provider boundary with the same proven Cloudflare AI Gateway request pattern currently
-used by `my-memos`; do not inherit its content model, routes, or feature set:
-
-```text
-https://gateway.ai.cloudflare.com/v1/{account}/default/compat
-```
-
-Requests go through a Cloudflare AI Gateway Dynamic Route. The request body names the route
-`dynamic/article` instead of a raw model ID; the route owns the primary model, its rate and budget
-limits, and the fallback model it switches to when a limit is exceeded, so the Worker code only
-references the route name. The Worker sends `cf-aig-authorization` and deliberately omits upstream
-`Authorization` and `x-api-key`; Cloudflare AI Gateway injects the provider keys stored with BYOK.
-Every content request also sends `cf-aig-collect-log-payload: false` and `cf-aig-skip-cache: true`,
-so the Gateway keeps neither prompt and response bodies in logs nor a response cache entry.
-Metadata-only operational logging is allowed. The Worker requests an SSE stream so long generations
-start a response before the Dynamic Route model-node timeout, validates each completion event with
-Zod, and concatenates the deltas into one complete string before returning to application code.
-
-Upstream provider retention is a separate provider policy and must be verified when each provider is
-configured. `packages/ai-core` owns this compatibility contract. Application code asks it to run a
-content skill and does not construct provider URLs or headers.
+decision for its body. External REST and MCP requests use one rotatable Bearer API key whose
+SHA-256 digest and creation timestamp live in this Worker's single strongly consistent Durable
+Object instance. Only the allowed-email browser session may generate or regenerate it.
+Article Route Handlers accept that session when no Authorization header exists; a supplied
+Authorization header must validate on its own.
 
 ## Request path
 
 ```text
-MCP createArticle
-  -> KV stores expiring input, Queue receives { type: create, articleId }
-  -> MCP returns { status: accepted, articleId }
-  -> packages/skills selects guidance and packages/ai-core generates Chinese
+Local workflow produces semantic Markdown
+  -> REST or MCP authenticates and validates it
   -> R2 writes zh.md, AI Search accepts zh.md, D1 inserts the public article
-  -> Queue receives independent en and ja translation messages
-  -> translation messages write derived R2 objects and D1 child metadata only
-  -> MCP getArticle reads the article directly by that ID
+  -> REST writes any supplied en and ja editions to R2 and D1 child metadata
+  -> the response returns the stored article immediately
 ```
 
-Submitted input uses one expiring KV key. Queue messages contain IDs, locale, and source hash but
-never content. Terminal Chinese processing deletes the input immediately; there is no D1 job table,
-failure receipt, Workflow, staging bucket, or stored provider payload.
+There is no D1 job table, temporary job input, Queue, Workflow, staging bucket, model provider,
+runtime prompt, or stored provider payload.
 
 ## Storage
 
-| Store     | Purpose                                           |
-| :-------- | :------------------------------------------------ |
-| D1        | Chinese article index, translation metadata, auth |
-| R2        | Chinese and derived translation Markdown          |
-| KV        | Public cache plus expiring creation input         |
-| AI Search | Chinese-only hybrid article search                |
+| Store          | Purpose                                           |
+| :------------- | :------------------------------------------------ |
+| D1             | Chinese article index, translation metadata, auth |
+| R2             | Article Markdown                                  |
+| KV             | Public article cache                              |
+| Durable Object | API key digest and creation time                  |
+| AI Search      | Chinese-only hybrid article search                |
 
 D1 is authoritative for existence, visibility, and list metadata. R2 is authoritative for Markdown.
 D1 keeps compact title, summary, tag, and link projections to serve lists and Graph without
-an R2 read per row. KV and the AI Search index are rebuildable and never authorize access.
+an R2 read per row. KV and the AI Search index are rebuildable and never authorize access. The
+`my-knowledge-api-key` is the only generated API key authority for this application. The same
+exported class hosts separate `my-memos-api-key` and `my-moment-api-key` instances without sharing
+state between applications.
 
 The concrete schema, normalization rules, indexes, object keys, and cross-store mutation order are
 defined once in [Database](DATABASE.md).
 
 ## Read and write rules
 
-- Every create writes `public`; the owner may explicitly withdraw it later.
+- Every create writes `public`; withdrawal is a separate owner mutation.
 - `createArticle` has no visibility input.
-- Queue delivery is at least once; one stable article ID across Queue, R2, AI Search, and D1 makes
-  Chinese creation and locale-specific translation messages idempotent.
+- One stable article ID across R2, AI Search, and D1 identifies each stored article.
 - Public queries include visibility in D1 before reading R2.
 - Public article reads check D1, then read through the versioned KV entry, and use R2 on a cache miss
   or observable cache failure.
 - Search results are re-authorized through D1 before titles or bodies are returned.
 - Create/update conditionally writes the stable Chinese R2 path using object ETags, then uploads
-  Chinese to AI Search before switching the D1 row hash. Translation messages run afterward.
+  Chinese to AI Search before switching the D1 row hash. Supplied translations are stored afterward.
 - Update invalidates the previous hash-keyed KV entry; making an article private or deleting it
   invalidates the current version.
 - Delete makes the D1 row private before removing KV, R2, AI Search items, and finally the row.
 - Repeating a completed delete returns not found and performs no further write.
-- Failed generation stores only a sanitized TTL-bound KV receipt and deletes its temporary input.
 
 ## Search and graph
 
@@ -165,17 +137,18 @@ are stored.
 
 ## Web module boundaries
 
-`apps/web/src` is organized by domain. React composition lives under each domain's `components/`
-directory, application operations under `application/`, and Cloudflare/Drizzle adapters under
-`persistence/`. `articles/index.ts` is the article domain entrypoint used by pages, Route Handlers,
-MCP, and other domains; code inside `articles` imports its concrete siblings directly. Article
-persistence separates D1 query, R2/KV document, AI Search indexing, relation, row-mapping, and
-mutation responsibilities rather than mixing all reads in one repository file.
+`apps/web/src` is organized by domain. React composition lives under each domain's `components/`,
+Cloudflare/Drizzle adapters under `persistence/`, and transport-neutral owner operations in
+`articles/service.ts`. Pages use `articles/index.ts`; REST and MCP use the service. Code inside the
+article domain imports concrete siblings directly. Persistence separates D1 query, R2/KV document,
+AI Search indexing, relation, row-mapping, and mutation responsibilities. Neither transport imports
+persistence or the other's schemas, responses, or operations.
 
-`shell/` owns the shared page layout and primary navigation. MCP separates Bearer authentication,
-tool operations, and HTTP transport. Search is a deterministic authorized D1 read. Storage files may
-coordinate the Cloudflare stores but never import React or Next.js UI concerns.
+`shell/` owns the shared page layout and primary navigation. `api/` owns REST schemas and transport
+responses; `auth/` owns the browser and generated API-key checks; MCP separates tool operations
+from HTTP transport. Search is a deterministic authorized D1 read. Storage files may coordinate the
+Cloudflare stores but never import React or Next.js UI concerns.
 
 Shared packages follow the same boundary: `content` separates schema, document, tag, link, locale,
-and hash behavior; `ai-core` separates Gateway configuration, model execution, and article
-generation. Their `index.ts` files are public package contracts.
+and hash behavior; `ui` owns reusable rendering and interface primitives. Their `index.ts` files are
+public package contracts.

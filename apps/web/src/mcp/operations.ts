@@ -1,22 +1,19 @@
-import { canonicalizeTags, parseArticleDocuments } from "@my-knowledge/content";
 import { z } from "zod";
 
 import {
+  createArticleFromDocuments,
   deleteArticle,
-  enqueueArticleTranslations,
-  getArticleById,
-  hasArticleVersion,
-  listArticles,
-  listTags,
-  searchAiArticles,
+  getOwnerArticle,
+  listOwnerArticles,
+  listOwnerTags,
+  searchOwnerArticles,
   setArticleVisibility,
-  updateArticle,
-} from "@/articles";
-import { submitArticleJob } from "@/article-jobs";
+  updateArticleFromDocuments,
+} from "@/articles/service";
 
-type McpResult = {
+type McpResult<Value extends object> = {
   content: [{ type: "text"; text: string }];
-  structuredContent: object;
+  structuredContent: Value;
 };
 
 type McpError = {
@@ -24,29 +21,29 @@ type McpError = {
   content: [{ type: "text"; text: string }];
 };
 
-function result(value: object): McpResult {
+function result<Value extends object>(value: Value): McpResult<Value> {
   return {
     content: [{ type: "text", text: JSON.stringify(value) }],
     structuredContent: value,
   };
 }
 
-function notFound(message: string): McpError {
+function notFound(): McpError {
   return {
     isError: true,
-    content: [{ type: "text", text: message }],
+    content: [{ type: "text", text: "Article not found" }],
   };
 }
 
 export const createArticleInput = z.object({
-  content: z.string().min(1).max(500_000),
+  document: z.string().min(1).max(500_000),
 });
 
 export async function createArticleOperation(
   env: CloudflareEnv,
   input: z.infer<typeof createArticleInput>,
 ) {
-  return result(await submitArticleJob(env, input.content));
+  return result(await createArticleFromDocuments(env, { zh: input.document }));
 }
 
 export const getArticleInput = z.object({ id: z.string().uuid() });
@@ -55,8 +52,8 @@ export async function getArticleOperation(
   env: CloudflareEnv,
   input: z.infer<typeof getArticleInput>,
 ) {
-  const article = await getArticleById(env, "owner", input.id);
-  return article ? result(article) : notFound("Article not found");
+  const article = await getOwnerArticle(env, input.id);
+  return article ? result(article) : notFound();
 }
 
 export const listArticlesInput = z.object({
@@ -71,7 +68,7 @@ export async function listArticlesOperation(
   input: z.infer<typeof listArticlesInput>,
 ) {
   return result(
-    await listArticles(env, "owner", {
+    await listOwnerArticles(env, {
       cursor: input.cursor,
       limit: input.limit,
       tags: input.tags,
@@ -90,13 +87,10 @@ export async function updateArticleOperation(
   env: CloudflareEnv,
   input: z.infer<typeof updateArticleInput>,
 ) {
-  if (!(await hasArticleVersion(env, input.id, input.expectedHash))) {
-    return notFound("Article not found");
-  }
-  const document = await parseArticleDocuments({ zh: input.document });
-  const article = await updateArticle(env, input.id, input.expectedHash, document);
-  if (article) await enqueueArticleTranslations(env, article.id, article.contentHash);
-  return article ? result(article) : notFound("Article not found");
+  const updated = await updateArticleFromDocuments(env, input.id, input.expectedHash, {
+    zh: input.document,
+  });
+  return updated.status === "updated" ? result(updated.article) : notFound();
 }
 
 export const deleteArticleInput = z.object({
@@ -110,7 +104,7 @@ export async function deleteArticleOperation(
 ) {
   return (await deleteArticle(env, input.id, input.expectedHash))
     ? result({ deleted: true })
-    : notFound("Article not found");
+    : notFound();
 }
 
 export const searchArticlesInput = z.object({
@@ -123,48 +117,15 @@ export async function searchArticlesOperation(
   env: CloudflareEnv,
   input: z.infer<typeof searchArticlesInput>,
 ) {
-  const wantedTags = input.tags
-    ? canonicalizeTags(input.tags).map((tag) => tag.toLocaleLowerCase("en-US"))
-    : undefined;
-  const ranked = await searchAiArticles(env, "owner", input.query, wantedTags ? 50 : input.limit);
-  const filtered = wantedTags
-    ? ranked.filter(({ article }) =>
-        wantedTags.every((wanted) =>
-          article.tags.some((tag) => {
-            const normalized = tag.toLocaleLowerCase("en-US");
-            return normalized === wanted || normalized.startsWith(`${wanted}/`);
-          }),
-        ),
-      )
-    : ranked;
   return result({
-    articles: filtered.slice(0, input.limit).map(({ article, markdown, score }) => ({
-      id: article.id,
-      slug: article.slug,
-      title: article.editions.zh.title,
-      summary: article.editions.zh.summary,
-      tags: article.tags,
-      excerpt: markdown.slice(0, 320),
-      score,
-    })),
+    articles: await searchOwnerArticles(env, input.query, input.tags, input.limit),
   });
 }
 
 export const listTagsInput = z.object({ parent: z.string().min(1).optional() });
 
 export async function listTagsOperation(env: CloudflareEnv, input: z.infer<typeof listTagsInput>) {
-  const tags = await listTags(env, "owner");
-  let normalizedParent: string | undefined;
-  if (input.parent) {
-    const value = canonicalizeTags([input.parent]).at(0);
-    if (!value) throw new Error("Tag parent is missing after validation");
-    normalizedParent = value.toLocaleLowerCase("en-US");
-  }
-  return result({
-    tags: normalizedParent
-      ? tags.filter((tag) => tag.path.toLocaleLowerCase("en-US").startsWith(`${normalizedParent}/`))
-      : tags,
-  });
+  return result({ tags: await listOwnerTags(env, input.parent) });
 }
 
 export const setVisibilityInput = z.object({
@@ -178,5 +139,5 @@ export async function setVisibilityOperation(
   input: z.infer<typeof setVisibilityInput>,
 ) {
   const article = await setArticleVisibility(env, input.id, input.expectedHash, input.visibility);
-  return article ? result(article) : notFound("Article not found");
+  return article ? result(article) : notFound();
 }
