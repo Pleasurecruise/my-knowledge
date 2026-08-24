@@ -97,7 +97,7 @@ The core journey set is intentionally small:
    preserves keyboard-accessible relationships plus hidden-scrollbar internal scrolling;
 8. the Header language action changes interface copy and uses a current English or Japanese
    translation when available, falling back to Chinese when it is absent or stale;
-9. robots and sitemap metadata routes advertise only public surfaces and articles;
+9. robots, sitemap, RSS, and `llms.txt` routes advertise only public surfaces and articles;
 10. unknown paths render the quiet branded 404 surface with working Home and Articles recovery
     actions.
 

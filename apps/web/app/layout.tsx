@@ -35,6 +35,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html data-scroll-behavior="smooth" lang={i18n.code} suppressHydrationWarning>
       <head>
+        <link href="/rss.xml" rel="alternate" title="my knowledge RSS" type="application/rss+xml" />
         <script
           dangerouslySetInnerHTML={{
             __html: `const storedTheme=localStorage.getItem(${JSON.stringify(themeStorageKey)});const theme=storedTheme==="light"||storedTheme==="dark"?storedTheme:matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.classList.toggle("dark",theme==="dark");document.documentElement.dataset.theme=theme;`,

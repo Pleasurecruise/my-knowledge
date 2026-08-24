@@ -68,6 +68,15 @@ export async function listArticles(
   };
 }
 
+export async function listPublicArticleSummaries(env: CloudflareEnv): Promise<ArticleSummary[]> {
+  const rows = await drizzle(env.DB)
+    .select()
+    .from(articles)
+    .where(eq(articles.visibility, "public"))
+    .orderBy(desc(articles.updatedAt), desc(articles.id));
+  return rows.map((row) => articleSummary(row));
+}
+
 export async function searchArticles(
   env: CloudflareEnv,
   principal: Principal,

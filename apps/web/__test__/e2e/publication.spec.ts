@@ -84,7 +84,10 @@ test("renders the current Japanese translation under a Japanese interface", asyn
   await expect(page.getByRole("button", { name: "削除" })).toHaveCount(0);
 
   if (testInfo.project.name.startsWith("desktop")) {
-    await expect(page.getByRole("navigation", { name: "目次" })).toBeVisible();
+    const tableOfContents = page.getByRole("navigation", { name: "目次" });
+    await expect(tableOfContents).toBeVisible();
+    await expect(tableOfContents).toHaveCSS("overflow-y", "auto");
+    await expect(tableOfContents).toHaveCSS("scrollbar-width", "none");
     await expect(page.getByRole("complementary", { name: "読了率" })).toBeVisible();
   } else {
     await expect(page.getByRole("navigation", { name: "目次" })).toBeHidden();
@@ -145,6 +148,18 @@ test("keeps the three public tabs searchable, localized, and keyboard reachable"
   const sitemap = await sitemapResponse.text();
   expect(sitemap).toContain("/articles/extensible-knowledge-boundaries");
   expect(sitemap).not.toContain("/articles/private-deletion-fixture");
+  const rssResponse = await page.request.get("/rss.xml");
+  expect(rssResponse.status()).toBe(200);
+  expect(rssResponse.headers()["content-type"]).toContain("application/rss+xml");
+  const rss = await rssResponse.text();
+  expect(rss).toContain("/articles/extensible-knowledge-boundaries");
+  expect(rss).not.toContain("Private deletion fixture");
+  const llmsResponse = await page.request.get("/llms.txt");
+  expect(llmsResponse.status()).toBe(200);
+  expect(llmsResponse.headers()["content-type"]).toContain("text/plain");
+  const llms = await llmsResponse.text();
+  expect(llms).toContain("/articles/extensible-knowledge-boundaries");
+  expect(llms).not.toContain("Private deletion fixture");
 
   await page.getByRole("button", { name: "切换语言: English" }).click();
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();

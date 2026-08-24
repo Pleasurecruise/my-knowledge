@@ -192,9 +192,10 @@ updated date. The renderer uses fixed standalone colors because browser CSS vari
 inside image generation; it does not introduce another design palette for application components.
 
 On wide screens the fixed left TOC copies the Notes collapsed bars, delayed text reveal, heading
-indentation, active marker, and smooth navigation. It is hidden on smaller screens. Neither rail
-participates in the document grid. The owner editor copies the Notes save/cancel/delete rhythm and
-keeps Markdown canonical; the owner edits the Chinese summary explicitly.
+indentation, active marker, and smooth navigation. A long TOC remains vertically scrollable without
+displaying a scrollbar. It is hidden on smaller screens. Neither rail participates in the document
+grid. The owner editor copies the Notes save/cancel/delete rhythm and keeps Markdown canonical; the
+owner edits the Chinese summary explicitly.
 Wide-page title edges align with the Header content edges while the page body may use the larger
 canvas. The new-article editor uses that Header-aligned wide shell, always presents Chinese editing
 copy, and lets its metadata and editing surface share the available measure. Existing-article editing

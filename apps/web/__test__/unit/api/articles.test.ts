@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vite-plus/test";
-import { initialArticleVisibility } from "@my-knowledge/content";
 
 import { articleCreateSchema, articleListQuerySchema, articlePatchSchema } from "@/api/articles";
+import { articles } from "@/db/schema";
 
 describe("article REST contract", () => {
-  it("creates articles as public", () => {
-    expect(initialArticleVisibility).toBe("public");
+  it("keeps visibility out of create input and defaults stored rows to public", () => {
+    expect(
+      articleCreateSchema.safeParse({
+        title: "Title",
+        summary: "Summary",
+        body: "Body",
+        tags: [],
+        visibility: "private",
+      }).success,
+    ).toBe(false);
+    expect(articles.visibility.default).toBe("public");
   });
 
   it("parses bounded pagination and repeated hierarchical tags", () => {

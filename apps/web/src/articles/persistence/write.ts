@@ -5,7 +5,6 @@ import type {
   ParsedArticleDocument,
   TranslationLocale,
 } from "@my-knowledge/content";
-import { initialArticleVisibility } from "@my-knowledge/content";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
@@ -119,20 +118,21 @@ export async function createArticle(
     },
     writeIndex: () => indexChineseArticle(env, id, chinese.markdown),
     insertRow: async () => {
-      const row: typeof articles.$inferInsert = {
-        id,
-        slug,
-        title: chinese.title,
-        summary: chinese.summary,
-        contentHash: document.contentHash,
-        tagsJson: JSON.stringify(document.tags),
-        linksJson: JSON.stringify(document.links),
-        visibility: initialArticleVisibility,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      };
-      await drizzle(env.DB).insert(articles).values(row);
-      return row;
+      await drizzle(env.DB)
+        .insert(articles)
+        .values({
+          id,
+          slug,
+          title: chinese.title,
+          summary: chinese.summary,
+          contentHash: document.contentHash,
+          tagsJson: JSON.stringify(document.tags),
+          linksJson: JSON.stringify(document.links),
+          visibility: "public",
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        });
+      return id;
     },
     cleanupNewVersion: async () => {
       if (await getArticleRow(env, "owner", "id", id)) return;

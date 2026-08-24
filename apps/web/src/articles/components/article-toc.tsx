@@ -110,7 +110,7 @@ export function ArticleToc({ headings, label }: ArticleTocProps) {
     <nav
       ref={navRef}
       aria-label={label}
-      className="hidden xl:fixed xl:z-20 xl:block xl:max-h-[calc(100vh-16rem)] xl:max-w-40 xl:-translate-y-1/2 xl:overflow-y-auto"
+      className="hidden xl:fixed xl:z-20 xl:block xl:max-h-[calc(100vh-16rem)] xl:max-w-40 xl:-translate-y-1/2 xl:overflow-y-auto xl:[scrollbar-width:none] xl:[&::-webkit-scrollbar]:hidden"
       onMouseEnter={() => {
         clearTimeout(timerRef.current);
         setPhase("expanded");

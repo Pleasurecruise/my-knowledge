@@ -10,7 +10,6 @@ export { normalizeLocale, resolveLocale } from "./locale";
 export {
   articleSchema,
   articleTextSchema,
-  initialArticleVisibility,
   jsonCanvasSchema,
   MAX_TAGS,
   translationLocaleSchema,

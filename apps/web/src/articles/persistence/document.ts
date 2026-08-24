@@ -84,8 +84,8 @@ export async function getArticleById(env: CloudflareEnv, principal: Principal, i
 }
 
 export async function getArticleBySlug(env: CloudflareEnv, principal: Principal, slug: string) {
-  const row = await getArticleRow(env, principal, "slug", slug);
-  return row ? readArticle(env, row) : undefined;
+  const row = await getArticleRow(env, principal, "slug", decodeURIComponent(slug));
+  return row ? readArticle(env, row) : null;
 }
 
 export async function hasArticleVersion(

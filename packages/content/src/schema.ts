@@ -76,7 +76,6 @@ export const frontmatterSchema = z
   .strict();
 
 export type Visibility = z.infer<typeof visibilitySchema>;
-export const initialArticleVisibility = "public" satisfies Visibility;
 export type TranslationLocale = z.infer<typeof translationLocaleSchema>;
 export type JsonCanvas = z.infer<typeof jsonCanvasSchema>;
 export type ArticleText = z.infer<typeof articleTextSchema>;

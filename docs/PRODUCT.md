@@ -33,6 +33,8 @@ not a fourth tab.
 | `/articles/new`         | Not found                                      | Create a public article in Chinese       |
 | `/articles/[slug]`      | Public article or not found                    | Any article, with edit action            |
 | `/graph`                | Bounded public graph                           | Bounded graph including private articles |
+| `/rss.xml`              | RSS metadata for public articles               | Same anonymous public feed               |
+| `/llms.txt`             | Markdown index of public articles              | Same anonymous public index              |
 | `/api/auth/[...all]`    | Google sign-in callback                        | Session operations                       |
 | `/api/articles`         | Bearer authentication required                 | Owner session or Bearer article CRUD     |
 | `/api/articles/[id]`    | Bearer authentication required                 | Owner session or Bearer article CRUD     |
