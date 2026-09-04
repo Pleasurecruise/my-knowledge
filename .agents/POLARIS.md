@@ -17,8 +17,9 @@ without manual organization.
 - Zero anonymous disclosure of private titles, bodies, metadata, vectors, or relationships.
 - AI-search request material is never stored.
 - Every AI answer citation resolves to an article authorized for the current session.
-- Every submitted article becomes public only after its canonical Chinese R2 object, Chinese-only AI
-  Search item, and D1 row complete; an explicit owner action may withdraw it afterward.
+- Every submitted article becomes public only after its canonical Chinese R2 object and D1 row
+  complete, plus its Chinese-only AI Search item when eligible for indexing; an explicit owner action
+  may withdraw it afterward.
 
 A plan may improve one outcome without a numeric before/after result. Hard measures are release gates
 and may never regress.

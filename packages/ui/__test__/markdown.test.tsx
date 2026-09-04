@@ -145,3 +145,30 @@ echo "ready"
     expect(validHtml).toContain("One → Two");
   });
 });
+
+it("renders embed fences without code highlighting or executable SVG content", async () => {
+  const result = await Markdown({
+    labels,
+    structuredBlock: StructuredBlock,
+    markdown: `~~~embed:architecture
+align: right
+<svg viewBox="0 0 100 100" onload="alert(1)"><title>Safe canvas</title><desc>Static shapes</desc><script>alert(1)</script><foreignObject><iframe src="https://example.com"></iframe></foreignObject><rect width="100" height="100" fill="#123456" /></svg>
+~~~
+
+~~~embed:github
+repo: owner/project
+~~~
+
+~~~embed:architecture
+flowchart LR
+A --> B
+~~~`,
+  });
+  const html = renderToStaticMarkup(result);
+  expect(html).toContain("markdown-embed-right");
+  expect(html).toContain("Safe canvas");
+  expect(html).toContain('fill="#123456"');
+  expect(html).toContain('href="https://github.com/owner/project"');
+  expect(html).toContain("Rendering diagram");
+  expect(html).not.toMatch(/onload|<script|<iframe|foreignObject|language-embed/iu);
+});

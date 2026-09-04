@@ -399,3 +399,68 @@
     display: none;
   }
 }
+
+.markdown-body .markdown-embed {
+  clear: both;
+  min-width: 0;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  overflow-wrap: anywhere;
+}
+
+.markdown-embed-left,
+.markdown-embed-right {
+  width: min(100%, 32rem);
+}
+
+.markdown-body .markdown-embed-right {
+  margin-left: auto;
+}
+
+.markdown-embed figcaption {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.markdown-embed-storyboard ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 1.5rem;
+  padding-inline-start: 1.5rem;
+}
+
+.markdown-embed-storyboard li {
+  padding: 0.5rem;
+}
+
+.markdown-embed-svg {
+  overflow-x: auto;
+}
+
+.markdown-embed-svg svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--foreground);
+}
+
+.markdown-embed-svg :is(rect, circle, ellipse, polygon, .note):not([fill]) {
+  fill: var(--card);
+}
+
+.markdown-embed-svg :is(rect, circle, ellipse, polygon, .note):not([stroke]) {
+  stroke: var(--border);
+}
+
+.markdown-embed-svg :is(.arr, .arrow, .arrow-shadow, .sketch-shadow) {
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 2;
+}
+
+.markdown-embed-svg text:not([fill]) {
+  fill: var(--foreground);
+}

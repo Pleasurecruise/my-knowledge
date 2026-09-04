@@ -1,4 +1,4 @@
-import { parseArticleDocument } from "@my-knowledge/content";
+import { isDailyArticle, parseArticleDocument } from "@my-knowledge/content";
 
 import type { Principal } from "@/auth/types";
 
@@ -12,7 +12,9 @@ export async function indexChineseArticle(
   env: CloudflareEnv,
   articleId: string,
   markdown: string,
+  tags: readonly string[],
 ): Promise<void> {
+  if (isDailyArticle(tags)) return;
   const item = await env.AI_SEARCH.get(MY_KNOWLEDGE_INSTANCE).items.upload(
     `${articleId}/zh.md`,
     markdown,
@@ -48,6 +50,7 @@ export async function searchAiArticles(
     const row = await getArticleRow(env, principal, "id", articleId);
     if (!row) continue;
     const summary = articleSummary(row);
+    if (isDailyArticle(summary.tags)) continue;
     const object = await env.KNOWLEDGE_BUCKET.get(articleObjectKey(row.id, "zh"));
     if (!object) continue;
     ranked.push({

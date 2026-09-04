@@ -1,6 +1,6 @@
 # Database and persistence
 
-Status: Implemented; replacement production D1 initialized, Worker deployment pending
+Status: Implemented
 
 D1 indexes canonical Chinese articles and the smallest useful translation metadata. R2 owns every
 Markdown body, KV owns disposable article caches, and AI Search indexes only canonical Chinese
@@ -59,15 +59,16 @@ Cloudflare stores do not share a transaction. Chinese create uses this order:
 
 1. parse and validate submitted Chinese Markdown;
 2. conditionally write `knowledge/{articleId}/zh.md`;
-3. upload only `{articleId}/zh.md` to AI Search;
+3. upload `{articleId}/zh.md` to AI Search for non-daily articles;
 4. insert the public Chinese D1 row;
 5. write any supplied `en` and `ja` editions and their child metadata.
 
 If a step before the D1 insert fails, remove only artifacts written by that attempt whose ETags still
 match. An R2 object without its D1 row remains an explicit error.
 
-Chinese update conditionally replaces `zh.md`, uploads the same Chinese AI Search key, and switches
-the D1 row with `WHERE id = ? AND contentHash = expectedHash`. It then invalidates the previous cache.
+Chinese update conditionally replaces `zh.md`, uploads the AI Search item (or removes it for daily),
+then switches the D1 row with `WHERE id = ? AND contentHash = expectedHash`. It invalidates the previous
+cache afterward. Failed updates restore the previous index only after cleanup completes.
 Existing translation rows become unreadable immediately because their `sourceHash` no longer matches.
 
 Each supplied translation is validated with Chinese, rechecks the source hash, conditionally writes
@@ -81,7 +82,9 @@ owner retry.
 
 ## Migrations
 
-`apps/web/migrations/0001_initial.sql` is the authoritative schema for a fresh database. The old
-article and article-job history has been removed instead of preserved as incremental migrations.
-Initializing this schema therefore requires a new or explicitly reset D1 database. R2 and AI Search
-cleanup is a separate owner-approved operation and is not performed by SQL.
+Apply the numbered files in `apps/web/migrations/` in order. `0001_initial.sql` initializes a fresh
+D1 database; subsequent migrations are append-only. Drizzle mirrors this schema.
+
+`0002_authIssuer.sql` adds required `account.issuer` and unique `(issuer, accountId)`, backfilling
+Google accounts with `https://accounts.google.com`. Account IDs, tokens and sessions are preserved;
+unknown providers or duplicate identities fail the migration rather than being merged.

@@ -14,7 +14,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
     getInterfaceI18n(),
   ]);
   const results = query
-    ? principal === "anonymous"
+    ? principal === "owner"
       ? (await searchAiArticles(env, principal, query, 50)).map(({ article }) => article)
       : await searchArticles(env, principal, query, 50)
     : [];

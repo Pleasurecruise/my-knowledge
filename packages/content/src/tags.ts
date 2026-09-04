@@ -33,3 +33,10 @@ export function canonicalizeTags(
 
   return [...canonical.values()];
 }
+
+export function isDailyArticle(tags: readonly string[]): boolean {
+  return tags.some((tag) => {
+    const normalized = tag.toLocaleLowerCase("en-US");
+    return normalized === "daily" || normalized.startsWith("daily/");
+  });
+}

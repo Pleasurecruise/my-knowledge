@@ -144,7 +144,7 @@ the rich Japanese article, and expected browser errors only.
 
 Wrangler cannot execute AI Search locally. The owner deletion journey therefore proves that a failed
 AI Search cleanup returns the active locale's error and leaves the private article retryable; the
-anonymous Home search journey proves that a failed public search surfaces the standard error page.
+anonymous Home search journey proves that keyword search works without AI Search.
 Successful live cleanup and hybrid retrieval are not replaced by mocks. Live successful
 create/update/delete cleanup, document ingestion, Google OAuth, and deployment smoke remain
 production-account gates.

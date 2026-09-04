@@ -1,6 +1,6 @@
 # Product
 
-Status: Implemented locally; production release awaits owner-controlled configuration
+Status: Implemented
 
 `my-knowledge` is a personal Chinese long-form knowledge base. A local workflow prepares finished
 semantic Markdown; the application validates, stores, indexes, retrieves, edits, and publishes it.
@@ -16,8 +16,7 @@ semantic Markdown; the application validates, stores, indexes, retrieves, edits,
 
 1. Produce one finished Chinese Markdown document locally, with optional English and Japanese editions.
 2. Submit it through REST or `createArticle` and receive the stored article immediately.
-3. Find it through anonymous hybrid search, keywords, tags, links, the graph, or authenticated MCP
-   search.
+3. Find it through search, tags, links, the graph, or authenticated MCP.
 4. Review and edit it in the browser, then publish it from the browser or MCP when ready.
 
 ## Surface and access
@@ -28,7 +27,7 @@ not a fourth tab.
 
 | Surface                 | Anonymous                                      | Signed-in owner                          |
 | :---------------------- | :--------------------------------------------- | :--------------------------------------- |
-| `/`                     | Public hybrid AI search                        | Keyword and tag search across all        |
+| `/`                     | Public keyword and tag search                  | AI search across authorized articles     |
 | `/articles`             | Public chronological list                      | Full list; New in the Chinese interface  |
 | `/articles/new`         | Not found                                      | Create a public article in Chinese       |
 | `/articles/[slug]`      | Public article or not found                    | Any article, with edit action            |
@@ -71,6 +70,10 @@ at most one new leaf when no existing tag fits. Tags may be corrected in the Art
 through MCP. Home search and Graph expose this hierarchy without adding filters to the chronological
 index.
 
+[Daily articles](CONTENT.md#domain-shape) are excluded from default lists, search and Graph. An explicit
+REST/MCP tag filter includes matching daily articles, so tag counts and filtered results agree.
+Visibility still governs direct reads, metadata and feeds.
+
 ## Target state
 
 The first release is complete when:
@@ -85,8 +88,8 @@ The first release is complete when:
 - REST can list, create, read, update, delete, and change article visibility with owner authorization;
 - the web UI contains exactly three primary tabs—Home, Articles, and Graph—plus Article detail and
   header language, theme, and authentication actions;
-- Home routes anonymous queries through the AI Search instance with D1 re-authorization; owner
-  queries use D1 keyword/tag search across all rows;
+- Home uses D1 keyword/tag search for anonymous readers; only the allowed-email owner uses
+  AI Search, with every result re-authorized through D1;
 - browser saves require the owner to provide the one-sentence Chinese summary;
 - private articles never appear on anonymous pages, search, feeds, metadata, or graph views;
 - public articles expose canonical article metadata, dynamic social images, and sitemap entries

@@ -1,3 +1,4 @@
+export { parseMarkdownEmbed, type MarkdownEmbed } from "./embed";
 export {
   parseArticleDocument,
   serializeArticleDocument,
@@ -23,4 +24,4 @@ export {
   type TranslationLocale,
   type Visibility,
 } from "./schema";
-export { canonicalizeTags, validateTagSyntax } from "./tags";
+export { canonicalizeTags, isDailyArticle, validateTagSyntax } from "./tags";

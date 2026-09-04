@@ -18,26 +18,26 @@
     "@modelcontextprotocol/server": "2.0.0",
     "@my-knowledge/content": "workspace:*",
     "@my-knowledge/ui": "workspace:*",
-    "@tiptap/core": "3.30.2",
-    "@tiptap/extension-placeholder": "3.30.2",
-    "@tiptap/extension-table": "3.30.2",
-    "@tiptap/markdown": "3.30.2",
-    "@tiptap/pm": "3.30.2",
-    "@tiptap/react": "3.30.2",
-    "@tiptap/starter-kit": "3.30.2",
-    "better-auth": "1.7.1",
+    "@tiptap/core": "3.31.2",
+    "@tiptap/extension-placeholder": "3.31.2",
+    "@tiptap/extension-table": "3.31.2",
+    "@tiptap/markdown": "3.31.2",
+    "@tiptap/pm": "3.31.2",
+    "@tiptap/react": "3.31.2",
+    "@tiptap/starter-kit": "3.31.2",
+    "better-auth": "1.7.2",
     "drizzle-orm": "0.45.2",
-    "katex": "0.18.4",
-    "next": "16.3.2",
+    "katex": "0.18.5",
+    "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "1.20.2",
+    "@opennextjs/cloudflare": "1.20.6",
     "@tailwindcss/postcss": "4.3.3",
-    "postcss": "8.5.26",
+    "postcss": "8.5.28",
     "tailwindcss": "4.3.3",
-    "wrangler": "4.125.0"
+    "wrangler": "4.129.0"
   }
 }

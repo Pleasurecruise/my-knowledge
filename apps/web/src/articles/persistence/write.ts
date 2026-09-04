@@ -1,3 +1,4 @@
+import { isDailyArticle, parseArticleDocument } from "@my-knowledge/content";
 import type {
   Article,
   ArticleDocumentSet,
@@ -116,7 +117,7 @@ export async function createArticle(
         null,
       );
     },
-    writeIndex: () => indexChineseArticle(env, id, chinese.markdown),
+    writeIndex: () => indexChineseArticle(env, id, chinese.markdown, document.tags),
     insertRow: async () => {
       await drizzle(env.DB)
         .insert(articles)
@@ -174,7 +175,10 @@ export async function updateArticle(
         previousDocument,
       );
     },
-    writeIndex: () => indexChineseArticle(env, id, chinese.markdown),
+    writeIndex: () =>
+      isDailyArticle(document.tags)
+        ? deleteSearchItem(env, id)
+        : indexChineseArticle(env, id, chinese.markdown, document.tags),
     switchRow: () =>
       drizzle(env.DB)
         .update(articles)
@@ -190,12 +194,15 @@ export async function updateArticle(
         .returning()
         .get(),
     cleanupNewVersion: async () => {
-      const cleanup = [
-        deleteArticleArtifacts(env, id, document.contentHash),
-        indexChineseArticle(env, id, previousDocument.markdown),
-      ];
+      const cleanup = [deleteArticleArtifacts(env, id, document.contentHash)];
       if (written) cleanup.push(rollbackDocument(env.KNOWLEDGE_BUCKET, previousDocument, written));
       await Promise.all(cleanup);
+      await indexChineseArticle(
+        env,
+        id,
+        previousDocument.markdown,
+        parseArticleDocument(previousDocument.markdown).tags,
+      );
     },
     cleanupPreviousVersion: () =>
       deleteArticleCache(env.KNOWLEDGE_CACHE, id, expectedHash, articleLocales),

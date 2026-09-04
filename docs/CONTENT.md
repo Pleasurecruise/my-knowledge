@@ -38,6 +38,9 @@ Markdown body. List, search, related, and graph responses use summaries unless t
 one article. Timestamps are UTC ISO strings. The slug is created from the Chinese title, made unique
 once, and never changes during updates.
 
+A tag equal to `daily` or beginning with `daily/`, ignoring case, classifies an article as daily.
+This uses existing tags rather than an additional article type field; `daily-notes` is not a match.
+
 ## Markdown
 
 R2 stores canonical Chinese Markdown and any supplied translation Markdown under stable article-ID
@@ -56,6 +59,18 @@ identified edges that reference existing nodes; incomplete spatial data is rejec
 Unknown ordinary code-fence languages render as escaped code. Renderer allowlists and sanitization
 are presentation rules; they never rewrite the canonical R2 source.
 
+The TypeScript dialect parser also recognizes `embed:github` (`repo: owner/name`),
+`embed:stock` (`code: AAPL`), `embed:architecture` (`flowchart LR` followed by one
+`node --> node` edge per line, with optional `[labels]`), and
+`embed:storyboard` (`title:` and two to six `step: heading | description` lines).
+Each accepts optional `align: left|right|wide`, defaulting to `wide`; diagram alignment precedes
+its body. GitHub and stock embeds are links to the named repository or quote page, with no external
+data fetch. Architecture and storyboard also accept an SVG canvas with `viewBox`, `title`, and
+`desc`; rendering allows static shapes and text while removing scripts, external references, and
+styles. Unknown embed kinds, unknown or duplicate fields, and incomplete blocks fail validation.
+The syntax follows my-workspace's MIT-licensed dialect; the implementation uses TypeScript and
+existing Markdown/diagram rendering rather than Rust or WASM.
+
 The server rendering pipeline follows the my-memos long-form compiler behavior while ending in React
 nodes instead of serialized HTML. It decodes entities inside code nodes, maps structured fences
 before highlighting, assigns stable anchors to body headings, wraps wide tables, and shares one
@@ -70,8 +85,8 @@ no-SSR bundle boundaries and never pass through Shiki.
 
 REST creation receives completed semantic Markdown from a local workflow. It requires Chinese and
 may include English and Japanese, validates cross-edition tags and wiki-link targets, stores Chinese
-in R2, uploads Chinese to AI Search, and records the public D1 row. Supplied translations are then
-stored in R2 with source-hash metadata. Creation performs no content-hash or similarity lookup, so
+in R2, and records the public D1 row using the write order in [Database](DATABASE.md#writes). Supplied
+translations are then stored in R2 with source-hash metadata. Creation performs no content-hash or similarity lookup, so
 identical submissions may create separate articles.
 
 MCP create and update receive one complete Chinese `document`; REST update may submit all supported

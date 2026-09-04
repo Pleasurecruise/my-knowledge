@@ -13,7 +13,7 @@ The server validates frontmatter, Markdown safety, tags, wiki links, and cross-e
 allocates one UUID and slug, then writes Chinese in this order:
 
 1. conditionally write the stable Chinese R2 object;
-2. upload Chinese to AI Search;
+2. synchronize the Chinese AI Search item according to [Database](DATABASE.md#writes);
 3. insert the public D1 row;
 4. store any supplied English or Japanese R2 objects and child metadata.
 

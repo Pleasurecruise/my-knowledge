@@ -17,17 +17,8 @@ test.beforeEach(async ({ page }, testInfo) => {
   errorsByPage.set(page, browserErrors);
 });
 
-test.afterEach(async ({ page }, testInfo) => {
+test.afterEach(async ({ page }) => {
   const errors = errorsByPage.get(page);
-  if (
-    testInfo.project.name === "desktop-light" &&
-    testInfo.title === "surfaces the local AI Search boundary on Home search"
-  ) {
-    if (!errors) throw new Error("Browser error collection was not initialized");
-    expect(errors.length).toBeGreaterThan(0);
-    errors.length = 0;
-    return;
-  }
   expect(errors).toEqual([]);
 });
 
@@ -251,7 +242,7 @@ test("keeps the three public tabs searchable, localized, and keyboard reachable"
   errors.length = 0;
 });
 
-test("surfaces the local AI Search boundary on Home search", async ({ page }, testInfo) => {
+test("searches public articles without AI Search", async ({ page }, testInfo) => {
   test.skip(
     testInfo.project.name !== "desktop-light",
     "One deterministic search journey is enough",
@@ -261,7 +252,7 @@ test("surfaces the local AI Search boundary on Home search", async ({ page }, te
   await page.getByRole("searchbox", { name: "搜索文章" }).fill("相关实践");
   await page.getByRole("button", { name: "搜索", exact: true }).click();
   await expect(page).toHaveURL(/\?query=/u);
-  await expect(page.getByText("这页暂时无法载入。")).toBeVisible();
+  await expect(page.getByRole("link", { name: "相关实践", exact: true })).toBeVisible();
 });
 
 test("cycles every registered interface locale", async ({ page }, testInfo) => {

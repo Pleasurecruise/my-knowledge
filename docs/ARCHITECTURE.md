@@ -115,7 +115,7 @@ defined once in [Database](DATABASE.md).
   or observable cache failure.
 - Search results are re-authorized through D1 before titles or bodies are returned.
 - Create/update conditionally writes the stable Chinese R2 path using object ETags, then uploads
-  Chinese to AI Search before switching the D1 row hash. Supplied translations are stored afterward.
+  eligible Chinese to AI Search before switching the D1 row hash. Supplied translations are stored afterward.
 - Update invalidates the previous hash-keyed KV entry; making an article private or deleting it
   invalidates the current version.
 - Delete makes the D1 row private before removing KV, R2, AI Search items, and finally the row.
@@ -123,12 +123,10 @@ defined once in [Database](DATABASE.md).
 
 ## Search and graph
 
-AI Search owns vectorization and retrieval. Each article uploads only Chinese Markdown under a
-deterministic item key derived from the article ID. One instance, `my-knowledge`, serves article
-search. The index itself never authorizes a result: anonymous results are re-authorized through D1
-(published rows only)
-before titles or bodies are returned, the same gate that guards keyword search, lists, the graph,
-and feeds.
+AI Search owns vectorization and retrieval in the `my-knowledge` instance. Index-eligible articles
+use Chinese Markdown and a deterministic item key derived from the article ID. D1 owns authorization;
+retrieval never grants access by itself. [Product](PRODUCT.md#surface-and-access) defines which callers
+may use AI Search.
 
 Creation does not query D1 or AI Search for duplicates before storage. `contentHash` remains version
 metadata for concurrency, caches, and index authorization, and different article rows may share it.

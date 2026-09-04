@@ -24,12 +24,17 @@ export function authorizedCondition(principal: Principal): SQL | undefined {
   return principal === "anonymous" ? eq(articles.visibility, "public") : undefined;
 }
 
+const discoverableCondition = sql`not exists (
+  select 1 from json_each(${articles.tagsJson})
+  where lower(json_each.value) = 'daily' or instr(lower(json_each.value), 'daily/') = 1
+)`;
+
 export async function listArticles(
   env: CloudflareEnv,
   principal: Principal,
   input: ArticleListQuery,
 ): Promise<ArticlePage> {
-  const filters: SQL[] = [];
+  const filters: SQL[] = input.tags.length > 0 ? [] : [discoverableCondition];
   const authorized = authorizedCondition(principal);
   if (authorized) filters.push(authorized);
   if (input.visibility) {
@@ -96,7 +101,7 @@ export async function searchArticles(
   const rows = await drizzle(env.DB)
     .select()
     .from(articles)
-    .where(and(authorizedCondition(principal), matches))
+    .where(and(authorizedCondition(principal), discoverableCondition, matches))
     .orderBy(desc(articles.updatedAt), desc(articles.id))
     .limit(limit);
   return rows.map((row) => articleSummary(row));
@@ -110,7 +115,7 @@ export async function listGraphArticles(
   const rows = await drizzle(env.DB)
     .select()
     .from(articles)
-    .where(authorizedCondition(principal))
+    .where(and(authorizedCondition(principal), discoverableCondition))
     .orderBy(desc(articles.updatedAt), desc(articles.id))
     .limit(limit);
   return rows.map((row) => ({ article: articleSummary(row), links: articleLinks(row) }));

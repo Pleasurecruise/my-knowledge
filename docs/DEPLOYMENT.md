@@ -1,6 +1,6 @@
 # Deployment
 
-Status: Replacement D1 initialized; Worker deployment and production smoke remain
+Status: Worker deployed; remote account lookup verified, interactive Google callback smoke remains
 
 OpenNext builds one request-only Worker. Content generation and translation run in the owner's local
 workflow and are not deployment resources. Wrangler owns bindings, variables, secrets, migrations,
@@ -65,7 +65,8 @@ key in each application.
 
 ## Verification and release
 
-The production build intentionally uses webpack. Before release run:
+The production build intentionally uses webpack. Release from a reviewed, committed revision; Git
+commits and deployments require separate authorization. Before release run:
 
 ```text
 pnpm d1:migrate:local
@@ -76,10 +77,10 @@ pnpm dry-run
 pnpm test:e2e
 ```
 
-Then deploy manually and verify Google login, API-key regeneration, authenticated REST and MCP reads and
-mutations, document ingestion, AI Search indexing/retrieval, deletion cleanup, owner-private search,
-and anonymous privacy. The configured replacement D1 has the fresh schema; retain the former D1 as
-the recovery point until smoke tests pass.
+Before a schema change, record a D1 Time Travel bookmark and apply pending migrations with
+`pnpm d1:migrate:remote`. Deploy manually and record the Git commit and Worker version together.
+Verify Google login, API-key rotation, REST/MCP operations, ingestion, indexing, cleanup and anonymous
+privacy. Retain the database recovery point until these checks pass.
 
 Direct package versions live in their owning manifests; transitive versions live in
 `pnpm-lock.yaml`. React overrides, dependency build permissions, and `minimumReleaseAge` live in

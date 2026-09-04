@@ -15,8 +15,9 @@ import { unified } from "unified";
 import type { Plugin } from "unified";
 import { SKIP, visit } from "unist-util-visit";
 
-import { createSlug } from "@my-knowledge/content";
+import { createSlug, parseMarkdownEmbed } from "@my-knowledge/content";
 
+import { renderMarkdownEmbed } from "./markdown-embeds";
 import { markdownHighlighter } from "./markdown-highlighter";
 import type { StructuredBlockLabels, StructuredBlockProps } from "./structured-block.types";
 
@@ -41,7 +42,9 @@ const mathSchema = {
 
 const decodeCodeEntities: Plugin<[], MarkdownRoot> = () => (tree: MarkdownRoot) => {
   visit(tree, "code", (node: Code) => {
-    node.value = decode(node.value).replace(/\n+$/u, "");
+    if (!node.lang?.toLowerCase().startsWith("embed:")) {
+      node.value = decode(node.value).replace(/\n+$/u, "");
+    }
   });
   visit(tree, "inlineCode", (node: InlineCode) => {
     node.value = decode(node.value).replace(/\n+$/u, "");
@@ -111,7 +114,14 @@ const structuredBlocks: Plugin<[StructuredBlockLabels], Root> = (labels) => (tre
         )
       : [];
     const languageClass = classes.find((value) => value.startsWith("language-"));
-    const language = languageClass?.slice("language-".length);
+    const language = languageClass?.slice("language-".length).toLowerCase();
+    if (language?.startsWith("embed:")) {
+      const source = code.children.at(0);
+      if (source?.type !== "text") throw new Error("Embed source is missing");
+      const embed = parseMarkdownEmbed(language, source.value);
+      if (embed) parent.children[index] = renderMarkdownEmbed(embed, labels);
+      return SKIP;
+    }
     if (
       language !== "mermaid" &&
       language !== "vega" &&

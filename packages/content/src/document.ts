@@ -1,3 +1,8 @@
+import remarkParse from "remark-parse";
+import { unified } from "unified";
+import { visit } from "unist-util-visit";
+
+import { parseMarkdownEmbed } from "./embed";
 import { parse, stringify } from "yaml";
 
 import { extractWikiLinks } from "./links";
@@ -31,27 +36,33 @@ function validateFrontmatterOrder(source: string): void {
 }
 
 export function validateMarkdown(body: string): void {
-  const prose = body
-    .replaceAll(/^(?:`{3,}|~{3,})[^\n]*\n[\s\S]*?^(?:`{3,}|~{3,})\s*$/gmu, "")
-    .replaceAll(/`[^`\n]*`/gu, "");
-  if (/<\/?[A-Za-z][^>]*>/u.test(prose)) throw new Error("Raw HTML is not supported");
-  if (/\]\(\s*(?:javascript|vbscript|data):/iu.test(prose))
-    throw new Error("Executable URLs are not supported");
-
-  const structuredFence = /```(vega|vega-lite|json-canvas)\s*\n([\s\S]*?)```/gu;
-  for (const match of body.matchAll(structuredFence)) {
-    const source = match[2];
-    if (!source) throw new Error(`${match[1]} blocks require JSON`);
+  const tree = unified().use(remarkParse).parse(body);
+  visit(tree, "html", () => {
+    throw new Error("Raw HTML is not supported");
+  });
+  visit(tree, (node) => {
+    if (
+      (node.type === "link" || node.type === "image" || node.type === "definition") &&
+      /^(?:javascript|vbscript|data):/iu.test(node.url.replaceAll(/[\s\p{Cc}]/gu, ""))
+    ) {
+      throw new Error("Executable URLs are not supported");
+    }
+  });
+  visit(tree, "code", (node) => {
+    const language = node.lang?.toLowerCase();
+    if (!language) return;
+    parseMarkdownEmbed(language, node.value);
+    if (!["vega", "vega-lite", "json-canvas"].includes(language)) return;
     let value: unknown;
     try {
-      value = JSON.parse(source);
+      value = JSON.parse(node.value);
     } catch {
-      throw new Error(`${match[1]} blocks require valid JSON`);
+      throw new Error(`${language} blocks require valid JSON`);
     }
-    if (match[1] === "json-canvas" && !jsonCanvasSchema.safeParse(value).success) {
+    if (language === "json-canvas" && !jsonCanvasSchema.safeParse(value).success) {
       throw new Error("json-canvas blocks require valid portable spatial data");
     }
-  }
+  });
 }
 
 export function parseArticleDocument(source: string): ParsedArticleDocument {
