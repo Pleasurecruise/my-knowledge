@@ -18,16 +18,16 @@
     "@modelcontextprotocol/server": "2.0.0",
     "@my-knowledge/content": "workspace:*",
     "@my-knowledge/ui": "workspace:*",
-    "@tiptap/core": "3.31.2",
-    "@tiptap/extension-placeholder": "3.31.2",
-    "@tiptap/extension-table": "3.31.2",
-    "@tiptap/markdown": "3.31.2",
-    "@tiptap/pm": "3.31.2",
-    "@tiptap/react": "3.31.2",
-    "@tiptap/starter-kit": "3.31.2",
-    "better-auth": "1.7.2",
+    "@tiptap/core": "3.31.3",
+    "@tiptap/extension-placeholder": "3.31.3",
+    "@tiptap/extension-table": "3.31.3",
+    "@tiptap/markdown": "3.31.3",
+    "@tiptap/pm": "3.31.3",
+    "@tiptap/react": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
+    "better-auth": "1.7.3",
     "drizzle-orm": "0.45.2",
-    "katex": "0.18.5",
+    "katex": "0.18.7",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -38,6 +38,6 @@
     "@tailwindcss/postcss": "4.3.3",
     "postcss": "8.5.28",
     "tailwindcss": "4.3.3",
-    "wrangler": "4.129.0"
+    "wrangler": "4.130.0"
   }
 }

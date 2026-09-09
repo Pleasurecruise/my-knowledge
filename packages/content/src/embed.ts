@@ -6,9 +6,13 @@ type Alignment = "left" | "right" | "wide";
 export type MarkdownEmbed = { align: Alignment } & (
   | { kind: "github"; repo: string }
   | { kind: "stock"; code: string }
-  | { kind: "architecture"; source: string }
+  | {
+      kind: "architecture";
+      nodes: { id: string; label: string }[];
+      edges: { from: string; to: string }[];
+    }
   | { kind: "storyboard"; title: string; steps: { heading: string; body: string }[] }
-  | { kind: "svg"; tree: Element }
+  | { kind: "svg"; profile: "architecture" | "storyboard"; tree: Element }
 );
 
 function parseAlignment(value = "wide"): Alignment {
@@ -60,7 +64,7 @@ function parseCanvas(source: string): Element {
       "*": [
         [
           "className",
-          /^(?:node|c-(?:teal|purple|coral|blue|green|amber)|th|ts|hand|title|caption|step|note|arr|arrow|arrow-shadow|sketch-shadow|fill-(?:blue|violet|green|orange))$/u,
+          /^(?:node|c-(?:teal|purple|coral|blue|green|amber|red|gray)|th|t|ts|box|leader|hand|title|caption|step|note|arr|arrow|arrow-shadow|sketch|sketch-shadow|scribble|accent|muted|fill-(?:blue|violet|green|orange))$/u,
         ],
         "x",
         "y",
@@ -130,7 +134,13 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
       if (first) align = parseAlignment(parseFields(first)[0]?.[1]);
     }
     const body = lines.join("\n").trim();
-    if (body.startsWith("<svg")) return { kind: "svg", align, tree: parseCanvas(body) };
+    if (body.startsWith("<svg"))
+      return {
+        kind: "svg",
+        profile: kind === "embed:architecture" ? "architecture" : "storyboard",
+        align,
+        tree: parseCanvas(body),
+      };
     if (kind === "embed:architecture") {
       const diagram = body
         .split("\n")
@@ -142,16 +152,29 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
           "Architecture requires an SVG canvas or a flowchart LR diagram with an edge",
         );
       }
+      const nodes = new Map<string, { id: string; label: string }>();
+      const edges: { from: string; to: string }[] = [];
       for (const edge of diagram) {
-        const nodes = edge.split("-->").map((node) => node.trim());
-        if (
-          nodes.length !== 2 ||
-          !nodes.every((node) => /^[A-Za-z_][\w-]*(?:\[[^\][\n<>]+\])?$/u.test(node))
-        ) {
+        const endpoints = edge.split("-->").map((node) => node.trim());
+        if (endpoints.length !== 2) {
           throw new Error("Architecture edges require node --> node, with optional [labels]");
         }
+        const parsed = endpoints.map((value) => {
+          const match = /^([^\][\n]+?)(?:\[([^\][\n]+)\])?$/u.exec(value);
+          const id = match?.[1]?.trim();
+          const label = match?.[2]?.trim();
+          if (!id || (match?.[2] !== undefined && !label))
+            throw new Error("Architecture nodes require a nonempty ID and label");
+          const node = { id, label: label === undefined ? id : label };
+          if (!nodes.has(id)) nodes.set(id, node);
+          return node;
+        });
+        const [from, to] = parsed;
+        if (!from || !to) throw new Error("Architecture edge endpoints are missing");
+        edges.push({ from: from.id, to: to.id });
       }
-      return { kind: "architecture", align, source: body };
+      if (nodes.size < 2) throw new Error("Architecture requires at least two nodes");
+      return { kind: "architecture", align, nodes: [...nodes.values()], edges };
     }
   }
   const fields = new Map<string, string>();

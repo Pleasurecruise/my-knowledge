@@ -42,7 +42,11 @@ const mathSchema = {
 
 const decodeCodeEntities: Plugin<[], MarkdownRoot> = () => (tree: MarkdownRoot) => {
   visit(tree, "code", (node: Code) => {
-    if (!node.lang?.toLowerCase().startsWith("embed:")) {
+    const language = node.lang?.toLowerCase();
+    if (
+      !language?.startsWith("embed:") &&
+      !["mermaid", "vega", "vega-lite", "json-canvas"].includes(language || "")
+    ) {
       node.value = decode(node.value).replace(/\n+$/u, "");
     }
   });
@@ -64,7 +68,7 @@ const articleSemantics: Plugin<[], Root> = () => (tree: Root) => {
   }
 
   visit(tree, "element", (node) => {
-    if (node.tagName === "code" || node.tagName === "pre") return SKIP;
+    if (node.tagName === "code" || node.tagName === "pre" || node.tagName === "a") return SKIP;
     if (node.tagName === "blockquote") {
       const firstText = firstMeaningfulText(node);
       const match = firstText
@@ -119,7 +123,7 @@ const structuredBlocks: Plugin<[StructuredBlockLabels], Root> = (labels) => (tre
       const source = code.children.at(0);
       if (source?.type !== "text") throw new Error("Embed source is missing");
       const embed = parseMarkdownEmbed(language, source.value);
-      if (embed) parent.children[index] = renderMarkdownEmbed(embed, labels);
+      if (embed) parent.children[index] = renderMarkdownEmbed(embed);
       return SKIP;
     }
     if (
@@ -260,10 +264,7 @@ export async function Markdown({ labels, markdown, structuredBlock }: MarkdownPr
     .use(headingAnchors)
     .use(tableWrappers);
 
-  if (/(^|\n)```[^\s`\n]+/u.test(markdown)) {
-    const highlighter = await markdownHighlighter;
-    processor.use(highlightCodeBlocks, highlighter);
-  }
+  processor.use(highlightCodeBlocks, await markdownHighlighter);
 
   const file = await processor
     .use(rehypeReact, {

@@ -50,7 +50,7 @@ translated `en`/`ja` editions carry the same (untranslated) tags as `zh`. The bo
 CommonMark/GFM, fenced code, math, Mermaid, Vega/Vega-Lite JSON, JSON Canvas, callouts, and `[[slug]]`
 or `[[slug|label]]` links, and translation preserves this structure rather than reformatting it. Title
 and body are separate fields; normalization removes one leading level-one heading so a client that
-submits `# title` cannot duplicate the Article header. Other body headings are retained.
+submits `# title` cannot duplicate the Article header. Other body headings and leading code indentation are retained.
 
 Raw HTML, executable URLs, embedded scripts, and unknown structured-block formats are rejected.
 HTML-like text and URL examples inside code spans or fenced code remain valid escaped code. JSON
@@ -59,27 +59,31 @@ identified edges that reference existing nodes; incomplete spatial data is rejec
 Unknown ordinary code-fence languages render as escaped code. Renderer allowlists and sanitization
 are presentation rules; they never rewrite the canonical R2 source.
 
-The TypeScript dialect parser also recognizes `embed:github` (`repo: owner/name`),
-`embed:stock` (`code: AAPL`), `embed:architecture` (`flowchart LR` followed by one
-`node --> node` edge per line, with optional `[labels]`), and
-`embed:storyboard` (`title:` and two to six `step: heading | description` lines).
-Each accepts optional `align: left|right|wide`, defaulting to `wide`; diagram alignment precedes
-its body. GitHub and stock embeds are links to the named repository or quote page, with no external
-data fetch. Architecture and storyboard also accept an SVG canvas with `viewBox`, `title`, and
-`desc`; rendering allows static shapes and text while removing scripts, external references, and
-styles. Unknown embed kinds, unknown or duplicate fields, and incomplete blocks fail validation.
-The syntax follows my-workspace's MIT-licensed dialect; the implementation uses TypeScript and
-existing Markdown/diagram rendering rather than Rust or WASM.
+The dialect follows my-workspace's syntax, implemented in TypeScript and React:
 
-The server rendering pipeline follows the my-memos long-form compiler behavior while ending in React
-nodes instead of serialized HTML. It decodes entities inside code nodes, maps structured fences
-before highlighting, assigns stable anchors to body headings, wraps wide tables, and shares one
-module-level Shiki instance. The fine-grained bundle contains JavaScript/JSX,
-TypeScript/TSX, JSON, HTML, CSS, shell, YAML, Markdown, SQL, Svelte, and Vue aliases with GitHub light
-and dark themes. It uses Shiki's precompiled grammars and raw JavaScript engine without the aggregate
-`shiki` package. Unsupported language names remain escaped plain text without exception-driven
-fallback. Mermaid, Vega, and JSON Canvas remain separate structured components behind renderer-level
-no-SSR bundle boundaries and never pass through Shiki.
+| Fence                | Body                                                                           | Rendering                      |
+| :------------------- | :----------------------------------------------------------------------------- | :----------------------------- |
+| `embed:github`       | `repo: owner/name`                                                             | Repository link                |
+| `embed:stock`        | `code: AAPL`                                                                   | Quote-page link                |
+| `embed:architecture` | `flowchart LR` and one `node --> node` edge per line, with optional `[labels]` | Static architecture SVG        |
+| `embed:storyboard`   | `title:` and two to six `step: heading \| description` lines                   | Static hand-drawn sequence SVG |
+
+Embeds accept `align: left|right|wide`, defaulting to `wide`. Architecture and storyboard also accept
+one SVG document with `viewBox`, `title`, and `desc`; optional alignment precedes the SVG or diagram.
+Their distinct class profiles use application theme tokens. Sanitization permits static shapes and
+text while removing scripts, external references, and styles. Unknown kinds, duplicate or unsupported
+fields, and incomplete blocks fail validation. Repository and quote links fetch no external data.
+
+The server compiler produces React nodes, stable heading anchors, and scrollable tables. Article
+relationships and the table of contents use Markdown nodes: code examples create neither links nor
+headings, Setext headings are supported, and existing links are not wrapped in wiki-link anchors.
+Ordinary code entities are decoded; structured fence source is preserved verbatim.
+
+One shared Shiki instance highlights backtick and tilde fences, including nested fences, with GitHub
+light/dark themes. Its precompiled JavaScript-engine bundle supports JavaScript/JSX, TypeScript/TSX,
+JSON, HTML, CSS, shell, YAML, Markdown, SQL, Svelte, and Vue aliases. Other languages remain escaped
+plain text. Structured blocks bypass Shiki; Mermaid, Vega, and JSON Canvas use separate renderer-level
+no-SSR boundaries.
 
 ## Ingestion and update
 

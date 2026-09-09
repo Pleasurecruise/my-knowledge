@@ -88,8 +88,8 @@ export function parseArticleDocument(source: string): ParsedArticleDocument {
     lines
       .slice(closerIndex + 1)
       .join("\n")
-      .trim(),
-  ).trim();
+      .replace(/^(?:[\t ]*\n)+/u, ""),
+  ).trimEnd();
   validateMarkdown(body);
 
   const canonicalFrontmatter = stringify(
@@ -117,5 +117,5 @@ export function serializeArticleDocument(input: ArticleDocumentInput): string {
     },
     { lineWidth: 0 },
   ).trimEnd();
-  return parseArticleDocument(`---\n${frontmatter}\n---\n${input.body.trim()}\n`).markdown;
+  return parseArticleDocument(`---\n${frontmatter}\n---\n${input.body}\n`).markdown;
 }

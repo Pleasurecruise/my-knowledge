@@ -22,6 +22,53 @@ function StructuredBlock(props: StructuredBlockProps) {
 }
 
 describe("Markdown", () => {
+  it("keeps the prototype canvas profiles and shorthand diagrams", async () => {
+    const result = await Markdown({
+      labels,
+      structuredBlock: StructuredBlock,
+      markdown: `~~~embed:architecture
+align: left
+<svg viewBox="0 0 320 120"><title>Request path</title><desc>A request reaches the service.</desc><g class="node c-red"><rect x="10" y="20" width="120" height="60"/><text class="t" x="24" y="54">Client</text></g><path class="leader" d="M130 50 L190 50"/></svg>
+~~~
+
+~~~embed:storyboard
+align: right
+<svg viewBox="0 0 320 120"><title>Draft sequence</title><desc>A hand-drawn note.</desc><path class="scribble" d="M10 15 L130 13"/><text class="hand title" x="24" y="46">Draft</text></svg>
+~~~
+
+~~~embed:architecture
+flowchart LR
+客户端 [浏览器] --> API [服务]
+~~~
+
+~~~embed:storyboard
+title: 发布流程
+step: 编写 | 完成内容
+step: 发布 | 上传产物
+~~~`,
+    });
+    const html = renderToStaticMarkup(result);
+    expect(html).toContain("markdown-embed-architecture");
+    expect(html).toContain("markdown-embed-storyboard");
+    expect(html).toContain('class="node c-red"');
+    expect(html).toContain('class="scribble"');
+    expect(html).toContain('class="leader"');
+    expect(html).toContain("浏览器</text>");
+    expect(html).toContain("发布流程</title>");
+    expect(html).toContain('class="sketch-shadow"');
+    expect(html).not.toContain("Rendering diagram");
+  });
+  it("preserves structured JSON entities and highlights tilde code fences", async () => {
+    const result = await Markdown({
+      labels,
+      structuredBlock: StructuredBlock,
+      markdown:
+        '~~~json-canvas\n{"nodes":[{"id":"one","type":"text","text":"&quot;quoted&quot;","x":0,"y":0,"width":200,"height":100}],"edges":[]}\n~~~\n\n~~~ts\nconst answer = 42;\n~~~',
+    });
+    const html = renderToStaticMarkup(result);
+    expect(html).toContain("&amp;quot;quoted&amp;quot;");
+    expect(html).toContain('data-language="ts"');
+  });
   it("renders portable semantics and removes unsafe source HTML", async () => {
     const element = await Markdown({
       structuredBlock: StructuredBlock,
@@ -169,6 +216,7 @@ A --> B
   expect(html).toContain("Safe canvas");
   expect(html).toContain('fill="#123456"');
   expect(html).toContain('href="https://github.com/owner/project"');
-  expect(html).toContain("Rendering diagram");
+  expect(html).toContain("Architecture flow");
+  expect(html).toContain("markdown-embed-architecture");
   expect(html).not.toMatch(/onload|<script|<iframe|foreignObject|language-embed/iu);
 });

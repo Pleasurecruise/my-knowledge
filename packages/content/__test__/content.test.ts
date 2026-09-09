@@ -9,6 +9,7 @@ import {
   parseArticleDocument,
   parseArticleDocuments,
   resolveLocale,
+  serializeArticleDocument,
 } from "../src";
 
 const zh = `---
@@ -36,6 +37,15 @@ Connect to [[已有文章|context]].
 `;
 
 describe("article documents", () => {
+  it("preserves an indented code block at the beginning of the body", () => {
+    const markdown = serializeArticleDocument({
+      title: "Code",
+      summary: "Indented example.",
+      tags: [],
+      body: "\n    <script>example</script>\n",
+    });
+    expect(parseArticleDocument(markdown).body).toBe("    <script>example</script>");
+  });
   it("canonicalizes line endings and frontmatter", () => {
     const parsed = parseArticleDocument(zh.replaceAll("\n", "\r\n"));
     expect(parsed.markdown.endsWith("\n")).toBe(true);
@@ -185,6 +195,16 @@ describe("portable knowledge rules", () => {
       { depth: 3, title: "Detail", id: "detail" },
       { depth: 6, title: "Edge", id: "edge" },
       { depth: 2, title: "Scope", id: "scope-2" },
+    ]);
+  });
+
+  it("ignores code examples when extracting article links and headings", () => {
+    const source =
+      "~~~md\n# Example\n[[example]]\n~~~\n\n`[[inline]]`\n\n## Real [label](https://example.com)\n\n[[target|Target]]\n\nSetext title\n------------";
+    expect(extractWikiLinks(source)).toEqual(["target"]);
+    expect(extractHeadings(source)).toEqual([
+      { depth: 2, title: "Real label", id: "real-label" },
+      { depth: 2, title: "Setext title", id: "setext-title" },
     ]);
   });
 });

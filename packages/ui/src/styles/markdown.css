@@ -425,18 +425,11 @@
   font-weight: 600;
 }
 
-.markdown-embed-storyboard ol {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
-  gap: 1.5rem;
-  padding-inline-start: 1.5rem;
-}
-
-.markdown-embed-storyboard li {
-  padding: 0.5rem;
-}
-
-.markdown-embed-svg {
+.markdown-body .markdown-embed-svg {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   overflow-x: auto;
 }
 
@@ -444,23 +437,98 @@
   display: block;
   width: 100%;
   height: auto;
+  max-height: 42rem;
   color: var(--foreground);
 }
 
-.markdown-embed-svg :is(rect, circle, ellipse, polygon, .note):not([fill]) {
-  fill: var(--card);
+.markdown-embed-architecture svg {
+  font-family: var(--type-interface);
 }
-
-.markdown-embed-svg :is(rect, circle, ellipse, polygon, .note):not([stroke]) {
-  stroke: var(--border);
+.markdown-embed-architecture :is(.th, .t) {
+  fill: var(--foreground);
 }
-
-.markdown-embed-svg :is(.arr, .arrow, .arrow-shadow, .sketch-shadow) {
+.markdown-embed-architecture .th {
+  font-size: 14px;
+  font-weight: 650;
+}
+.markdown-embed-architecture .t {
+  font-size: 12px;
+}
+.markdown-embed-architecture .ts {
+  fill: var(--muted-foreground);
+  font-size: 10px;
+}
+.markdown-embed-architecture :is(.node rect, .node path, .box) {
+  fill: color-mix(in oklch, currentColor 9%, transparent);
+  stroke: currentColor;
+  stroke-width: 1.25;
+}
+.markdown-embed-architecture :is(.arr, .leader) {
   fill: none;
-  stroke: var(--foreground);
+  stroke: var(--muted-foreground);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.markdown-embed-architecture .leader {
+  stroke-dasharray: 4 5;
+}
+.markdown-embed-svg :is(.c-teal, .c-blue, .fill-blue) {
+  color: var(--primary);
+}
+.markdown-embed-svg :is(.c-purple, .fill-violet) {
+  color: var(--chart-4);
+}
+.markdown-embed-svg :is(.c-green, .fill-green) {
+  color: var(--chart-2);
+}
+.markdown-embed-svg :is(.c-amber, .fill-orange) {
+  color: var(--chart-3);
+}
+.markdown-embed-svg :is(.c-coral, .c-red, .accent) {
+  color: var(--destructive);
+}
+.markdown-embed-svg :is(.c-gray, .muted) {
+  color: var(--muted-foreground);
+}
+.markdown-embed-storyboard svg {
+  font-family: "Comic Sans MS", "Kaiti SC", cursive;
+}
+.markdown-embed-storyboard .hand {
+  fill: var(--foreground);
+}
+.markdown-embed-storyboard .title {
+  font-size: 18px;
+  font-weight: 500;
+}
+.markdown-embed-storyboard .caption {
+  fill: var(--muted-foreground);
+  font-size: 12px;
+}
+.markdown-embed-storyboard .step {
+  fill: currentColor;
+  font-size: 11px;
+}
+.markdown-embed-storyboard .note {
+  fill: color-mix(in oklch, currentColor 9%, transparent);
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.markdown-embed-storyboard :is(.sketch, .arrow, .arrow-shadow, .scribble, .sketch-shadow) {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.markdown-embed-storyboard .arrow {
   stroke-width: 2;
 }
-
-.markdown-embed-svg text:not([fill]) {
+.markdown-embed-storyboard :is(.arrow-shadow, .sketch-shadow) {
+  stroke-width: 1;
+  opacity: 0.55;
+}
+.markdown-embed-svg text:not([fill]):not([class]) {
   fill: var(--foreground);
 }

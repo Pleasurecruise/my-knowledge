@@ -69,6 +69,7 @@ CREATE TABLE `account` (
 );
 
 CREATE INDEX `account_userId_idx` ON `account` (`userId`);
+CREATE UNIQUE INDEX `account_providerId_accountId_unique` ON `account` (`providerId`, `accountId`);
 
 CREATE TABLE `verification` (
   `id` text PRIMARY KEY NOT NULL,

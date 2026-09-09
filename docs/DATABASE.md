@@ -80,11 +80,9 @@ objects represented by child rows, the single Chinese AI Search item, and finall
 the translation rows cascade. An external cleanup failure leaves the hidden row available for an
 owner retry.
 
-## Migrations
+## Initialization
 
-Apply the numbered files in `apps/web/migrations/` in order. `0001_initial.sql` initializes a fresh
-D1 database; subsequent migrations are append-only. Drizzle mirrors this schema.
-
-`0002_authIssuer.sql` adds required `account.issuer` and unique `(issuer, accountId)`, backfilling
-Google accounts with `https://accounts.google.com`. Account IDs, tokens and sessions are preserved;
-unknown providers or duplicate identities fail the migration rather than being merged.
+`apps/web/migrations/0001_initial.sql` defines the complete schema for a fresh D1 database; Drizzle
+mirrors it. Account identity is unique on `(providerId, accountId)`, matching Better Auth 1.7.3.
+There is no `issuer` column. Existing databases require the rebuild procedure in
+[Deployment](DEPLOYMENT.md#verification-and-release).

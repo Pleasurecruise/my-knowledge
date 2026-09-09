@@ -1,6 +1,6 @@
 # Deployment
 
-Status: Worker deployed; remote account lookup verified, interactive Google callback smoke remains
+Status: Worker and rebuilt D1 deployed; interactive Google callback smoke remains
 
 OpenNext builds one request-only Worker. Content generation and translation run in the owner's local
 workflow and are not deployment resources. Wrangler owns bindings, variables, secrets, migrations,
@@ -77,10 +77,16 @@ pnpm dry-run
 pnpm test:e2e
 ```
 
-Before a schema change, record a D1 Time Travel bookmark and apply pending migrations with
-`pnpm d1:migrate:remote`. Deploy manually and record the Git commit and Worker version together.
-Verify Google login, API-key rotation, REST/MCP operations, ingestion, indexing, cleanup and anonymous
-privacy. Retain the database recovery point until these checks pass.
+Remote D1 uses the `0001_initial.sql` baseline and matches Better Auth 1.7.3. Ordinary deployments
+reuse this database; they must not reset it. For a future rebuild, record a Time Travel bookmark,
+back up required data, and restore it into the new schema before switching the Worker. Migration
+apply does not rerun an already-recorded baseline. R2 bodies remain separate, and a rollback must
+pair the Worker with a compatible database. Verify Google login, REST/MCP, ingestion, cleanup,
+and anonymous privacy before discarding recovery data.
+
+`Commit-CI` runs checks, tests, the Worker build, and deployment dry-run on pull requests and pushes
+to main. It does not publish or modify remote D1. Any separately configured Git-triggered deployment
+must be coordinated with the database switch before pushing.
 
 Direct package versions live in their owning manifests; transitive versions live in
 `pnpm-lock.yaml`. React overrides, dependency build permissions, and `minimumReleaseAge` live in
