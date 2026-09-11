@@ -63,8 +63,9 @@ The dialect follows my-workspace's syntax, implemented in TypeScript and React:
 
 | Fence                | Body                                                                           | Rendering                      |
 | :------------------- | :----------------------------------------------------------------------------- | :----------------------------- |
-| `embed:github`       | `repo: owner/name`                                                             | Repository link                |
-| `embed:stock`        | `code: AAPL`                                                                   | Quote-page link                |
+| `embed:link`         | `url: https://example.com/article`                                             | Open Graph metadata card       |
+| `embed:github`       | `repo: owner/name`                                                             | Repository metadata card       |
+| `embed:stock`        | `code: AAPL`                                                                   | Monthly closing-price chart    |
 | `embed:architecture` | `flowchart LR` and one `node --> node` edge per line, with optional `[labels]` | Static architecture SVG        |
 | `embed:storyboard`   | `title:` and two to six `step: heading \| description` lines                   | Static hand-drawn sequence SVG |
 
@@ -72,7 +73,21 @@ Embeds accept `align: left|right|wide`, defaulting to `wide`. Architecture and s
 one SVG document with `viewBox`, `title`, and `desc`; optional alignment precedes the SVG or diagram.
 Their distinct class profiles use application theme tokens. Sanitization permits static shapes and
 text while removing scripts, external references, and styles. Unknown kinds, duplicate or unsupported
-fields, and incomplete blocks fail validation. Repository and quote links fetch no external data.
+fields, and incomplete blocks fail validation.
+
+Repository and stock cards read public GitHub REST and Yahoo Finance chart data in the Worker.
+`embed:link` reads server-provided HTML for the first `og:title`, `og:description`, `og:site_name`,
+and `og:image`. Missing text uses the page title, standard description, or hostname; images are
+optional and relative image URLs resolve against the final page URL. `og:url` does not replace the
+card destination. Metadata becomes text nodes, never executable markup.
+
+All card reads are credential-free, bounded to six seconds and 512 KiB, and run at most four
+concurrently per article. Link cards accept HTTP(S) hostnames on standard ports and at most five
+validated redirects; IP literals and local hostnames are rejected. They use the Worker's public
+fetch boundary, without private-network bindings or incoming request headers. Repository and stock
+reads reject redirects. Provider failures display an explicit status and source link.
+Stock charts show one month of daily closes and the change from the preceding close.
+Ordinary Markdown links do not fetch metadata; enrichment never changes stored Markdown.
 
 The server compiler produces React nodes, stable heading anchors, and scrollable tables. Article
 relationships and the table of contents use Markdown nodes: code examples create neither links nor

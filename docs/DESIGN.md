@@ -185,6 +185,12 @@ Named code fences are compiled server-side with the fine-grained Shiki pipeline 
 surfaces, borders, typography, and errors still consume the shared semantic CSS tokens. Wide tables
 use the Markdown-owned scroll wrapper rather than page utilities.
 
+Link embeds show the site name, title, description, and optional thumbnail in a compact bordered
+card. Repository embeds use the same layout for the owner avatar, description, language, stars,
+forks, and open issues. Stock embeds show the latest daily close, daily change, and a one-month
+line chart with its date range. These cards keep a source link; unavailable provider data has an explicit
+status instead of a blank card or fabricated values.
+
 Public Article routes generate 1200×630 social cards through Next.js `ImageResponse`. The composition
 adapts the `my-memos` memo card to this project's cold Nordic palette: a paper surface on frost, thin
 boundary, short fjord accent, compact site identity, editorial title, at most three tags, source, and

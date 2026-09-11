@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { isDailyArticle, parseMarkdownEmbed, validateMarkdown } from "../src";
+import {
+  isDailyArticle,
+  parseMarkdownEmbed,
+  validateMarkdown,
+  serializeArticleDocument,
+  parseArticleDocument,
+} from "../src";
 
 describe("daily classification", () => {
   it("matches only the daily tag hierarchy, independent of case", () => {
@@ -56,4 +62,21 @@ describe("Markdown dialect", () => {
       validateMarkdown("[link][target]\n\n[target]: javascript&#58;alert%281%29"),
     ).toThrow("Executable URLs");
   });
+});
+
+it("preserves link fences through article validation and rejects unsafe or ambiguous links", () => {
+  const body = "```embed:link\nurl: https://example.com/article?a=1&b=2\nalign: right\n```";
+  const source = serializeArticleDocument({ title: "Link", summary: "Summary", tags: [], body });
+  expect(parseArticleDocument(source).body).toBe(body);
+  expect(
+    parseMarkdownEmbed("embed:link", "url: https://example.com/article\nalign: right"),
+  ).toEqual({ kind: "link", url: "https://example.com/article", align: "right" });
+  for (const fields of [
+    "url: javascript:alert(1)",
+    "url: https://user:secret@example.com",
+    "url: https://example.com\nurl: https://other.example",
+    "url: https://example.com\nimage: injected",
+  ]) {
+    expect(() => parseMarkdownEmbed("embed:link", fields)).toThrow();
+  }
 });

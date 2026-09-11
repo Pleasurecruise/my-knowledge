@@ -4,7 +4,7 @@ import { Markdown } from "@my-knowledge/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getArticleBySlug, listArticleBacklinks } from "@/articles";
+import { getArticleBySlug, listArticleBacklinks, readEmbed } from "@/articles";
 import { ArticleHeader } from "@/articles/components/article-header";
 import { ArticleNavigationActions } from "@/articles/components/article-navigation-actions";
 import { ArticleRelationList } from "@/articles/components/article-relations";
@@ -125,6 +125,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
           />
         ) : null}
         <Markdown
+          embeds={readEmbed}
           labels={{
             canvas: i18n.messages.article.canvas,
             canvasRelationships: i18n.messages.article.canvasRelationships,

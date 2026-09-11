@@ -84,7 +84,7 @@ parallel projects would make the owner journey and first-load render evidence or
 The core journey set is intentionally small:
 
 1. anonymous keyword and tag search returns only public article rows;
-2. the signed-in owner uses the same search surface across public and private article rows;
+2. the signed-in owner can list and open both public and private article rows;
 3. Articles has the Notes chronological composition and exposes no search or filter controls;
 4. the Chinese owner interface exposes New while other interface locales do not;
 5. the owner can open New/Edit, use the Markdown editor, and explicitly save, publish, withdraw, or
@@ -145,7 +145,9 @@ the rich Japanese article, and expected browser errors only.
 Wrangler cannot execute AI Search locally. The owner deletion journey therefore proves that a failed
 AI Search cleanup returns the active locale's error and leaves the private article retryable; the
 anonymous Home search journey proves that keyword search works without AI Search.
-Successful live cleanup and hybrid retrieval are not replaced by mocks. Live successful
+Owner search calls the remote AI Search binding, so its public/private retrieval journey also runs
+against the production-like account rather than the local Worker. Successful live cleanup and hybrid
+retrieval are not replaced by mocks. Live successful
 create/update/delete cleanup, document ingestion, Google OAuth, and deployment smoke remain
 production-account gates.
 

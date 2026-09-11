@@ -9,11 +9,188 @@ function element(
   return { type: "element", tagName, properties, children };
 }
 
-export function renderMarkdownEmbed(embed: MarkdownEmbed): Element {
+export type CardData =
+  | {
+      kind: "link";
+      url: string;
+      title: string;
+      description: string;
+      site: string;
+      image: string | null;
+    }
+  | {
+      kind: "github";
+      description: string;
+      avatar: string;
+      stars: number;
+      forks: number;
+      issues: number;
+      language: string;
+    }
+  | { kind: "stock"; name: string; currency: string; points: { time: number; price: number }[] }
+  | { kind: "error"; message: string };
+
+export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): Element {
   const properties = {
     className: ["markdown-embed", `markdown-embed-${embed.align}`, `markdown-embed-${embed.kind}`],
   };
+  if (data?.kind === "error") {
+    const card = renderMarkdownEmbed(embed);
+    card.children.push(
+      element("p", [{ type: "text", value: data.message }], {
+        role: "status",
+        className: ["embed-error"],
+      }),
+    );
+    return card;
+  }
+  if (embed.kind === "link" && data?.kind === "link") {
+    return element(
+      "aside",
+      [
+        element(
+          "a",
+          [
+            element("div", [
+              element("small", [{ type: "text", value: data.site }]),
+              element("strong", [{ type: "text", value: data.title }]),
+              element("p", [{ type: "text", value: data.description }]),
+            ]),
+            ...(data.image === null
+              ? []
+              : [
+                  element("img", [], {
+                    src: data.image,
+                    alt: "",
+                    loading: "lazy",
+                    referrerPolicy: "no-referrer",
+                  }),
+                ]),
+          ],
+          {
+            href: data.url,
+            target: "_blank",
+            rel: ["noopener", "noreferrer"],
+            className: ["embed-link"],
+          },
+        ),
+      ],
+      properties,
+    );
+  }
+  if (embed.kind === "github" && data?.kind === "github") {
+    return element(
+      "aside",
+      [
+        element(
+          "a",
+          [
+            element("div", [
+              element("strong", [{ type: "text", value: embed.repo }]),
+              element("p", [{ type: "text", value: data.description }]),
+              element("small", [
+                {
+                  type: "text",
+                  value: `${data.language} · Stars ${data.stars.toLocaleString("en")} · Forks ${data.forks.toLocaleString("en")} · Issues ${data.issues.toLocaleString("en")}`,
+                },
+              ]),
+            ]),
+            element("img", [], {
+              src: data.avatar,
+              alt: "",
+              loading: "lazy",
+              referrerPolicy: "no-referrer",
+            }),
+          ],
+          {
+            href: `https://github.com/${embed.repo}`,
+            target: "_blank",
+            rel: ["noopener", "noreferrer"],
+            className: ["embed-repo"],
+          },
+        ),
+      ],
+      properties,
+    );
+  }
+  if (embed.kind === "stock" && data?.kind === "stock") {
+    const first = data.points[0];
+    const previous = data.points.at(-2);
+    const latest = data.points.at(-1);
+    if (!first || !previous || !latest) throw new Error("Stock cards require two prices");
+    const prices = data.points.map((point) => point.price);
+    const minimum = Math.min(...prices);
+    const range = Math.max(...prices) - minimum;
+    const points = prices
+      .map(
+        (price, index) =>
+          `${8 + (index / (prices.length - 1)) * 304},${range === 0 ? 48 : 88 - ((price - minimum) / range) * 80}`,
+      )
+      .join(" ");
+    const change = latest.price - previous.price;
+    const sign = change >= 0 ? "+" : "";
+    const percent =
+      previous.price === 0 ? "" : ` (${sign}${((change / previous.price) * 100).toFixed(2)}%)`;
+    const date = (time: number) => new Date(time * 1000).toISOString().slice(0, 10);
+    return element(
+      "aside",
+      [
+        element("a", [{ type: "text", value: `${data.name} · ${embed.code}` }], {
+          href: `https://finance.yahoo.com/quote/${encodeURIComponent(embed.code)}/`,
+          target: "_blank",
+          rel: ["noopener", "noreferrer"],
+        }),
+        element(
+          "div",
+          [
+            element("strong", [
+              { type: "text", value: `${latest.price.toFixed(2)} ${data.currency}` },
+            ]),
+            element("span", [
+              { type: "text", value: `${sign}${change.toFixed(2)}${percent} · daily close` },
+            ]),
+          ],
+          { className: ["embed-quote", change >= 0 ? "embed-up" : "embed-down"] },
+        ),
+        element(
+          "svg",
+          [
+            element("title", [
+              {
+                type: "text",
+                value: `${embed.code} closing prices, ${date(first.time)} to ${date(latest.time)}`,
+              },
+            ]),
+            element("polyline", [], {
+              points,
+              fill: "none",
+              stroke: "currentColor",
+              strokeWidth: "2",
+              vectorEffect: "non-scaling-stroke",
+            }),
+          ],
+          { viewBox: "0 0 320 96", role: "img", className: ["embed-chart"] },
+        ),
+        element("small", [
+          { type: "text", value: `${date(first.time)} — ${date(latest.time)} · Yahoo Finance` },
+        ]),
+      ],
+      properties,
+    );
+  }
   switch (embed.kind) {
+    case "link":
+      return element(
+        "aside",
+        [
+          element("a", [{ type: "text", value: embed.url }], {
+            href: embed.url,
+            rel: ["noopener", "noreferrer"],
+            target: "_blank",
+          }),
+        ],
+        properties,
+      );
     case "github":
     case "stock": {
       const label = embed.kind === "github" ? embed.repo : embed.code;

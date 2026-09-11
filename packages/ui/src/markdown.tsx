@@ -15,7 +15,7 @@ import { unified } from "unified";
 import type { Plugin } from "unified";
 import { SKIP, visit } from "unist-util-visit";
 
-import { createSlug, parseMarkdownEmbed } from "@my-knowledge/content";
+import { createSlug, parseMarkdownEmbed, type MarkdownEmbed } from "@my-knowledge/content";
 
 import { renderMarkdownEmbed } from "./markdown-embeds";
 import { markdownHighlighter } from "./markdown-highlighter";
@@ -107,67 +107,82 @@ const articleSemantics: Plugin<[], Root> = () => (tree: Root) => {
   });
 };
 
-const structuredBlocks: Plugin<[StructuredBlockLabels], Root> = (labels) => (tree: Root) => {
-  visit(tree, "element", (node, index, parent) => {
-    if (!parent || index === undefined || node.tagName !== "pre") return;
-    const code = node.children.at(0);
-    if (code?.type !== "element" || code.tagName !== "code") return;
-    const classes = Array.isArray(code.properties.className)
-      ? code.properties.className.filter(
-          (value: unknown): value is string => typeof value === "string",
-        )
-      : [];
-    const languageClass = classes.find((value) => value.startsWith("language-"));
-    const language = languageClass?.slice("language-".length).toLowerCase();
-    if (language?.startsWith("embed:")) {
+type EmbedRenderer = (embed: MarkdownEmbed) => Promise<Element>;
+
+const structuredBlocks: Plugin<[StructuredBlockLabels, EmbedRenderer?], Root> =
+  (labels, embeds) => async (tree: Root) => {
+    const pending: (() => Promise<void>)[] = [];
+    visit(tree, "element", (node, index, parent) => {
+      if (!parent || index === undefined || node.tagName !== "pre") return;
+      const code = node.children.at(0);
+      if (code?.type !== "element" || code.tagName !== "code") return;
+      const classes = Array.isArray(code.properties.className)
+        ? code.properties.className.filter(
+            (value: unknown): value is string => typeof value === "string",
+          )
+        : [];
+      const languageClass = classes.find((value) => value.startsWith("language-"));
+      const language = languageClass?.slice("language-".length).toLowerCase();
+      if (language?.startsWith("embed:")) {
+        const source = code.children.at(0);
+        if (source?.type !== "text") throw new Error("Embed source is missing");
+        const embed = parseMarkdownEmbed(language, source.value);
+        if (embed) {
+          if (embeds)
+            pending.push(() =>
+              embeds(embed).then((card) => {
+                parent.children[index] = card;
+              }),
+            );
+          else parent.children[index] = renderMarkdownEmbed(embed);
+        }
+        return SKIP;
+      }
+      if (
+        language !== "mermaid" &&
+        language !== "vega" &&
+        language !== "vega-lite" &&
+        language !== "json-canvas"
+      )
+        return;
       const source = code.children.at(0);
-      if (source?.type !== "text") throw new Error("Embed source is missing");
-      const embed = parseMarkdownEmbed(language, source.value);
-      if (embed) parent.children[index] = renderMarkdownEmbed(embed);
+      if (source?.type !== "text") throw new Error("Structured block source is missing");
+      let properties: StructuredBlockProps;
+      if (language === "mermaid") {
+        properties = {
+          language,
+          source: source.value,
+          diagram: labels.diagram,
+          renderingDiagram: labels.renderingDiagram,
+        };
+      } else if (language === "vega" || language === "vega-lite") {
+        properties = {
+          language,
+          source: source.value,
+          chart: labels.chart,
+        };
+      } else {
+        properties = {
+          language,
+          source: source.value,
+          canvas: labels.canvas,
+          canvasRelationships: labels.canvasRelationships,
+          canvasViewport: labels.canvasViewport,
+          spatialView: labels.spatialView,
+        };
+      }
+      parent.children[index] = {
+        type: "element",
+        tagName: "structured-block",
+        properties,
+        children: [],
+      };
       return SKIP;
+    });
+    for (let index = 0; index < pending.length; index += 4) {
+      await Promise.all(pending.slice(index, index + 4).map((read) => read()));
     }
-    if (
-      language !== "mermaid" &&
-      language !== "vega" &&
-      language !== "vega-lite" &&
-      language !== "json-canvas"
-    )
-      return;
-    const source = code.children.at(0);
-    if (source?.type !== "text") throw new Error("Structured block source is missing");
-    let properties: StructuredBlockProps;
-    if (language === "mermaid") {
-      properties = {
-        language,
-        source: source.value,
-        diagram: labels.diagram,
-        renderingDiagram: labels.renderingDiagram,
-      };
-    } else if (language === "vega" || language === "vega-lite") {
-      properties = {
-        language,
-        source: source.value,
-        chart: labels.chart,
-      };
-    } else {
-      properties = {
-        language,
-        source: source.value,
-        canvas: labels.canvas,
-        canvasRelationships: labels.canvasRelationships,
-        canvasViewport: labels.canvasViewport,
-        spatialView: labels.spatialView,
-      };
-    }
-    parent.children[index] = {
-      type: "element",
-      tagName: "structured-block",
-      properties,
-      children: [],
-    };
-    return SKIP;
-  });
-};
+  };
 
 type MarkdownHighlighter = Awaited<typeof markdownHighlighter>;
 
@@ -247,9 +262,10 @@ type MarkdownProps = {
   labels: StructuredBlockLabels;
   markdown: string;
   structuredBlock: ComponentType<StructuredBlockProps>;
+  embeds?: EmbedRenderer;
 };
 
-export async function Markdown({ labels, markdown, structuredBlock }: MarkdownProps) {
+export async function Markdown({ labels, markdown, structuredBlock, embeds }: MarkdownProps) {
   const processor = unified()
     .use(remarkParse)
     .use(remarkFrontmatter, ["yaml"])
@@ -260,7 +276,7 @@ export async function Markdown({ labels, markdown, structuredBlock }: MarkdownPr
     .use(rehypeSanitize, mathSchema)
     .use(rehypeKatex)
     .use(articleSemantics)
-    .use(structuredBlocks, labels)
+    .use(structuredBlocks, labels, embeds)
     .use(headingAnchors)
     .use(tableWrappers);
 

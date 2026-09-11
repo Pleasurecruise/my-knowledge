@@ -6,6 +6,7 @@ type Alignment = "left" | "right" | "wide";
 export type MarkdownEmbed = { align: Alignment } & (
   | { kind: "github"; repo: string }
   | { kind: "stock"; code: string }
+  | { kind: "link"; url: string }
   | {
       kind: "architecture";
       nodes: { id: string; label: string }[];
@@ -123,7 +124,15 @@ function parseCanvas(source: string): Element {
 export function parseMarkdownEmbed(language: string, source: string): MarkdownEmbed | undefined {
   const kind = language.toLowerCase();
   if (!kind.startsWith("embed:")) return undefined;
-  if (!["embed:github", "embed:stock", "embed:architecture", "embed:storyboard"].includes(kind)) {
+  if (
+    ![
+      "embed:github",
+      "embed:stock",
+      "embed:link",
+      "embed:architecture",
+      "embed:storyboard",
+    ].includes(kind)
+  ) {
     throw new Error(`Unsupported embed kind: ${language}`);
   }
   if (kind === "embed:architecture" || kind === "embed:storyboard") {
@@ -180,11 +189,13 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
   const fields = new Map<string, string>();
   const steps: { heading: string; body: string }[] = [];
   const allowed =
-    kind === "embed:github"
-      ? ["repo", "align"]
-      : kind === "embed:stock"
-        ? ["code", "align"]
-        : ["title", "step", "align"];
+    kind === "embed:link"
+      ? ["url", "align"]
+      : kind === "embed:github"
+        ? ["repo", "align"]
+        : kind === "embed:stock"
+          ? ["code", "align"]
+          : ["title", "step", "align"];
   for (const [field, value] of parseFields(source)) {
     if (!allowed.includes(field)) throw new Error(`Unsupported ${kind} field: ${field}`);
     if (field === "step") {
@@ -200,6 +211,15 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
     }
   }
   const align = parseAlignment(fields.get("align"));
+  if (kind === "embed:link") {
+    const value = fields.get("url");
+    if (!value || !URL.canParse(value)) throw new Error("Link embeds require a valid HTTP(S) URL");
+    const url = new URL(value);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
+      throw new Error("Link embeds require an HTTP(S) URL without credentials");
+    }
+    return { kind: "link", align, url: url.href };
+  }
   if (kind === "embed:github") {
     const repo = fields.get("repo");
     if (

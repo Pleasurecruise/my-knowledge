@@ -1,3 +1,4 @@
+export { readEmbed } from "./embeds";
 export { getArticleBySlug } from "./persistence/document";
 export { listArticleBacklinks } from "./persistence/relations";
 export {

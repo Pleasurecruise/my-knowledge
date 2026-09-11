@@ -17,7 +17,9 @@ services. Do not add a package until code is genuinely shared or has a stable re
 
 Dependency direction is fixed: `content` is independent; `ui` consumes content types but never
 platform adapters; `apps/web` composes both with D1, R2, KV, Durable Objects, AI Search, auth, and
-transport. Domain packages never import from `apps/web`.
+transport. Article provider reads run in the web app after authorization; the shared Markdown
+renderer receives a resolver and owns presentation only. Enrichment changes neither canonical
+Markdown nor storage. Domain packages never import from `apps/web`.
 
 ## Selected stack
 

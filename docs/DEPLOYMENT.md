@@ -77,7 +77,8 @@ pnpm dry-run
 pnpm test:e2e
 ```
 
-Remote D1 uses the `0001_initial.sql` baseline and matches Better Auth 1.7.3. Ordinary deployments
+Remote D1 uses the `0001_initial.sql` baseline. Dependency upgrades must verify compatibility with
+that schema through the local auth checks before release. Ordinary deployments
 reuse this database; they must not reset it. For a future rebuild, record a Time Travel bookmark,
 back up required data, and restore it into the new schema before switching the Worker. Migration
 apply does not rerun an already-recorded baseline. R2 bodies remain separate, and a rollback must

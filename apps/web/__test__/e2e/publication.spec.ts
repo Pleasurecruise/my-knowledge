@@ -48,6 +48,10 @@ test("renders the current Japanese translation under a Japanese interface", asyn
   expect(openGraphResponse.status()).toBe(200);
   expect(openGraphResponse.headers()["content-type"]).toContain("image/png");
   await expect(page.locator("article")).toHaveAttribute("lang", "ja");
+  await expect(page.locator(".markdown-embed-link a")).toHaveAttribute(
+    "href",
+    "https://example.com/article",
+  );
   await expect(
     page.getByRole("navigation", { name: "メインナビゲーション" }).getByRole("link"),
   ).toHaveCount(3);

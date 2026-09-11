@@ -220,3 +220,15 @@ A --> B
   expect(html).toContain("markdown-embed-architecture");
   expect(html).not.toMatch(/onload|<script|<iframe|foreignObject|language-embed/iu);
 });
+
+it("renders link embeds through the article Markdown entrypoint", async () => {
+  const result = await Markdown({
+    labels,
+    structuredBlock: StructuredBlock,
+    markdown: "```embed:link\nurl: https://example.com/article?a=1&b=2\nalign: right\n```",
+  });
+  const html = renderToStaticMarkup(result);
+  expect(html).toContain('href="https://example.com/article?a=1&amp;b=2"');
+  expect(html).toContain("markdown-embed-right");
+  expect(html).not.toContain("language-embed:link");
+});

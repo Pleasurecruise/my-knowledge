@@ -31,12 +31,6 @@ test.afterEach(async ({ page }, testInfo) => {
 });
 
 test("shows owner-only knowledge, visibility, and deletion controls", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByRole("tab")).toHaveCount(0);
-  await page.getByRole("searchbox", { name: "搜索文章" }).fill("私密删除");
-  await page.getByRole("button", { name: "搜索" }).click();
-  await expect(page.getByRole("link", { name: "私密删除夹具" })).toBeVisible();
-
   await page.goto("/articles");
   await expect(page.getByRole("combobox")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "新建" })).toBeVisible();

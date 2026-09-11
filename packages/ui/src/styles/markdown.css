@@ -532,3 +532,71 @@
 .markdown-embed-svg text:not([fill]):not([class]) {
   fill: var(--foreground);
 }
+
+.markdown-body .embed-repo,
+.markdown-body .embed-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  text-decoration: none;
+}
+.embed-repo > div,
+.embed-link > div {
+  min-width: 0;
+}
+.markdown-body .embed-repo img {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  margin: 0;
+}
+.markdown-body .embed-repo p,
+.markdown-body .embed-link p {
+  margin: 0.4rem 0;
+}
+.embed-repo small,
+.embed-link small,
+.markdown-embed-stock small {
+  color: var(--muted-foreground);
+}
+.embed-quote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  margin-top: 0.6rem;
+}
+.embed-quote strong {
+  font-size: 1.5rem;
+}
+.embed-quote span {
+  font-size: 0.8rem;
+}
+.embed-up span {
+  color: var(--primary);
+}
+.embed-down span,
+.embed-error {
+  color: var(--destructive);
+}
+.embed-chart {
+  display: block;
+  width: 100%;
+  height: 6rem;
+  margin: 0.75rem 0;
+  color: var(--primary);
+}
+
+.embed-link strong {
+  display: block;
+}
+.markdown-body .embed-link img {
+  width: 6rem;
+  height: 4.5rem;
+  flex-shrink: 0;
+  object-fit: cover;
+  margin: 0;
+  border-radius: var(--radius-md);
+}
