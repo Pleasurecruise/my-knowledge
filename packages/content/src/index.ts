@@ -1,6 +1,7 @@
-export { parseMarkdownEmbed, type MarkdownEmbed } from "./embed";
+export { MarkdownEmbedError, parseMarkdownEmbed, type MarkdownEmbed } from "./embed";
 export {
   parseArticleDocument,
+  readArticleDocument,
   serializeArticleDocument,
   validateMarkdown,
   type ArticleDocumentInput,
@@ -8,6 +9,7 @@ export {
 export { hashArticle, parseArticleDocuments } from "./hash";
 export { createSlug, extractHeadings, extractWikiLinks, type ArticleHeading } from "./links";
 export { normalizeLocale, resolveLocale } from "./locale";
+export { markdownEquivalent } from "./markdown-equivalence";
 export {
   articleSchema,
   articleTextSchema,

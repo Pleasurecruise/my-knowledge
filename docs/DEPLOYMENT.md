@@ -1,13 +1,9 @@
 # Deployment
 
-OpenNext produces one request-only Worker. `apps/web/wrangler.json` owns DB, Markdown bucket, cache, AI Search, API-key Durable Object, assets, and domain bindings. Create only missing resources; existing shared resources require an explicit ownership decision.
+OpenNext produces one Worker. apps/web/wrangler.json owns bindings, assets and domains. Create missing resources only; shared resources require an ownership decision. BETTER_AUTH_URL defines the canonical origin. Credentials belong in Worker secrets or local .dev.vars, never source control.
 
-`BETTER_AUTH_URL` is the canonical origin. Secrets are `ALLOWED_EMAIL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET`. Register `/api/auth/callback/google` at that origin. Local development uses the environment example, local state, and synthetic credentials; model-provider secrets stay outside the Worker.
+Google requires the canonical JavaScript origin and /api/auth/callback/google redirect. Only its client ID reaches browsers. Local preview uses http://localhost:8787 with matching BETTER_AUTH_URL and Google configuration. Provider/FedCM failures remain distinct from application authentication failures.
 
-## Verification and release
+pnpm dev and preview build OpenNext and invoke Wrangler directly. Edits require rebuilding and restarting. Avoid next dev because its proxy cannot provide the internal Durable Object and nested AI Search API. Preview uses configured remote bindings and local Durable Objects; tests explicitly select local storage.
 
-Run local migrations, `pnpm check`, `pnpm test`, `pnpm build`, `pnpm dry-run`, and `pnpm test:e2e`. Dry-run validates the bundle without publishing. Release a reviewed committed revision only with separate Git and deployment authorization. CI performs checks and dry-run, not remote migration or publication.
-
-Reuse the deployed D1 baseline; ordinary releases never reset it. Before an exceptional rebuild, record a recovery point and back up required data. Rollback must pair a compatible Worker and database. Verify OAuth, REST/MCP, ingestion, search, cleanup, and anonymous privacy before discarding recovery data.
-
-Deploy the exported API-key Durable Object class before applications referencing its separate named instances. Generate credentials through each application's owner session, never by copying another application's key.
+Run migrations, checks, unit tests, build, dry-run and relevant browser tests before release. Dry-run does not publish. Git and deployment require separate authorization. Never reset the deployed D1 baseline for routine releases. Exceptional rebuilds require a recovery point and compatible database/Worker rollback. Verify authentication, ingestion, retrieval, cleanup and anonymous privacy before discarding recovery data. Deploy the exported API-key Durable Object before dependent applications.

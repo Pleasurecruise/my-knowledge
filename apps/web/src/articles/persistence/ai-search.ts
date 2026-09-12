@@ -1,10 +1,10 @@
-import { isDailyArticle, parseArticleDocument } from "@my-knowledge/content";
+import { isDailyArticle } from "@my-knowledge/content";
 
 import type { Principal } from "@/auth/types";
 
 import type { RankedArticle } from "../types";
-import { getArticleRow } from "./document";
-import { articleObjectKey, articleSummary } from "./record";
+import { getArticleRow, readArticleText } from "./document";
+import { articleSummary } from "./record";
 
 export const MY_KNOWLEDGE_INSTANCE = "my-knowledge";
 
@@ -51,11 +51,10 @@ export async function searchAiArticles(
     if (!row) continue;
     const summary = articleSummary(row);
     if (isDailyArticle(summary.tags)) continue;
-    const object = await env.KNOWLEDGE_BUCKET.get(articleObjectKey(row.id, "zh"));
-    if (!object) continue;
+    const text = await readArticleText(env, row, "zh");
     ranked.push({
       article: summary,
-      markdown: parseArticleDocument(await object.text()).markdown,
+      markdown: text.markdown,
       score,
     });
   }

@@ -1,5 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { betterAuth } from "better-auth";
+import { oneTap } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { drizzle } from "drizzle-orm/d1";
 
@@ -12,6 +13,7 @@ export async function createAuth() {
   const allowedEmail = bindings.ALLOWED_EMAIL.toLowerCase();
 
   return betterAuth({
+    plugins: [oneTap()],
     appName: "my knowledge",
     baseURL: bindings.BETTER_AUTH_URL,
     secret: bindings.BETTER_AUTH_SECRET,

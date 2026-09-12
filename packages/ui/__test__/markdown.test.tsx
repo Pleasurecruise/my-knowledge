@@ -1,5 +1,7 @@
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vite-plus/test";
+import type { MarkdownEmbed } from "@my-knowledge/content";
+import { renderMarkdownEmbed } from "../src/markdown-embeds";
+import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import { extractHeadings } from "@my-knowledge/content";
 
@@ -24,6 +26,20 @@ function StructuredBlock(props: StructuredBlockProps) {
 }
 
 describe("Markdown", () => {
+  it("keeps nested quotes and code markers out of callout detection", async () => {
+    const html = renderToStaticMarkup(
+      await Markdown({
+        labels,
+        structuredBlock: StructuredBlock,
+        markdown: "> > [!TIP] Nested tip.\n\n> `[!NOTE]` is code.\n\n> [!WARNING] Watch this.",
+      }),
+    );
+    expect(html.match(/class="callout callout-tip"/gu)).toHaveLength(1);
+    expect(html).not.toContain('class="callout callout-note"');
+    expect(html).toContain('<p class="callout-title">WARNING</p>');
+    expect(html).toContain("<code>[!NOTE]</code>");
+  });
+
   it("keeps the prototype canvas profiles and shorthand diagrams", async () => {
     const result = await Markdown({
       labels,
@@ -135,7 +151,7 @@ echo "ready"
     expect(html).toContain('class="line"');
   });
 
-  it("decodes code entities and renders unknown languages as escaped plain text", async () => {
+  it("preserves literal code entities like my-workspace and escapes unknown languages", async () => {
     const element = await Markdown({
       structuredBlock: StructuredBlock,
       labels,
@@ -146,9 +162,9 @@ echo "ready"
 \`\`\``,
     });
     const html = renderToStaticMarkup(element);
-    expect(html).toContain("<code>&lt;main&gt;</code>");
-    expect(html).not.toContain("&amp;lt;main&amp;gt;");
-    expect(html).toContain("&lt;main&gt;");
+    expect(html).toContain("<code>&amp;lt;main&amp;gt;</code>");
+    expect(html).toContain("&amp;lt;main&amp;gt;");
+    expect(html).not.toContain("<main>");
   });
 
   it("leaves the document title to the article page", async () => {
@@ -255,6 +271,22 @@ it("renders playable media with automatic video previews and explicit poster ove
   expect(html).not.toContain("autoplay");
 });
 
+it("uses raw audio bytes for GitHub file-view media URLs", async () => {
+  const result = await Markdown({
+    labels,
+    structuredBlock: StructuredBlock,
+    markdown:
+      "```embed:media\ntype: audio\nsrc: https://github.com/Pleasurecruise/pleasure1234/blob/main/public/cat.mp3\n```",
+  });
+  const html = renderToStaticMarkup(result);
+  expect(html).toContain(
+    'src="https://raw.githubusercontent.com/Pleasurecruise/pleasure1234/main/public/cat.mp3"',
+  );
+  expect(html).not.toContain("/blob/");
+  expect(html).toContain("<audio");
+  expect(html).toContain('controls=""');
+});
+
 it("shares unique heading anchors with the table of contents for rich and empty headings", async () => {
   const markdown =
     "## Scope\n## Scope\n## Scope 2\n## ![Diagram](https://example.com/image.png)\n## 😀\n## ";
@@ -278,4 +310,55 @@ it("keeps frontmatter, math, strikethrough and code headings aligned with the co
   expect(headings.map((heading) => heading.title)).toEqual(["Old x^2", "&lt;main&gt;", "Real"]);
   expect(ids).toEqual(headings.map((heading) => heading.id));
   expect(ids).toHaveLength(3);
+});
+
+it("keeps an invalid embed diagnostic inside the block and renders the remaining article", async () => {
+  const html = renderToStaticMarkup(
+    await Markdown({
+      labels,
+      structuredBlock: StructuredBlock,
+      markdown: "Before.\n\n```embed:article\nid: removed-target\n```\n\nAfter.",
+    }),
+  );
+  expect(html).toContain('role="alert"');
+  expect(html).toContain("Invalid article list URL");
+  expect(html).toContain("removed-target");
+  expect(html).toContain("Before.");
+  expect(html).toContain("After.");
+  expect(html).not.toContain('href="/articles/removed-target"');
+});
+
+it.each([
+  "https://knowledge.you-find.me/articles/resolved-slug",
+  "url: https://knowledge.you-find.me/articles/resolved-slug",
+])("resolves article metadata for %s", async (source) => {
+  const read = vi.fn(async (embed: MarkdownEmbed) =>
+    renderMarkdownEmbed(embed, {
+      kind: "articleList",
+      items: [
+        {
+          href: "/articles/resolved-slug",
+          title: "Automatic title",
+          description: "Automatic summary",
+        },
+      ],
+    }),
+  );
+  const element = await Markdown({
+    labels,
+    structuredBlock: () => null,
+    markdown: `Reading list.\n\n\`\`\`embed:article\n${source}\n\`\`\``,
+    embeds: read,
+  });
+  const stream = await renderToReadableStream(element);
+  const html = await new Response(stream).text();
+  expect(read).toHaveBeenCalledWith({
+    kind: "articleList",
+    align: "wide",
+    urls: ["https://knowledge.you-find.me/articles/resolved-slug"],
+  });
+  expect(html).toContain('href="/articles/resolved-slug"');
+  expect(html).toContain("Automatic title");
+  expect(html).toContain("Automatic summary");
+  expect(html).not.toContain("Article unavailable");
 });

@@ -16,9 +16,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@my-knowledge/ui/components/alert-dialog";
-import { Badge } from "@my-knowledge/ui/components/badge";
 import { Button } from "@my-knowledge/ui/components/button";
 import { Input } from "@my-knowledge/ui/components/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@my-knowledge/ui/components/select";
 import {
   Bold,
   Code2,
@@ -32,13 +38,16 @@ import {
   Save,
   Strikethrough,
   Table2,
+  Type,
   X,
 } from "@my-knowledge/ui/icons";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
+import { markdownEquivalent, visibilitySchema } from "@my-knowledge/content";
 
 import type { ArticleEditorProps, EditorCommand, SlashMenuPosition } from "./article-editor.types";
+import { articleReturnHref } from "@/articles/navigation";
 import { DeleteAction } from "./delete-action";
 
 const commands: EditorCommand[] = [
@@ -168,14 +177,21 @@ export function ArticleEditor(props: ArticleEditorProps) {
   const initialTags = props.mode === "edit" ? props.article.tags : [];
   const initialTitle = props.mode === "edit" ? props.article.title : "";
   const router = useRouter();
+  const leaving = useRef(false);
+  const params = useSearchParams();
+  const source = articleReturnHref(params.get("from") ?? undefined);
+  const context = source === "/" ? "" : `?${new URLSearchParams({ from: source })}`;
   const [title, setTitle] = useState(initialTitle);
   const [summary, setSummary] = useState(initialSummary);
   const [markdown, setMarkdown] = useState(initialBody);
+  const [editorMode, setEditorMode] = useState<"rich" | "source">("rich");
+  const [modeError, setModeError] = useState(false);
   const [tags, setTags] = useState(initialTags.join(", "));
   const [saving, setSaving] = useState(false);
-  const [visibilitySaving, setVisibilitySaving] = useState(false);
+  const [visibility, setVisibility] = useState(article?.visibility ?? "public");
   const [error, setError] = useState<string | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [leaveHref, setLeaveHref] = useState<string | null>(null);
   const [slashRange, setSlashRange] = useState<{ from: number; to: number } | null>(null);
   const [slashQuery, setSlashQuery] = useState("");
   const [slashPosition, setSlashPosition] = useState<SlashMenuPosition | null>(null);
@@ -240,6 +256,9 @@ export function ArticleEditor(props: ArticleEditorProps) {
     extensions,
     content: initialBody,
     contentType: "markdown",
+    onCreate: ({ editor: current }) => {
+      if (!markdownEquivalent(initialBody, current.getMarkdown())) setEditorMode("source");
+    },
     editorProps: {
       handleKeyDown: (view, event) => {
         if (event.key !== "Escape" && (event.key !== "Enter" || event.shiftKey)) return false;
@@ -263,11 +282,26 @@ export function ArticleEditor(props: ArticleEditorProps) {
         (command) => current !== null && command.kind === "toggle" && command.active(current),
       ),
   });
+  function changeEditorMode(mode: "rich" | "source") {
+    if (mode === editorMode) return;
+    closeSlashMenu();
+    setModeError(false);
+    if (mode === "rich") {
+      if (!editor) return;
+      editor.commands.setContent(markdown, { contentType: "markdown", emitUpdate: false });
+      if (!markdownEquivalent(markdown, editor.getMarkdown())) {
+        setModeError(true);
+        return;
+      }
+    }
+    setEditorMode(mode);
+  }
   const dirty =
     title !== initialTitle ||
     summary !== initialSummary ||
     markdown.trimEnd() !== initialBody.trimEnd() ||
-    tags !== initialTags.join(", ");
+    tags !== initialTags.join(", ") ||
+    visibility !== (article?.visibility ?? "public");
   const filteredCommands = commands.filter(
     (command) =>
       command.slash &&
@@ -276,13 +310,47 @@ export function ArticleEditor(props: ArticleEditorProps) {
 
   useEffect(() => {
     function beforeUnload(event: BeforeUnloadEvent) {
-      if (dirty) event.preventDefault();
+      if (dirty && !leaving.current) event.preventDefault();
+    }
+    function beforeLink(event: MouseEvent) {
+      if (
+        !dirty ||
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
+      const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (
+        !(anchor instanceof HTMLAnchorElement) ||
+        anchor.target === "_blank" ||
+        anchor.hasAttribute("download")
+      )
+        return;
+      const destination = new URL(anchor.href);
+      if (
+        destination.origin === location.origin &&
+        destination.pathname === location.pathname &&
+        destination.search === location.search
+      )
+        return;
+      event.preventDefault();
+      event.stopPropagation();
+      setLeaveHref(anchor.href);
+      setDiscardOpen(true);
     }
     window.addEventListener("beforeunload", beforeUnload);
-    return () => window.removeEventListener("beforeunload", beforeUnload);
+    document.addEventListener("click", beforeLink, true);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+      document.removeEventListener("click", beforeLink, true);
+    };
   }, [dirty]);
 
-  const returnHref = article === null ? "/articles" : `/articles/${article.slug}`;
+  const returnHref = article === null ? "/" : `/articles/${article.slug}${context}`;
 
   function runSlashCommand(command: EditorCommand) {
     if (!editor || !slashRange) return;
@@ -302,7 +370,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
           method: article === null ? "POST" : "PATCH",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            ...(article === null ? {} : { expectedHash: article.contentHash }),
+            ...(article === null ? {} : { expectedHash: article.contentHash, visibility }),
             title: title.trim(),
             summary: summary.trim(),
             body: markdown.trimEnd(),
@@ -322,39 +390,18 @@ export function ArticleEditor(props: ArticleEditorProps) {
         return;
       }
       const result = saveResponseSchema.parse(await response.json());
-      router.replace(`/articles/${result.article.slug}`);
+      router.replace(`/articles/${result.article.slug}${context}`);
       router.refresh();
+    } catch {
+      setError(messages.saveFailed);
     } finally {
       setSaving(false);
     }
   }
 
-  async function changeVisibility() {
-    if (article === null || dirty || visibilitySaving) return;
-    setVisibilitySaving(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/articles/${article.id}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          expectedHash: article.contentHash,
-          visibility: article.visibility === "public" ? "private" : "public",
-        }),
-      });
-      if (!response.ok) {
-        setError(response.status === 409 ? messages.stale : messages.saveFailed);
-        return;
-      }
-      router.replace(returnHref);
-      router.refresh();
-    } finally {
-      setVisibilitySaving(false);
-    }
-  }
-
   function leave() {
     if (dirty) {
+      setLeaveHref(null);
       setDiscardOpen(true);
       return;
     }
@@ -362,7 +409,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
   }
 
   return (
-    <section aria-label={messages.bodyLabel} className="mx-auto mt-6 w-full sm:mt-8" id="article">
+    <section aria-label={messages.bodyLabel} className="mx-auto w-full" id="article">
       <div className="flex flex-row flex-wrap items-center gap-x-2 gap-y-1">
         <div className="min-w-0 flex-1">
           <h1 className="font-medium text-xl leading-snug tracking-normal text-foreground sm:text-2xl sm:leading-tight">
@@ -399,9 +446,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
         </div>
       </div>
 
-      <div
-        className={`mt-5 grid grid-cols-1 gap-4 sm:grid-cols-[3fr_2fr] ${article === null ? "max-w-none" : "sm:max-w-140"}`}
-      >
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-[3fr_2fr]">
         <label className="grid gap-2" htmlFor="article-title">
           <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
             {messages.titleLabel}
@@ -429,7 +474,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
         </label>
       </div>
 
-      <div className={`mt-4 ${article === null ? "max-w-none" : "max-w-140"}`}>
+      <div className="mt-4">
         <div className="grid gap-2">
           <label
             className="text-muted-foreground text-[0.6875rem] font-medium tracking-widest uppercase"
@@ -448,23 +493,30 @@ export function ArticleEditor(props: ArticleEditorProps) {
       </div>
 
       {article === null ? null : (
-        <div className="mt-4 flex items-center gap-2">
-          <Badge variant={article.visibility === "private" ? "destructive" : "secondary"}>
-            {article.visibility === "private" ? messages.private : messages.public}
-          </Badge>
-          <Button
-            disabled={dirty || saving || visibilitySaving}
-            onClick={changeVisibility}
-            size="sm"
-            variant="outline"
+        <label className="mt-4 grid max-w-48 gap-2" htmlFor="article-visibility">
+          <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
+            {messages.visibility}
+          </span>
+          <Select
+            disabled={saving}
+            value={visibility}
+            items={[
+              { value: "public", label: messages.public },
+              { value: "private", label: messages.private },
+            ]}
+            onValueChange={(value) => {
+              if (value !== null) setVisibility(visibilitySchema.parse(value));
+            }}
           >
-            {visibilitySaving
-              ? messages.publishing
-              : article.visibility === "public"
-                ? messages.withdraw
-                : messages.publish}
-          </Button>
-        </div>
+            <SelectTrigger id="article-visibility" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="public">{messages.public}</SelectItem>
+              <SelectItem value="private">{messages.private}</SelectItem>
+            </SelectContent>
+          </Select>
+        </label>
       )}
 
       {error === null ? null : (
@@ -475,64 +527,110 @@ export function ArticleEditor(props: ArticleEditorProps) {
 
       <div className="mt-6 overflow-hidden rounded-lg border bg-background shadow-sm sm:mt-8">
         <div
-          aria-label={messages.formatting}
-          className="flex flex-nowrap items-center gap-1 overflow-x-auto border-b px-2 py-2 sm:flex-wrap"
-          role="toolbar"
+          className="flex items-center gap-1 border-b bg-muted/40 p-1"
+          role="group"
+          aria-label={messages.editorMode}
         >
-          {commands.map((command, index) => {
-            const Icon = command.icon;
-            const active = activeCommands ? activeCommands[index] === true : false;
-            return (
-              <span className="contents" key={command.title}>
-                {command.separatorBefore ? <span className="mx-1 h-5 w-px bg-border" /> : null}
-                <Button
-                  aria-pressed={active}
-                  className="size-7.5 shrink-0 text-muted-foreground hover:text-foreground"
-                  disabled={editor === null || saving}
-                  onClick={() => editor && command.run(editor)}
-                  size="icon-sm"
-                  title={command.title}
-                  type="button"
-                  variant={active ? "secondary" : "ghost"}
-                >
-                  <Icon className="size-4" />
-                </Button>
-              </span>
-            );
-          })}
+          <Button
+            size="sm"
+            variant={editorMode === "rich" ? "secondary" : "ghost"}
+            aria-pressed={editorMode === "rich"}
+            disabled={!editor || saving}
+            onClick={() => changeEditorMode("rich")}
+          >
+            <Type className="size-4" />
+            {messages.richText}
+          </Button>
+          <Button
+            size="sm"
+            variant={editorMode === "source" ? "secondary" : "ghost"}
+            aria-pressed={editorMode === "source"}
+            disabled={saving}
+            onClick={() => changeEditorMode("source")}
+          >
+            <Code2 className="size-4" />
+            {messages.markdownSource}
+          </Button>
         </div>
-        <div className="relative">
-          <EditorContent editor={editor} />
-          {slashPosition === null ? null : (
-            <div
-              aria-label={messages.slashCommands}
-              className="fixed z-50 overflow-y-auto rounded-md border border-border bg-background shadow-lg"
-              role="menu"
-              style={slashPosition}
-            >
-              {filteredCommands.map((command) => {
-                const Icon = command.icon;
-                return (
-                  <button
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted focus-visible:bg-muted"
-                    key={command.title}
-                    onClick={() => runSlashCommand(command)}
-                    role="menuitem"
+        {modeError ? (
+          <p className="border-b px-4 py-2 text-sm text-destructive" role="status">
+            {messages.sourceRequired}
+          </p>
+        ) : null}
+        <div hidden={editorMode !== "rich"}>
+          <div
+            aria-label={messages.formatting}
+            className="flex flex-nowrap items-center gap-1 overflow-x-auto border-b px-2 py-2 sm:flex-wrap"
+            role="toolbar"
+          >
+            {commands.map((command, index) => {
+              const Icon = command.icon;
+              const active = activeCommands ? activeCommands[index] === true : false;
+              return (
+                <span className="contents" key={command.title}>
+                  {command.separatorBefore ? <span className="mx-1 h-5 w-px bg-border" /> : null}
+                  <Button
+                    aria-pressed={active}
+                    className="size-7.5 shrink-0 text-muted-foreground hover:text-foreground"
+                    disabled={editor === null || saving}
+                    onClick={() => editor && command.run(editor)}
+                    size="icon-sm"
+                    title={command.title}
                     type="button"
+                    variant={active ? "secondary" : "ghost"}
                   >
-                    <Icon className="size-4 text-muted-foreground" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block leading-tight">{command.title}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {command.slash ? command.hint : ""}
+                    <Icon className="size-4" />
+                  </Button>
+                </span>
+              );
+            })}
+          </div>
+          <div className="relative">
+            <EditorContent editor={editor} />
+            {slashPosition === null ? null : (
+              <div
+                aria-label={messages.slashCommands}
+                className="fixed z-50 overflow-y-auto rounded-md border border-border bg-background shadow-lg"
+                role="menu"
+                style={slashPosition}
+              >
+                {filteredCommands.map((command) => {
+                  const Icon = command.icon;
+                  return (
+                    <button
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted focus-visible:bg-muted"
+                      key={command.title}
+                      onClick={() => runSlashCommand(command)}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <Icon className="size-4 text-muted-foreground" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block leading-tight">{command.title}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {command.slash ? command.hint : ""}
+                        </span>
                       </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
+        {editorMode === "source" ? (
+          <textarea
+            aria-label={messages.markdownSource}
+            className="block min-h-96 w-full resize-y bg-background p-4 font-mono text-sm leading-7 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            disabled={saving}
+            spellCheck={false}
+            value={markdown}
+            onChange={(event) => {
+              setMarkdown(event.target.value);
+              setModeError(false);
+            }}
+          />
+        ) : null}
       </div>
 
       <AlertDialog onOpenChange={setDiscardOpen} open={discardOpen}>
@@ -543,7 +641,15 @@ export function ArticleEditor(props: ArticleEditorProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{messages.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => router.push(returnHref)} variant="destructive">
+            <AlertDialogAction
+              onClick={() => {
+                leaving.current = true;
+                if (leaveHref && new URL(leaveHref).origin !== location.origin)
+                  window.location.assign(leaveHref);
+                else router.push(leaveHref ?? returnHref);
+              }}
+              variant="destructive"
+            >
               {messages.discard}
             </AlertDialogAction>
           </AlertDialogFooter>

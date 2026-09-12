@@ -12,8 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     { url: origin.href },
-    { url: new URL("/articles", origin).href },
-    { url: new URL("/graph", origin).href },
+    { url: new URL("/explore", origin).href },
     ...articles.map((article) => ({
       url: new URL(`/articles/${article.slug}`, origin).href,
       lastModified: article.updatedAt,

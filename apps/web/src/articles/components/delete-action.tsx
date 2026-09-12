@@ -33,10 +33,12 @@ export function DeleteAction({ id, expectedHash, messages }: DeleteActionProps) 
         body: JSON.stringify({ expectedHash }),
       });
       if (response.status === 204) {
-        router.push("/articles");
+        router.push("/");
         return;
       }
       setError(response.status === 404 ? messages.deleteNotFound : messages.deleteFailed);
+    } catch {
+      setError(messages.deleteFailed);
     } finally {
       setIsDeleting(false);
     }

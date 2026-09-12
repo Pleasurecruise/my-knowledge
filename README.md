@@ -53,12 +53,13 @@ content. For a connection check, call `listTags` or `listArticles`; do not creat
 
 ```text
 pnpm install
-cp apps/web/.env.example apps/web/.env.local
+cp apps/web/.env.example apps/web/.dev.vars
 pnpm dev
 ```
 
-Fill the local environment file before starting. For the production-like Worker workflow, migrations,
-verification, and deployment, follow [Deployment](docs/DEPLOYMENT.md).
+Fill `.dev.vars` before starting and set `BETTER_AUTH_URL=http://localhost:8787`.
+`pnpm dev` builds and starts the Worker preview; rebuild/restart after edits. For binding scope,
+migrations, verification, and deployment, follow [Deployment](docs/DEPLOYMENT.md).
 
 ## Documentation
 

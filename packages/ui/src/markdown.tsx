@@ -1,6 +1,4 @@
-import { decode } from "entities";
-import type { Element, ElementContent, Root, Text } from "hast";
-import type { Code, InlineCode, Root as MarkdownRoot } from "mdast";
+import type { Element, ElementContent, Root } from "hast";
 import rehypeKatex from "rehype-katex";
 import rehypeReact from "rehype-react";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
@@ -9,7 +7,13 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
-import { Fragment, type ComponentType, type ReactNode } from "react";
+import {
+  Fragment,
+  Suspense,
+  type ComponentType,
+  type AnchorHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
 import { unified } from "unified";
 import type { Plugin } from "unified";
@@ -17,6 +21,7 @@ import { SKIP, visit } from "unist-util-visit";
 
 import {
   extractHeadings,
+  MarkdownEmbedError,
   parseMarkdownEmbed,
   type ArticleHeading,
   type MarkdownEmbed,
@@ -45,43 +50,25 @@ const mathSchema = {
   },
 };
 
-const decodeCodeEntities: Plugin<[], MarkdownRoot> = () => (tree: MarkdownRoot) => {
-  visit(tree, "code", (node: Code) => {
-    const language = node.lang?.toLowerCase();
-    if (
-      !language?.startsWith("embed:") &&
-      !["mermaid", "vega", "vega-lite", "json-canvas"].includes(language || "")
-    ) {
-      node.value = decode(node.value).replace(/\n+$/u, "");
-    }
-  });
-  visit(tree, "inlineCode", (node: InlineCode) => {
-    node.value = decode(node.value).replace(/\n+$/u, "");
-  });
-};
-
 const articleSemantics: Plugin<[], Root> = () => (tree: Root) => {
-  function firstMeaningfulText(node: Element): Text | undefined {
-    for (const child of node.children) {
-      if (child.type === "text" && child.value.trim()) return child;
-      if (child.type === "element") {
-        const found = firstMeaningfulText(child);
-        if (found) return found;
-      }
-    }
-    return undefined;
-  }
-
   visit(tree, "element", (node) => {
     if (node.tagName === "code" || node.tagName === "pre" || node.tagName === "a") return SKIP;
     if (node.tagName === "blockquote") {
-      const firstText = firstMeaningfulText(node);
-      const match = firstText
-        ? /^\[!(NOTE|TIP|WARNING|IMPORTANT|CAUTION)\]\s*/u.exec(firstText.value)
-        : null;
-      if (match?.[1] && firstText) {
+      const paragraph = node.children.find((child) => child.type === "element");
+      const firstText = paragraph?.tagName === "p" ? paragraph.children[0] : undefined;
+      const match =
+        firstText?.type === "text"
+          ? /^\[!(NOTE|TIP|WARNING|IMPORTANT|CAUTION)\]\s*/u.exec(firstText.value)
+          : null;
+      if (match?.[1] && firstText?.type === "text") {
         node.properties.className = ["callout", `callout-${match[1].toLocaleLowerCase("en-US")}`];
         firstText.value = firstText.value.slice(match[0].length);
+        node.children.unshift({
+          type: "element",
+          tagName: "p",
+          properties: { className: ["callout-title"] },
+          children: [{ type: "text", value: match[1] }],
+        });
       }
     }
 
@@ -114,9 +101,8 @@ const articleSemantics: Plugin<[], Root> = () => (tree: Root) => {
 
 type EmbedRenderer = (embed: MarkdownEmbed) => Promise<Element>;
 
-const structuredBlocks: Plugin<[StructuredBlockLabels, EmbedRenderer?], Root> =
-  (labels, embeds) => async (tree: Root) => {
-    const pending: (() => Promise<void>)[] = [];
+const structuredBlocks: Plugin<[StructuredBlockLabels, MarkdownEmbed[]?], Root> =
+  (labels, embeds) => (tree: Root) => {
     visit(tree, "element", (node, index, parent) => {
       if (!parent || index === undefined || node.tagName !== "pre") return;
       const code = node.children.at(0);
@@ -131,15 +117,43 @@ const structuredBlocks: Plugin<[StructuredBlockLabels, EmbedRenderer?], Root> =
       if (language?.startsWith("embed:")) {
         const source = code.children.at(0);
         if (source?.type !== "text") throw new Error("Embed source is missing");
-        const embed = parseMarkdownEmbed(language, source.value);
+        let embed: MarkdownEmbed | undefined;
+        try {
+          embed = parseMarkdownEmbed(language, source.value);
+        } catch (error) {
+          if (!(error instanceof MarkdownEmbedError)) throw error;
+          parent.children[index] = {
+            type: "element",
+            tagName: "section",
+            properties: { className: ["markdown-block-error"] },
+            children: [
+              {
+                type: "element",
+                tagName: "p",
+                properties: { role: "alert" },
+                children: [{ type: "text", value: `${language}: ${error.message}` }],
+              },
+              node,
+            ],
+          };
+          return SKIP;
+        }
         if (embed) {
-          if (embeds)
-            pending.push(() =>
-              embeds(embed).then((card) => {
-                parent.children[index] = card;
-              }),
-            );
-          else parent.children[index] = renderMarkdownEmbed(embed);
+          if (
+            embeds &&
+            (embed.kind === "link" ||
+              embed.kind === "github" ||
+              embed.kind === "stock" ||
+              embed.kind === "articleList")
+          ) {
+            parent.children[index] = {
+              type: "element",
+              tagName: "deferred-embed",
+              properties: { embedIndex: embeds.length },
+              children: [],
+            };
+            embeds.push(embed);
+          } else parent.children[index] = renderMarkdownEmbed(embed);
         }
         return SKIP;
       }
@@ -184,9 +198,6 @@ const structuredBlocks: Plugin<[StructuredBlockLabels, EmbedRenderer?], Root> =
       };
       return SKIP;
     });
-    for (let index = 0; index < pending.length; index += 4) {
-      await Promise.all(pending.slice(index, index + 4).map((read) => read()));
-    }
   };
 
 type MarkdownHighlighter = Awaited<typeof markdownHighlighter>;
@@ -210,6 +221,7 @@ const highlightCodeBlocks: Plugin<[MarkdownHighlighter], Root> = (highlighter) =
     if (source?.type !== "text") throw new Error("Code block source is missing");
     const highlighted = highlighter.codeToHast(source.value, {
       lang: language,
+      defaultColor: false,
       themes: { light: "github-light", dark: "github-dark" },
       transformers: [
         {
@@ -255,21 +267,40 @@ type MarkdownProps = {
   markdown: string;
   structuredBlock: ComponentType<StructuredBlockProps>;
   embeds?: EmbedRenderer;
+  link?: ComponentType<AnchorHTMLAttributes<HTMLAnchorElement>>;
 };
 
-export async function Markdown({ labels, markdown, structuredBlock, embeds }: MarkdownProps) {
+function embedNode(node: Element, link: MarkdownProps["link"]) {
+  return unified()
+    .use(rehypeReact, { Fragment, jsx, jsxs, components: link ? { a: link } : {} })
+    .stringify({ type: "root", children: [node] });
+}
+
+async function EnrichedEmbed({
+  embed,
+  read,
+  link,
+}: {
+  embed: MarkdownEmbed;
+  read: EmbedRenderer;
+  link: MarkdownProps["link"];
+}) {
+  return embedNode(await read(embed), link);
+}
+
+export async function Markdown({ labels, markdown, structuredBlock, embeds, link }: MarkdownProps) {
+  const deferredEmbeds: MarkdownEmbed[] = [];
   const processor = unified()
     .use(remarkParse)
     .use(remarkFrontmatter, ["yaml"])
     .use(remarkGfm)
     .use(remarkMath)
-    .use(decodeCodeEntities)
     .use(remarkRehype)
     .use(rehypeSanitize, mathSchema)
     .use(headingAnchors, extractHeadings(markdown))
     .use(rehypeKatex)
     .use(articleSemantics)
-    .use(structuredBlocks, labels, embeds)
+    .use(structuredBlocks, labels, embeds ? deferredEmbeds : undefined)
     .use(tableWrappers);
 
   processor.use(highlightCodeBlocks, await markdownHighlighter);
@@ -279,7 +310,23 @@ export async function Markdown({ labels, markdown, structuredBlock, embeds }: Ma
       Fragment,
       jsx,
       jsxs,
-      components: { "structured-block": structuredBlock },
+      components: {
+        ...(link ? { a: link } : {}),
+        "structured-block": structuredBlock,
+        "deferred-embed": ({ embedIndex }: { embedIndex: number }) => {
+          const embed = deferredEmbeds[embedIndex];
+          if (!embed || !embeds) throw new Error("Deferred embed is missing");
+          return (
+            <Suspense
+              fallback={
+                embed.kind === "articleList" ? null : embedNode(renderMarkdownEmbed(embed), link)
+              }
+            >
+              <EnrichedEmbed embed={embed} read={embeds} link={link} />
+            </Suspense>
+          );
+        },
+      },
     })
     .process(markdown);
 

@@ -5,7 +5,7 @@ import { generateRandomString, makeSignature } from "better-auth/crypto";
 import authFixture from "../fixtures/auth.json" with { type: "json" };
 
 const appDirectory = new URL("../../", import.meta.url);
-const knowledgeBucket = "cherry-studio";
+const knowledgeBucket = "my-knowledge-test";
 
 const objects: Array<[fixture: string, objectPath: string]> = [
   ["rich", "11111111-1111-4111-8111-111111111111"],
@@ -39,9 +39,9 @@ wrangler([
   "DB",
   "--local",
   "--persist-to",
-  ".wrangler/state",
+  ".wrangler/test-state",
   "--config",
-  "wrangler.json",
+  "wrangler.test.json",
   "--file",
   "__test__/fixtures/seed.sql",
 ]);
@@ -52,9 +52,9 @@ wrangler([
   "DB",
   "--local",
   "--persist-to",
-  ".wrangler/state",
+  ".wrangler/test-state",
   "--config",
-  "wrangler.json",
+  "wrangler.test.json",
   "--command",
   `PRAGMA foreign_keys = ON;
 DELETE FROM session WHERE userId = '${authFixture.userId}';
@@ -101,9 +101,9 @@ for (const [fixture, objectPath] of objects) {
       `${knowledgeBucket}/knowledge/${objectPath}/${key}`,
       "--local",
       "--persist-to",
-      ".wrangler/state",
+      ".wrangler/test-state",
       "--config",
-      "wrangler.json",
+      "wrangler.test.json",
       "--file",
       `__test__/fixtures/${fixture}/${locale}.md`,
     ]);

@@ -1,0 +1,51 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": "worker.ts",
+  "compatibility_date": "2026-08-16",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "API_KEY",
+        "class_name": "ApiKeyDurableObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ApiKeyDurableObject"]
+    }
+  ],
+  "name": "my-knowledge-test",
+  "vars": {
+    "BETTER_AUTH_URL": "http://127.0.0.1:8787"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "my-knowledge-test",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "migrations_dir": "migrations",
+      "remote": false
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "KNOWLEDGE_BUCKET",
+      "bucket_name": "my-knowledge-test",
+      "remote": false
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "KNOWLEDGE_CACHE",
+      "id": "00000000000000000000000000000001",
+      "remote": false
+    }
+  ]
+}

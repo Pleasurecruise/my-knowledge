@@ -1,9 +1,12 @@
 export {
   ArrowLeft,
+  ArrowRight,
   ArrowUp,
   Bold,
   Check,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Code2,
   Copy,

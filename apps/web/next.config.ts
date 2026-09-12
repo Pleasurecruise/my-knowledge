@@ -1,19 +1,18 @@
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import type { NextConfig } from "next";
-import { PHASE_DEVELOPMENT_SERVER, type PHASE_TYPE } from "next/constants";
 
-const nextConfig = {
+export default {
   images: {
     unoptimized: true,
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "localhost" }],
+        headers: [{ key: "Referrer-Policy", value: "no-referrer-when-downgrade" }],
+      },
+    ];
   },
   reactStrictMode: true,
   transpilePackages: ["@my-knowledge/content", "@my-knowledge/ui"],
 } satisfies NextConfig;
-
-export default async function configuration(phase: PHASE_TYPE): Promise<NextConfig> {
-  if (phase === PHASE_DEVELOPMENT_SERVER) {
-    await initOpenNextCloudflareForDev();
-  }
-
-  return nextConfig;
-}

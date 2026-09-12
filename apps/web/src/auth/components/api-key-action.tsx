@@ -34,6 +34,7 @@ export function ApiKeyAction({ messages }: { messages: InterfaceMessages["shell"
   const [configured, setConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
   const [statusFailed, setStatusFailed] = useState(false);
+  const [statusAttempt, setStatusAttempt] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
   const [apiKey, setApiKey] = useState("");
@@ -56,7 +57,7 @@ export function ApiKeyAction({ messages }: { messages: InterfaceMessages["shell"
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [session]);
+  }, [session, statusAttempt]);
 
   async function generateApiKey(method: "POST" | "PUT") {
     setLoading(true);
@@ -99,8 +100,19 @@ export function ApiKeyAction({ messages }: { messages: InterfaceMessages["shell"
           render={
             <Button
               aria-label={statusFailed ? messages.apiKeyStatusFailed : actionLabel}
-              disabled={loading || statusFailed}
-              onClick={() => (configured ? setConfirmOpen(true) : void generateApiKey("POST"))}
+              disabled={loading}
+              onClick={() => {
+                if (statusFailed) {
+                  setLoading(true);
+                  setStatusFailed(false);
+                  setStatusAttempt((current) => current + 1);
+                } else if (configured) {
+                  setError(null);
+                  setConfirmOpen(true);
+                } else {
+                  void generateApiKey("POST");
+                }
+              }}
               size="icon-sm"
               type="button"
               variant="ghost"
@@ -111,6 +123,12 @@ export function ApiKeyAction({ messages }: { messages: InterfaceMessages["shell"
         </TooltipTrigger>
         <TooltipContent>{statusFailed ? messages.apiKeyStatusFailed : actionLabel}</TooltipContent>
       </Tooltip>
+
+      {error && !confirmOpen && !keyOpen ? (
+        <p className="auth-feedback" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       <AlertDialog onOpenChange={setConfirmOpen} open={confirmOpen}>
         <AlertDialogContent>

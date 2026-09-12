@@ -1,10 +1,11 @@
-import { isDailyArticle, parseArticleDocument } from "@my-knowledge/content";
+import { isDailyArticle, readArticleDocument } from "@my-knowledge/content";
 import type {
   Article,
   ArticleDocumentSet,
   ArticleSummary,
   ParsedArticleDocument,
   TranslationLocale,
+  Visibility,
 } from "@my-knowledge/content";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -152,10 +153,25 @@ export async function updateArticle(
   id: string,
   expectedHash: string,
   document: ArticleDocumentSet,
+  visibility?: Visibility,
 ): Promise<Article | undefined> {
   const previous = await getArticleRow(env, "owner", "id", id);
   if (!previous || previous.contentHash !== expectedHash) return undefined;
-  if (document.contentHash === expectedHash) return readArticle(env, previous);
+  if (document.contentHash === expectedHash) {
+    const linksJson = JSON.stringify(document.links);
+    if (
+      linksJson === previous.linksJson &&
+      (visibility === undefined || visibility === previous.visibility)
+    )
+      return readArticle(env, previous);
+    const updated = await drizzle(env.DB)
+      .update(articles)
+      .set({ linksJson, ...(visibility === undefined ? {} : { visibility }) })
+      .where(and(eq(articles.id, id), eq(articles.contentHash, expectedHash)))
+      .returning()
+      .get();
+    return updated ? readArticle(env, updated) : undefined;
+  }
   const chinese = document.editions.zh;
   const previousDocument = await readStoredDocument(
     env.KNOWLEDGE_BUCKET,
@@ -175,14 +191,17 @@ export async function updateArticle(
         previousDocument,
       );
     },
-    writeIndex: () =>
-      isDailyArticle(document.tags)
-        ? deleteSearchItem(env, id)
-        : indexChineseArticle(env, id, chinese.markdown, document.tags),
+    writeIndex: async () => {
+      if (isDailyArticle(document.tags)) {
+        if (!isDailyArticle(readArticleDocument(previousDocument.markdown).tags))
+          await deleteSearchItem(env, id);
+      } else await indexChineseArticle(env, id, chinese.markdown, document.tags);
+    },
     switchRow: () =>
       drizzle(env.DB)
         .update(articles)
         .set({
+          ...(visibility === undefined ? {} : { visibility }),
           title: chinese.title,
           summary: chinese.summary,
           contentHash: document.contentHash,
@@ -201,7 +220,7 @@ export async function updateArticle(
         env,
         id,
         previousDocument.markdown,
-        parseArticleDocument(previousDocument.markdown).tags,
+        readArticleDocument(previousDocument.markdown).tags,
       );
     },
     cleanupPreviousVersion: () =>
@@ -209,27 +228,6 @@ export async function updateArticle(
   });
   if (!updated) return undefined;
   return readArticle(env, updated);
-}
-
-export async function hasCurrentTranslation(
-  env: CloudflareEnv,
-  id: string,
-  locale: TranslationLocale,
-  sourceHash: string,
-): Promise<boolean> {
-  const row = await drizzle(env.DB)
-    .select({ articleId: articleTranslations.articleId })
-    .from(articleTranslations)
-    .where(
-      and(
-        eq(articleTranslations.articleId, id),
-        eq(articleTranslations.locale, locale),
-        eq(articleTranslations.sourceHash, sourceHash),
-      ),
-    )
-    .get();
-  if (!row) return false;
-  return Boolean(await env.KNOWLEDGE_BUCKET.head(articleObjectKey(id, locale)));
 }
 
 export async function saveArticleTranslation(

@@ -116,10 +116,10 @@ describe("article documents", () => {
     ).toThrow("json-canvas");
   });
 
-  it("rejects mismatched legacy edition structure", async () => {
+  it("rejects translated editions with different link targets", async () => {
     await expect(
       parseArticleDocuments({ zh, en: en.replace("[[已有文章|context]]", "[[另一篇|context]]") }),
-    ).rejects.toThrow("wiki-link targets");
+    ).rejects.toThrow("link targets");
   });
 
   it("produces the canonical Chinese hash", async () => {

@@ -126,3 +126,89 @@ it("preserves media fences and validates their sources and options", () => {
     ).toThrow();
   }
 });
+
+it("rejects superseded article fields instead of accepting overrides", () => {
+  for (const source of [
+    "id: article-123",
+    "title: Story\nhttps://example.com/story",
+    "description: Summary\nhttps://example.com/story",
+  ])
+    expect(() => parseMarkdownEmbed("embed:article", source)).toThrow();
+});
+
+it("parses only explicit article fences as URL lists", () => {
+  const source =
+    "https://knowledge.you-find.me/articles/one\n- https://knowledge.you-find.me/articles/two\nhttps://knowledge.you-find.me/articles/one";
+  expect(parseMarkdownEmbed("embed:article", source)).toEqual({
+    kind: "articleList",
+    align: "wide",
+    urls: [
+      "https://knowledge.you-find.me/articles/one",
+      "https://knowledge.you-find.me/articles/two",
+      "https://knowledge.you-find.me/articles/one",
+    ],
+  });
+  expect(parseMarkdownEmbed("text", source)).toBeUndefined();
+  for (const invalid of [
+    "",
+    "javascript:alert(1)",
+    "https://user:pass@example.com",
+    "https://example.com prose",
+    "https://example.com\nid: mixed",
+    Array(51).fill("https://example.com").join("\n"),
+  ])
+    expect(() => parseMarkdownEmbed("embed:article", invalid)).toThrow();
+});
+
+it.each(["left", "right", "wide", "narrow"])(
+  "supports %s across card and media syntax",
+  (align) => {
+    for (const [kind, body] of [
+      ["article", "https://example.com/a\n- https://example.com/b"],
+      ["article", "  https://example.com/a"],
+      ["article", "url: https://example.com/a"],
+      ["link", "url: https://example.com"],
+      ["media", "type: audio\nsrc: ./audio.mp3"],
+      ["media", "type: video\nsrc: ./video.mp4"],
+      ["github", "repo: owner/repo"],
+      ["stock", "code: AAPL"],
+      ["architecture", "flowchart LR\nA[Client] --> B[Service]"],
+      ["storyboard", "title: Flow\nstep: Capture | Save\nstep: Read | Recall"],
+      [
+        "architecture",
+        '<svg viewBox="0 0 100 100"><title>Flow</title><desc>Request path</desc></svg>',
+      ],
+      [
+        "storyboard",
+        '<svg viewBox="0 0 100 100"><title>Flow</title><desc>Reading path</desc></svg>',
+      ],
+    ])
+      expect(parseMarkdownEmbed(`embed:${kind}`, `align: "${align}"\n${body}`)?.align).toBe(align);
+  },
+);
+it("rejects duplicate, unknown and empty article-list alignment", () => {
+  for (const source of [
+    "align: left\nalign: narrow\nhttps://example.com/a",
+    "align: center\nhttps://example.com/a",
+    "align: narrow",
+  ])
+    expect(() => parseMarkdownEmbed("embed:article", source)).toThrow();
+});
+
+it("normalizes workspace url fields to article lists and rejects mixed or duplicate targets", () => {
+  const url = "https://knowledge.you-find.me/articles/%E6%96%87%E7%AB%A0";
+  expect(parseMarkdownEmbed("embed:article", `url: "${url}"\nalign: narrow`)).toEqual({
+    kind: "articleList",
+    urls: [url],
+    align: "narrow",
+  });
+  for (const source of [
+    `url: ${url}\nurl: ${url}`,
+    `url: ${url}\n${url}`,
+    `${url}\nurl: ${url}`,
+    "url:",
+    "url: javascript:alert(1)",
+    "url: https://user:pass@example.com",
+  ])
+    expect(() => parseMarkdownEmbed("embed:article", source)).toThrow();
+});

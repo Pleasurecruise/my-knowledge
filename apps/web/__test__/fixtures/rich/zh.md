@@ -52,7 +52,7 @@ caption: A silent video with an automatic opening-frame preview.
 
 ```embed:media
 type: audio
-src: https://media.example.test/media-preview/audio.wav
+src: https://github.com/fixture/media/blob/main/media-preview/audio.mp3
 title: Audio recording
 caption: A silent recording for playback verification.
 ```

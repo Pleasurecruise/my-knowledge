@@ -10,10 +10,27 @@ export function VegaBlock({ chart, source }: VegaBlockProps) {
     (target: HTMLDivElement) => {
       function render() {
         target.replaceChildren();
+        const style = getComputedStyle(document.documentElement);
+        const text = style.getPropertyValue("--foreground").trim();
+        const border = style.getPropertyValue("--border").trim();
         return embed(target, JSON.parse(source), {
           actions: false,
           renderer: "svg",
-          ...(document.documentElement.dataset.theme === "dark" ? { theme: "dark" } : {}),
+          config: {
+            background: style.getPropertyValue("--background").trim(),
+            font: "Geist",
+            mark: { color: style.getPropertyValue("--primary").trim() },
+            axis: {
+              labelColor: text,
+              titleColor: text,
+              gridColor: border,
+              domainColor: border,
+              tickColor: border,
+            },
+            legend: { labelColor: text, titleColor: text },
+            title: { color: text },
+            view: { stroke: border },
+          },
         });
       }
 

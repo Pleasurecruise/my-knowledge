@@ -1,8 +1,12 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { getPrincipal } from "../auth/owner";
+import { getArticleRow } from "./persistence/document";
+import { articleOrigin } from "./links";
 import { fromHtml } from "hast-util-from-html";
 import { cache } from "react";
 import { z } from "zod";
 import type { MarkdownEmbed } from "@my-knowledge/content";
-import { renderMarkdownEmbed, type CardData } from "@my-knowledge/ui";
+import { renderMarkdownEmbed, type ArticleCard, type CardData } from "@my-knowledge/ui";
 
 const repository = z.object({
   description: z.string().nullable(),
@@ -109,17 +113,24 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
     } satisfies RequestInit;
     if (kind === "link" && !publicLink(address))
       throw new ProviderError("Link must use a public HTTP(S) hostname");
-    let response = await fetch(address.href, options);
-    if (kind === "link") {
-      for (let count = 0; [301, 302, 303, 307, 308].includes(response.status); count++) {
-        const location = response.headers.get("location");
-        await response.body?.cancel();
-        if (count === 5 || location === null || !URL.canParse(location, address))
-          throw new ProviderError("Link redirect is invalid");
-        address = new URL(location, address);
-        if (!publicLink(address)) throw new ProviderError("Link redirect is not public");
+    let response: Response;
+    for (let count = 0; ; count++) {
+      try {
         response = await fetch(address.href, options);
+      } catch (error) {
+        if (error instanceof TypeError || error instanceof DOMException)
+          throw new ProviderError("Provider request failed", { cause: error });
+        throw error;
       }
+      if (kind !== "link" || ![301, 302, 303, 307, 308].includes(response.status)) break;
+      const location = response.headers.get("location");
+      await response.body?.cancel();
+      if (count === 5 || location === null || !URL.canParse(location, address))
+        throw new ProviderError("Link redirect is invalid");
+      address = new URL(location, address);
+      if (!publicLink(address)) throw new ProviderError("Link redirect is not public");
+    }
+    if (kind === "link") {
       const mime = response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
       if (mime !== "text/html" && mime !== "application/xhtml+xml")
         throw new ProviderError("Link response is not HTML");
@@ -151,8 +162,16 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
     }
     const text = new TextDecoder().decode(bytes);
     if (kind === "link") return parseLink(text, address);
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      if (error instanceof SyntaxError)
+        throw new ProviderError("Provider returned invalid JSON", { cause: error });
+      throw error;
+    }
     if (kind === "github") {
-      const item = repository.parse(JSON.parse(text));
+      const item = repository.parse(data);
       return {
         kind,
         description: item.description === null ? "" : item.description,
@@ -163,7 +182,7 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
         issues: item.open_issues_count,
       };
     }
-    const item = chart.parse(JSON.parse(text)).chart.result[0];
+    const item = chart.parse(data).chart.result[0];
     const quote = item?.indicators.quote[0];
     if (!item || !quote) throw new ProviderError("Stock chart is missing");
     const points = item.timestamp
@@ -180,14 +199,7 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
       points,
     };
   } catch (error) {
-    if (
-      !(error instanceof ProviderError) &&
-      !(error instanceof TypeError) &&
-      !(error instanceof SyntaxError) &&
-      !(error instanceof DOMException) &&
-      !(error instanceof z.ZodError)
-    )
-      throw error;
+    if (!(error instanceof ProviderError) && !(error instanceof z.ZodError)) throw error;
     return {
       kind: "error",
       message:
@@ -200,7 +212,37 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
   }
 });
 
+const readArticleCard = cache(async (value: string): Promise<ArticleCard | null> => {
+  const url = new URL(value);
+  const { env } = await getCloudflareContext({ async: true });
+  if (url.origin !== new URL(env.BETTER_AUTH_URL).origin && url.origin !== articleOrigin)
+    return null;
+  const match = /^\/articles\/([^/]+)\/?$/u.exec(url.pathname);
+  if (!match?.[1]) return null;
+  const slug = decodeURIComponent(match[1]);
+  const principal = await getPrincipal();
+  const row = await getArticleRow(env, principal, "slug", slug);
+  return row
+    ? {
+        href: `/articles/${encodeURIComponent(row.slug)}${url.hash}`,
+        title: row.title,
+        description: row.summary,
+      }
+    : null;
+});
+
 export async function readEmbed(embed: MarkdownEmbed) {
+  if (embed.kind === "articleList") {
+    const items: (ArticleCard | null)[] = [];
+    for (let index = 0; index < embed.urls.length; index += 4) {
+      items.push(
+        ...(await Promise.all(
+          embed.urls.slice(index, index + 4).map((url) => readArticleCard(url)),
+        )),
+      );
+    }
+    return renderMarkdownEmbed(embed, { kind: "articleList", items });
+  }
   if (embed.kind === "link") return renderMarkdownEmbed(embed, await readCard("link", embed.url));
   if (embed.kind === "github")
     return renderMarkdownEmbed(embed, await readCard("github", embed.repo));

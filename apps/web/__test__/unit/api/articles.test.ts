@@ -33,7 +33,7 @@ describe("article REST contract", () => {
     });
   });
 
-  it("rejects mixed content and visibility patches", () => {
+  it("accepts content and visibility together in one draft save", () => {
     expect(
       articlePatchSchema.safeParse({
         expectedHash: "a".repeat(64),
@@ -43,7 +43,7 @@ describe("article REST contract", () => {
         tags: [],
         visibility: "private",
       }).success,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("accepts completed Chinese with optional supplied editions", () => {

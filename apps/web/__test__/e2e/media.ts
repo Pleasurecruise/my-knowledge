@@ -6,7 +6,7 @@ export async function serveMedia(page: Page) {
     const name = new URL(route.request().url()).pathname.split("/").at(-1);
     const media = [
       { name: "video.mp4", type: "video/mp4" },
-      { name: "audio.wav", type: "audio/wav" },
+      { name: "audio.mp3", type: "audio/mpeg" },
       { name: "cover.svg", type: "image/svg+xml" },
     ].find((item) => item.name === name);
     if (!media) {

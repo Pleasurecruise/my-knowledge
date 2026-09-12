@@ -1,51 +1,32 @@
 "use client";
 
-import { buttonVariants } from "@my-knowledge/ui/components/button";
-import { House, Library, Network } from "@my-knowledge/ui/icons";
-import Link from "next/link";
+import { Search, Library } from "@my-knowledge/ui/icons";
+import { IntentLink as Link } from "./intent-link";
 import { usePathname } from "next/navigation";
 
 import type { InterfaceMessages } from "@/i18n/registry";
 
 export function PrimaryNavigation({ messages }: { messages: InterfaceMessages["shell"] }) {
   const pathname = usePathname();
-  const articlesActive = pathname.startsWith("/articles");
-  const graphActive = pathname === "/graph";
+  const articlesActive = pathname === "/" || pathname.startsWith("/articles");
 
   return (
-    <nav aria-label={messages.navigation} className="flex items-center gap-1">
-      <Link
-        aria-current={pathname === "/" ? "page" : undefined}
-        className={buttonVariants({
-          size: "sm",
-          variant: pathname === "/" ? "secondary" : "ghost",
-        })}
-        href="/"
-      >
-        <House data-icon="inline-start" />
-        {messages.home}
-      </Link>
+    <nav aria-label={messages.navigation} className="primary-navigation">
       <Link
         aria-current={articlesActive ? "page" : undefined}
-        className={buttonVariants({
-          size: "sm",
-          variant: articlesActive ? "secondary" : "ghost",
-        })}
-        href="/articles"
+        className="primary-navigation-link"
+        href="/"
       >
         <Library data-icon="inline-start" />
         {messages.articles}
       </Link>
       <Link
-        aria-current={graphActive ? "page" : undefined}
-        className={buttonVariants({
-          size: "sm",
-          variant: graphActive ? "secondary" : "ghost",
-        })}
-        href="/graph"
+        aria-current={pathname === "/explore" ? "page" : undefined}
+        className="primary-navigation-link"
+        href="/explore"
       >
-        <Network data-icon="inline-start" />
-        {messages.graph}
+        <Search data-icon="inline-start" />
+        {messages.explore}
       </Link>
     </nav>
   );

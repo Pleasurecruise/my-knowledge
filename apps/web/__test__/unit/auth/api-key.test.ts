@@ -16,7 +16,9 @@ describe("API key", () => {
       getByName(name: string) {
         expect(name).toBe("my-knowledge-api-key");
         return {
-          async fetch(request: Request) {
+          async fetch(url: string, init?: RequestInit) {
+            expect(typeof url).toBe("string");
+            const request = new Request(url, init);
             expect(new URL(request.url).pathname).toBe("/key");
             if (request.method === "GET") {
               return state.apiKeyRecord === null

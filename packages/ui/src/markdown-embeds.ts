@@ -9,7 +9,10 @@ function element(
   return { type: "element", tagName, properties, children };
 }
 
+export type ArticleCard = { href: string; title: string; description: string };
+
 export type CardData =
+  | { kind: "articleList"; items: (ArticleCard | null)[] }
   | {
       kind: "link";
       url: string;
@@ -34,6 +37,47 @@ export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): Elem
   const properties = {
     className: ["markdown-embed", `markdown-embed-${embed.align}`, `markdown-embed-${embed.kind}`],
   };
+  if (embed.kind === "articleList") {
+    return element(
+      "ul",
+      embed.urls.map((_, index) => {
+        const metadata = data?.kind === "articleList" ? data.items[index] : null;
+        const href = metadata?.href;
+        const copy = [
+          element("strong", [{ type: "text", value: metadata?.title ?? "Article unavailable" }]),
+          ...(metadata?.description
+            ? [element("p", [{ type: "text", value: metadata.description }])]
+            : []),
+        ];
+        if (!metadata)
+          copy.push(
+            element("p", [{ type: "text", value: "Article unavailable" }], { role: "status" }),
+          );
+        return element("li", [
+          element(
+            "aside",
+            [
+              href
+                ? element(
+                    "a",
+                    [
+                      element("span", [], {
+                        className: ["article-document-icon"],
+                        ariaHidden: "true",
+                      }),
+                      element("div", copy, { className: ["article-card-copy"] }),
+                    ],
+                    { href, className: ["embed-link"] },
+                  )
+                : element("div", copy),
+            ],
+            { className: ["markdown-embed", "markdown-embed-wide", "markdown-embed-article"] },
+          ),
+        ]);
+      }),
+      { className: ["markdown-article-list", `markdown-embed-${embed.align}`] },
+    );
+  }
   if (data?.kind === "error") {
     const card = renderMarkdownEmbed(embed);
     card.children.push(
@@ -180,13 +224,17 @@ export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): Elem
   }
   switch (embed.kind) {
     case "media": {
+      const mediaSrc = embed.src.replace(
+        /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\//u,
+        "https://raw.githubusercontent.com/$1/$2/",
+      );
       const preview = embed.type === "video" && embed.poster === null;
-      const src = preview && !embed.src.includes("#") ? `${embed.src}#t=0.001` : embed.src;
+      const src = preview && !mediaSrc.includes("#") ? `${mediaSrc}#t=0.001` : mediaSrc;
       const player = element(
         embed.type,
         [
           element("a", [{ type: "text", value: "Open media" }], {
-            href: embed.src,
+            href: mediaSrc,
             target: "_blank",
             rel: ["noopener", "noreferrer"],
           }),

@@ -6,7 +6,7 @@ const CJK_READING_SPEED = 350;
 const LATIN_READING_SPEED = 200;
 const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu;
 
-export function ArticleHeader({ actions, text, title }: ArticleHeaderProps) {
+export function ArticleHeader({ children, text, title }: ArticleHeaderProps) {
   const content = text.trim();
   const cjk = Array.from(content.matchAll(CJK)).length;
   const latinWords = content.replaceAll(CJK, " ").match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g);
@@ -22,13 +22,16 @@ export function ArticleHeader({ actions, text, title }: ArticleHeaderProps) {
   const readingTime = Math.max(1, Math.ceil(cjk / CJK_READING_SPEED + latin / LATIN_READING_SPEED));
 
   return (
-    <div className="flex flex-row flex-wrap items-center gap-x-2 gap-y-1">
-      <header className="min-w-0 flex-1">
-        <h1 className="font-medium text-xl leading-snug tracking-normal text-foreground sm:text-2xl sm:leading-tight">
+    <header className="article-heading">
+      <div className="article-heading-top">
+        <h1 className="font-serif text-[length:var(--text-section)] font-normal leading-[var(--leading-heading)] text-foreground">
           {title}
         </h1>
+        {children}
+      </div>
+      <div className="article-heading-footer">
         {total > 0 ? (
-          <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-none text-muted-foreground sm:text-[0.8125rem]">
+          <div className="article-metadata">
             <span className="inline-flex items-center gap-1">
               <Type className="size-[0.8rem]" strokeWidth={1.8} />
               <span>{contentCount}</span>
@@ -40,8 +43,7 @@ export function ArticleHeader({ actions, text, title }: ArticleHeaderProps) {
             </span>
           </div>
         ) : null}
-      </header>
-      {actions}
-    </div>
+      </div>
+    </header>
   );
 }

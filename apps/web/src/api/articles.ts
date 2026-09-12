@@ -30,7 +30,12 @@ export const articleListQuerySchema = z.object({
 });
 
 export const articlePatchSchema = z.union([
-  articleDraftSchema.extend({ expectedHash: expectedHashSchema }).strict(),
+  articleDraftSchema
+    .extend({
+      expectedHash: expectedHashSchema,
+      visibility: z.enum(["private", "public"]).optional(),
+    })
+    .strict(),
   z.object({ expectedHash: expectedHashSchema, documents: articleDocumentsSchema }).strict(),
   z
     .object({

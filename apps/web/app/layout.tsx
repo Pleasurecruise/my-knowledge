@@ -1,9 +1,11 @@
+import { ReadingTrail } from "@/articles/components/reading-trail";
+import { SiteHeader } from "@/shell/site-header";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { TooltipProvider } from "@my-knowledge/ui/components/tooltip";
 import { themeStorageKey } from "@my-knowledge/ui/lib/theme";
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
+import { IntentLink as Link } from "@/shell/intent-link";
 
 import { AuthAction } from "@/auth/components/auth-action";
 import { ApiKeyAction } from "@/auth/components/api-key-action";
@@ -30,11 +32,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const i18n = await getInterfaceI18n();
+  const [i18n, { env }] = await Promise.all([
+    getInterfaceI18n(),
+    getCloudflareContext({ async: true }),
+  ]);
 
   return (
     <html data-scroll-behavior="smooth" lang={i18n.code} suppressHydrationWarning>
       <head>
+        <link href="/fonts/fonts.css" rel="stylesheet" />
         <link href="/rss.xml" rel="alternate" title="my knowledge RSS" type="application/rss+xml" />
         <script
           dangerouslySetInnerHTML={{
@@ -43,22 +49,34 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body>
-        <TooltipProvider>
-          <header className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 sm:pt-12 lg:px-8">
-            <div className="border-border flex flex-wrap items-center gap-3 border-b pb-5">
-              <Link className="group mr-auto flex min-w-0 items-end gap-3" href="/">
-                <span className="border-border relative size-9 shrink-0 overflow-hidden rounded-md border">
+        <ReadingTrail>
+          <TooltipProvider>
+            <SiteHeader
+              controls={
+                <>
+                  <LanguageAction />
+                  <ApiKeyAction messages={i18n.messages.shell} />
+                  <ThemeAction messages={i18n.messages.shell} />
+                  <AuthAction
+                    googleClientId={env.GOOGLE_CLIENT_ID}
+                    messages={i18n.messages.shell}
+                  />
+                </>
+              }
+            >
+              <Link className="group mr-auto flex min-w-0 items-center gap-3" href="/">
+                <span className="border-border relative size-7 shrink-0 overflow-hidden rounded-md border">
                   <Image
                     alt=""
-                    className="scale-125 object-cover object-[56%_44%] transition-transform group-hover:scale-[1.32]"
+                    className="scale-125 object-cover object-[56%_44%]"
                     fill
                     priority
-                    sizes="36px"
+                    sizes="28px"
                     src="/logo.png"
                   />
                 </span>
                 <span className="min-w-0">
-                  <span className="font-heading block truncate text-xl leading-none font-semibold tracking-[-0.025em]">
+                  <span className="font-serif block truncate text-xl leading-none font-normal">
                     my knowledge
                   </span>
                   <span className="text-muted-foreground mt-1 hidden text-xs sm:block">
@@ -66,19 +84,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                   </span>
                 </span>
               </Link>
-              <div className="order-last w-full sm:order-none sm:w-auto">
+              <div className="site-navigation">
                 <PrimaryNavigation messages={i18n.messages.shell} />
               </div>
-              <div className="flex items-center gap-1">
-                <LanguageAction />
-                <ApiKeyAction messages={i18n.messages.shell} />
-                <ThemeAction messages={i18n.messages.shell} />
-                <AuthAction messages={i18n.messages.shell} />
-              </div>
-            </div>
-          </header>
-          <main>{children}</main>
-        </TooltipProvider>
+            </SiteHeader>
+            <main>{children}</main>
+          </TooltipProvider>
+        </ReadingTrail>
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import {
   serializeArticleDocument,
   translationLocaleSchema,
   type Article,
+  type Visibility,
 } from "@my-knowledge/content";
 
 import { InvalidArticleInputError } from "./application/input-error";
@@ -95,13 +96,13 @@ export async function updateArticleFromDraft(
   env: CloudflareEnv,
   id: string,
   expectedHash: string,
-  draft: ArticleDraft,
+  draft: ArticleDraft & { visibility?: Visibility | undefined },
 ): Promise<ArticleUpdateResult> {
   const current = await getOwnerArticle(env, id);
   if (!current) return { status: "notFound" };
   if (current.contentHash !== expectedHash) return { status: "stale" };
   const document = await parseDraftDocument(draft);
-  const updated = await updateArticle(env, id, expectedHash, document);
+  const updated = await updateArticle(env, id, expectedHash, document, draft.visibility);
   return updated ? { status: "updated", article: updated } : { status: "stale" };
 }
 

@@ -72,7 +72,8 @@ regressed.
 - AI search questions, retrieved context, and generated answers are not stored.
 - Every submitted article starts public. Visibility changes require the shared API credential or the
   allowed-email browser session.
-- The web has Home, Articles, Article, and Graph only. The allowed-email owner may create, edit,
+- The web has Home (article chronology), Explore (search and Graph), and Article only. Legacy
+  Articles and Graph routes redirect to those surfaces. The allowed-email owner may create, edit,
   publish, withdraw, and delete Articles from those existing surfaces; there is no owner dashboard.
 - Anonymous users receive keyword/tag search only. AI search requires the allowed-email session.
 - Article metadata, social images, robots, and sitemap use anonymous authorization and never expose

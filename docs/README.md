@@ -17,6 +17,6 @@ Read the document that owns the question:
 | [Deployment](DEPLOYMENT.md)     | Configuration, credentials, release and recovery             |
 | [References](REFERENCES.md)     | Inspiration and licensing boundaries                         |
 
-Each file contains 100–200 English words and preserves its essential contract. Exact schemas, exhaustive examples, configuration values, and executable commands remain in their owning source, tests, or manifests. Follow links instead of duplicating facts across documents.
+Each file contains 100–200 English words and preserves its essential contract. Exact schemas, exhaustive examples, configuration values, and executable commands remain in their owning source, tests, or manifests.
 
-Rewrite the owning document when behavior changes; merge repetition and remove obsolete statements. Do not append implementation diaries or patch sections. Temporary plans and evidence belong in `.agents`; remove completed plans after acceptance. This index assigns ownership, rather than recording execution status.
+Rewrite the owning document when behavior changes; merge repetition and remove obsolete statements. Do not append implementation diaries or patch sections. Temporary plans and evidence belong in `.agents`; remove completed plans after acceptance.

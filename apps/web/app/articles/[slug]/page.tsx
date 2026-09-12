@@ -1,14 +1,17 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { extractHeadings, parseArticleDocument, resolveLocale } from "@my-knowledge/content";
+import { extractHeadings, readArticleDocument } from "@my-knowledge/content";
 import { Markdown } from "@my-knowledge/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getArticleBySlug, listArticleBacklinks, readEmbed } from "@/articles";
+import { getArticleEdition, getArticleMetadata, listArticleBacklinks, readEmbed } from "@/articles";
+import { articleReturnHref } from "@/articles/navigation";
+import { ArticleLink } from "@/articles/components/article-link";
+import { articleOpenGraphVersion } from "@/articles/components/article-open-graph-card";
 import { ArticleHeader } from "@/articles/components/article-header";
 import { ArticleNavigationActions } from "@/articles/components/article-navigation-actions";
 import { ArticleRelationList } from "@/articles/components/article-relations";
-import { ArticleSide } from "@/articles/components/article-side";
+import { ReferencePosition } from "@/articles/components/referencePosition";
 import { ArticleToc } from "@/articles/components/article-toc";
 import { ArticleEditorShell } from "@/articles/components/editor-shell";
 import { StructuredBlock } from "@/articles/components/structured-block";
@@ -19,12 +22,12 @@ export async function generateMetadata({
   params,
 }: PageProps<"/articles/[slug]">): Promise<Metadata> {
   const [{ slug }, { env }] = await Promise.all([params, getCloudflareContext({ async: true })]);
-  const article = await getArticleBySlug(env, "anonymous", slug);
+  const article = await getArticleMetadata(env, slug);
   if (!article) return { title: "Article not found", robots: { index: false, follow: false } };
   const edition = article.editions.zh;
   const canonical = new URL(`/articles/${article.slug}`, env.BETTER_AUTH_URL);
   const socialImage = new URL(`/articles/${article.slug}/opengraph-image`, env.BETTER_AUTH_URL);
-  socialImage.searchParams.set("v", article.contentHash);
+  socialImage.searchParams.set("v", `${article.contentHash}-${articleOpenGraphVersion}`);
   return {
     title: edition.title,
     description: edition.summary,
@@ -67,13 +70,21 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
     getPrincipal(),
     getInterfaceI18n(),
   ]);
-  const article = await getArticleBySlug(env, principal, slug);
-  if (!article) notFound();
+  const edition = await getArticleEdition(
+    env,
+    principal,
+    slug,
+    principal === "owner" && query.edit === "1" ? "zh" : i18n.code,
+  );
+  if (!edition) notFound();
+  const { article, locale, text } = edition;
+  const returnHref = articleReturnHref(query.from);
+  const context = returnHref === "/" ? "" : `&${new URLSearchParams({ from: returnHref })}`;
   if (principal === "owner" && query.edit === "1") {
-    const zhEdition = article.editions.zh;
-    const document = parseArticleDocument(zhEdition.markdown);
+    const zhEdition = text;
+    const document = readArticleDocument(zhEdition.markdown);
     return (
-      <div className="mx-auto max-w-280 px-4 pt-5 pb-20 sm:px-8 sm:pt-7 sm:pb-24">
+      <div className="page-shell">
         <ArticleEditorShell
           article={{
             body: document.body,
@@ -91,32 +102,28 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
       </div>
     );
   }
-  const locale = resolveLocale(Object.keys(article.editions), i18n.code) ?? "zh";
-  const text = article.editions[locale] ?? article.editions.zh;
   const backlinks = await listArticleBacklinks(env, principal, article);
   const headings = extractHeadings(text.markdown);
   return (
-    <div className="relative mx-auto max-w-280 px-4 pt-5 pb-20 sm:px-8 sm:pt-7 sm:pb-24">
+    <div className="page-shell article-reading-page relative">
       <article
-        className="mx-auto mt-6 min-w-0 w-full max-w-162.5 sm:mt-8"
+        className="mx-auto min-w-0 w-full max-w-(--article-measure)"
         id="article"
         lang={locale === "zh" ? "zh-CN" : locale}
       >
-        <ArticleHeader
-          actions={
+        <div className="article-title-row">
+          <ArticleHeader text={text.markdown} title={text.title}>
             <ArticleNavigationActions
+              returnHref={returnHref}
               edit={
                 principal === "owner"
-                  ? { enabled: true, href: `/articles/${article.slug}?edit=1` }
+                  ? { enabled: true, href: `/articles/${article.slug}?edit=1${context}` }
                   : { enabled: false }
               }
               messages={i18n.messages.article}
-              surface="mobile"
             />
-          }
-          text={text.markdown}
-          title={text.title}
-        />
+          </ArticleHeader>
+        </div>
         {headings.length > 0 ? (
           <ArticleToc
             headings={headings}
@@ -126,6 +133,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
         ) : null}
         <Markdown
           embeds={readEmbed}
+          link={ArticleLink}
           labels={{
             canvas: i18n.messages.article.canvas,
             canvasRelationships: i18n.messages.article.canvasRelationships,
@@ -138,22 +146,16 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
           structuredBlock={StructuredBlock}
           markdown={text.markdown}
         />
-        <div className="mt-16 border-t pt-8">
+        <div className="mt-10 border-t border-dashed pt-6">
+          <ReferencePosition key={`${article.slug}:${locale}`} />
           <ArticleRelationList
+            targetSlug={article.slug}
             articles={backlinks}
             empty={i18n.messages.article.noBacklinks}
             heading={i18n.messages.article.backlinks}
           />
         </div>
       </article>
-      <ArticleSide
-        edit={
-          principal === "owner"
-            ? { enabled: true, href: `/articles/${article.slug}?edit=1` }
-            : { enabled: false }
-        }
-        messages={i18n.messages.article}
-      />
     </div>
   );
 }

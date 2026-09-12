@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export type ArticleHeaderProps = {
-  actions: ReactNode;
+  children: ReactNode;
   text: string;
   title: string;
 };

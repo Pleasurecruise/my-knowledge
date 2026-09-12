@@ -1,9 +1,11 @@
 # Frontend design
 
-Present a quiet personal knowledge blog through typography, open space, hairline separators, and a restrained blue accent. Use the shared cold, low-chroma light/dark tokens and native font stacks. Avoid marketing heroes, promotional cards, dashboard navigation, decorative motion, and duplicated controls. Shared primitives come from Base UI-backed shadcn; ordinary composition uses Tailwind utilities.
+Use Rana’s silver-white/ink surfaces, slate-blue actions, amber metadata and matcha accents. Preserve the icon, fine borders and restrained radii.
 
-Home contains search only. Articles is a compact year/month/day index; New appears for the owner in Chinese. Article uses a centered 650px reading measure, desktop TOC/action rails, and compact phone actions. Graph uses a bounded wide canvas and internally scrollable relationships, without filters. The masthead exposes three destinations plus language, credential, theme, and account actions.
+Bundle Geist, Geist Mono and Lora with licenses. Interface text is 14px; supporting text is 13px. Chinese uses system sans, English uses Lora. Reading text is 15px with 1.7 line height. Reading width is 650px within a 1120px shell. Title blocks have no separator.
 
-Language follows the registry and selects a current article translation. Code and wide tables scroll locally. Media uses native controls, wrapping captions, explicit posters or opening-frame previews, and no autoplay. Missing provider data displays an explicit status and source link.
+Home lists chronological articles. Explore combines search and Graph through compact icon controls. Reading hides the masthead and inherits language/theme settings. Return and owner edit actions share the title row and align vertically. Return follows the tab’s bounded reading trail, survives reloads and excludes creation editors.
 
-Reduced motion disables transitions rather than introducing tiny transitions on static SVG attributes. Verify phone/desktop, themes, locale changes, keyboard access, overflow, and clean consoles. Screenshots and repeatable browser requirements belong to [frontend verification](../.agents/specs/frontend.md).
+Article rows pair document thumbnails with resolved titles and descriptions. Backlinks focus and scroll to the first source reference, including deferred cards. Alignment follows [Content](CONTENT.md). Editors offer rich/source modes and stage visibility in a component select until Save. Keep focus visible, respect reduced motion and hide scrollbars.
+
+Error pages share reading width, calm spacing and clear recovery actions. Social covers use public metadata. Header controls follow language, API key, theme, account order. Authentication failures show transient messages; mutation failures remain retryable. Verify responsive states through the [frontend specification](../.agents/specs/frontend.md).

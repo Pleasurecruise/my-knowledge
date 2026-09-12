@@ -1,5 +1,11 @@
-import { type Article, type ArticleText, parseArticleDocument } from "@my-knowledge/content";
-import { and, eq } from "drizzle-orm";
+import {
+  type Article,
+  type ArticleText,
+  type ArticleSummary,
+  readArticleDocument,
+  resolveLocale,
+} from "@my-knowledge/content";
+import { and, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
 import { readArticleCache, writeArticleCache } from "./cache";
@@ -20,48 +26,103 @@ export async function readArticle(env: CloudflareEnv, row: ArticleRow): Promise<
     );
   const summary = articleSummary(row, translations);
   const entries = await Promise.all(
-    Object.keys(summary.editions).map(async (locale): Promise<[string, ArticleText]> => {
-      if (summary.visibility === "public") {
-        try {
-          const cached = await readArticleCache(
-            env.KNOWLEDGE_CACHE,
-            row.id,
-            row.contentHash,
-            locale,
-          );
-          if (cached) return [locale, cached];
-        } catch (error) {
-          console.error("Article cache read failed", error);
-        }
-      }
-      const object = await env.KNOWLEDGE_BUCKET.get(articleObjectKey(row.id, locale));
-      if (!object) throw new Error(`Canonical ${locale} Markdown is missing for article ${row.id}`);
-      const document = parseArticleDocument(await object.text());
-      const articleText = {
-        title: document.title,
-        summary: document.summary,
-        markdown: document.markdown,
-      };
-      if (summary.visibility === "public") {
-        try {
-          await writeArticleCache(
-            env.KNOWLEDGE_CACHE,
-            row.id,
-            row.contentHash,
-            locale,
-            articleText,
-          );
-        } catch (error) {
-          console.error("Article cache write failed", error);
-        }
-      }
-      return [locale, articleText];
-    }),
+    Object.keys(summary.editions).map(async (locale): Promise<[string, ArticleText]> => [
+      locale,
+      await readArticleText(env, row, locale),
+    ]),
   );
   const editions = Object.fromEntries(entries);
   const zh = editions.zh;
   if (!zh) throw new Error(`Canonical Chinese Markdown is missing for article ${row.id}`);
   return { ...summary, editions: { ...editions, zh } };
+}
+
+export async function readArticleText(
+  env: CloudflareEnv,
+  row: ArticleRow,
+  locale: string,
+): Promise<ArticleText> {
+  if (row.visibility === "public") {
+    const cached = await readArticleCache(env.KNOWLEDGE_CACHE, row.id, row.contentHash, locale);
+    if (cached) return cached;
+  }
+  const object = await env.KNOWLEDGE_BUCKET.get(articleObjectKey(row.id, locale));
+  if (!object) throw new Error(`Canonical ${locale} Markdown is missing for article ${row.id}`);
+  if (
+    object.customMetadata?.contentHash !== undefined &&
+    object.customMetadata.contentHash !== row.contentHash
+  )
+    throw new Error(`Article version changed while reading ${row.id}`);
+  const document = readArticleDocument(await object.text());
+  const articleText = {
+    title: document.title,
+    summary: document.summary,
+    markdown: document.markdown,
+  };
+  if (row.visibility === "public") {
+    await writeArticleCache(env.KNOWLEDGE_CACHE, row.id, row.contentHash, locale, articleText);
+  }
+  return articleText;
+}
+
+export async function localizeArticles(
+  env: CloudflareEnv,
+  summaries: ArticleSummary[],
+  requestedLocale: string,
+): Promise<ArticleSummary[]> {
+  const locale = resolveLocale(["zh", "en", "ja"], requestedLocale) ?? "zh";
+  if ((locale !== "en" && locale !== "ja") || summaries.length === 0) return summaries;
+  const translations = await drizzle(env.DB)
+    .select()
+    .from(articleTranslations)
+    .where(
+      and(
+        eq(articleTranslations.locale, locale),
+        sql`${articleTranslations.articleId} in (select value from json_each(${JSON.stringify(summaries.map(({ id }) => id))}))`,
+      ),
+    );
+  const byId = new Map(translations.map((translation) => [translation.articleId, translation]));
+  return summaries.map((article) => {
+    const translation = byId.get(article.id);
+    if (!translation || translation.sourceHash !== article.contentHash) return article;
+    return {
+      ...article,
+      editions: {
+        ...article.editions,
+        [locale]: { title: translation.title, summary: translation.summary },
+      },
+    };
+  });
+}
+
+export async function getArticleMetadata(env: CloudflareEnv, slug: string) {
+  const row = await getArticleRow(env, "anonymous", "slug", decodeURIComponent(slug));
+  return row ? articleSummary(row) : null;
+}
+
+export async function getArticleEdition(
+  env: CloudflareEnv,
+  principal: Principal,
+  slug: string,
+  requestedLocale: string,
+) {
+  const row = await getArticleRow(env, principal, "slug", decodeURIComponent(slug));
+  if (!row) return null;
+  const translations =
+    requestedLocale === "zh"
+      ? []
+      : await drizzle(env.DB)
+          .select()
+          .from(articleTranslations)
+          .where(
+            and(
+              eq(articleTranslations.articleId, row.id),
+              eq(articleTranslations.sourceHash, row.contentHash),
+            ),
+          );
+  const article = articleSummary(row, translations);
+  const locale = resolveLocale(Object.keys(article.editions), requestedLocale) ?? "zh";
+  return { article, locale, text: await readArticleText(env, row, locale) };
 }
 
 export async function getArticleRow(
@@ -81,18 +142,4 @@ export async function getArticleRow(
 export async function getArticleById(env: CloudflareEnv, principal: Principal, id: string) {
   const row = await getArticleRow(env, principal, "id", id);
   return row ? readArticle(env, row) : undefined;
-}
-
-export async function getArticleBySlug(env: CloudflareEnv, principal: Principal, slug: string) {
-  const row = await getArticleRow(env, principal, "slug", decodeURIComponent(slug));
-  return row ? readArticle(env, row) : null;
-}
-
-export async function hasArticleVersion(
-  env: CloudflareEnv,
-  id: string,
-  expectedHash: string,
-): Promise<boolean> {
-  const row = await getArticleRow(env, "owner", "id", id);
-  return row?.contentHash === expectedHash;
 }

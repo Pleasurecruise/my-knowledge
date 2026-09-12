@@ -5,7 +5,7 @@ import { visit } from "unist-util-visit";
 import { parseMarkdownEmbed } from "./embed";
 import { parse, stringify } from "yaml";
 
-import { extractWikiLinks } from "./links";
+import { extractWikiLinks, extractArticleReferences } from "./links";
 import { frontmatterSchema, jsonCanvasSchema, type ParsedArticleDocument } from "./schema";
 import { canonicalizeTags } from "./tags";
 
@@ -66,6 +66,16 @@ export function validateMarkdown(body: string): void {
 }
 
 export function parseArticleDocument(source: string): ParsedArticleDocument {
+  const document = readArticleDocument(source);
+  validateMarkdown(document.body);
+  return {
+    ...document,
+    links: [...extractWikiLinks(document.body), ...extractArticleReferences(document.body)],
+  };
+}
+
+/** Reads stored content without applying the current submission dialect to existing bodies. */
+export function readArticleDocument(source: string): Omit<ParsedArticleDocument, "links"> {
   const normalized = normalizeLineEndings(source).replace(/^\uFEFF/u, "");
   const lines = normalized.split("\n");
 
@@ -90,7 +100,6 @@ export function parseArticleDocument(source: string): ParsedArticleDocument {
       .join("\n")
       .replace(/^(?:[\t ]*\n)+/u, ""),
   ).trimEnd();
-  validateMarkdown(body);
 
   const canonicalFrontmatter = stringify(
     { title: frontmatter.title, summary: frontmatter.summary, tags },
@@ -103,7 +112,6 @@ export function parseArticleDocument(source: string): ParsedArticleDocument {
     summary: frontmatter.summary,
     tags,
     body,
-    links: extractWikiLinks(body),
     markdown,
   };
 }

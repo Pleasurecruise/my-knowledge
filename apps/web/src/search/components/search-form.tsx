@@ -1,29 +1,29 @@
+import Form from "next/form";
 import { Button } from "@my-knowledge/ui/components/button";
+import { Search, ArrowRight } from "@my-knowledge/ui/icons";
 import { Input } from "@my-knowledge/ui/components/input";
 
 import type { SearchFormProps } from "./search-form.types";
 
 export function SearchForm({ messages, query }: SearchFormProps) {
   return (
-    <form
-      action="/"
-      className="border-border flex flex-col gap-2 border-y py-3 sm:flex-row"
-      role="search"
-    >
+    <Form action="/explore" className="search-field" role="search">
       <label className="sr-only" htmlFor="home-search">
         {messages.articleLabel}
       </label>
+      <Search className="search-field-icon" aria-hidden="true" />
       <Input
-        className="h-12 flex-1 border-transparent bg-transparent px-4 shadow-none focus-visible:border-transparent focus-visible:ring-0"
+        className="search-field-input"
         defaultValue={query}
         id="home-search"
         name="query"
         placeholder={messages.articlePlaceholder}
         type="search"
       />
-      <Button className="h-12 px-6" type="submit">
-        {messages.submit}
+      <Button className="search-field-submit" type="submit">
+        <span>{messages.submit}</span>
+        <ArrowRight aria-hidden="true" />
       </Button>
-    </form>
+    </Form>
   );
 }

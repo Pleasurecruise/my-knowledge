@@ -4,5 +4,3 @@ export type ArticleTocProps = {
   headings: ArticleHeading[];
   label: string;
 };
-
-export type TocPhase = "collapsed" | "expanded" | "revealed";

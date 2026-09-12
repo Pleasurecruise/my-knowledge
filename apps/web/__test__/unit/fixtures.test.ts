@@ -19,7 +19,7 @@ describe("browser fixtures", () => {
     expect(Object.keys(article.editions)).toEqual(["zh", "en", "ja"]);
     expect(article.links).toEqual(["related-article"]);
     expect(article.contentHash).toBe(
-      "67616b110084d21c9953145c75bbf8df02009a41f247e2140c0aebcc8d328319",
+      "86098b9ce5d57f376aed3584f792f10244431f4275a7f1c64ff8e0ee723f1e8a",
     );
   });
 

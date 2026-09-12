@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm types && next dev",
+    "dev": "pnpm preview",
     "build": "pnpm types && next build --webpack",
     "build:worker": "opennextjs-cloudflare build",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "preview": "opennextjs-cloudflare build && wrangler dev --config wrangler.json",
     "seed:local": "node __test__/scripts/seed-local.ts",
     "test:mcp": "node __test__/scripts/mcp-contract.ts http://localhost:8787/api/mcp",
     "dry-run": "wrangler deploy --dry-run --config wrangler.json",
@@ -29,7 +29,7 @@
     "drizzle-orm": "0.45.2",
     "hast-util-from-html": "2.0.3",
     "katex": "0.18.7",
-    "next": "16.3.4",
+    "next": "16.3.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "zod": "4.6.2"
@@ -39,6 +39,6 @@
     "@tailwindcss/postcss": "4.3.3",
     "postcss": "8.5.28",
     "tailwindcss": "4.3.3",
-    "wrangler": "4.131.0"
+    "wrangler": "4.131.1"
   }
 }

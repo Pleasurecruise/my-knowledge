@@ -42,7 +42,7 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/art
   } catch {
     return Response.json({ error: "Invalid article update" }, { status: 422 });
   }
-  if ("visibility" in input) {
+  if (!("body" in input) && !("documents" in input)) {
     const article = await setArticleVisibility(env, id, input.expectedHash, input.visibility);
     return article
       ? Response.json({ article })

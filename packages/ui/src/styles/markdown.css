@@ -1,32 +1,14 @@
 .markdown-body {
-  margin-top: 1.5rem;
-  font-family: var(--type-interface);
-  font-size: 0.95rem;
-  line-height: 1.65;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-.markdown-body:lang(en) {
-  font-family: var(--type-interface);
+  margin-top: 2rem;
+  font-family: var(--type-prose);
+  font-size: var(--text-reading);
+  line-height: var(--leading-reading);
+  overflow-wrap: anywhere;
 }
 
 .markdown-body:lang(ja) {
-  font-family: var(--type-interface);
-  line-height: 1.65;
+  font-family: var(--type-prose-ja);
   hanging-punctuation: first allow-end;
-}
-
-@media (min-width: 40rem) {
-  .markdown-body {
-    margin-top: 2rem;
-    font-size: 1rem;
-    line-height: 1.5;
-  }
-
-  .markdown-body p {
-    text-align: justify;
-  }
 }
 
 .markdown-body h1,
@@ -36,10 +18,10 @@
 .markdown-body h5,
 .markdown-body h6 {
   position: relative;
-  margin: 2em 0 0.6em;
-  line-height: 1.45;
-  font-family: var(--type-interface);
-  font-weight: 600;
+  margin: 1.5em 0 0.625em;
+  line-height: var(--leading-heading);
+  font-family: var(--type-prose);
+  font-weight: 400;
   letter-spacing: normal;
 }
 
@@ -49,12 +31,11 @@
 
 .markdown-body h2 {
   padding-bottom: 0.3em;
-  border-bottom: 1px solid var(--border);
-  font-size: 1.25em;
+  font-size: var(--text-subsection);
 }
 
 .markdown-body h3 {
-  font-size: 1.12em;
+  font-size: var(--text-heading);
 }
 
 .markdown-body h4 {
@@ -89,7 +70,7 @@
 }
 
 .markdown-body li {
-  margin: 0.4em 0;
+  margin: 0.25em 0;
   line-height: 1.7;
 }
 
@@ -111,7 +92,7 @@
 }
 
 .markdown-body strong {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .markdown-body hr {
@@ -125,7 +106,7 @@
   max-width: 100%;
   height: auto;
   margin: 1.5em auto;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 
 .markdown-body a {
@@ -150,16 +131,12 @@
   margin: 1.75em 0;
   padding: 0.875rem 1rem;
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  background: var(--card);
+  border-radius: var(--radius-lg);
+  background: var(--muted);
   font-family: var(--type-code);
   font-size: 0.8125rem;
   line-height: 1.65;
-  scrollbar-width: none;
-}
-
-.markdown-body pre::-webkit-scrollbar {
-  display: none;
+  scrollbar-width: thin;
 }
 
 .markdown-body pre.shiki code {
@@ -167,8 +144,16 @@
   padding-inline: 0;
 }
 
+.markdown-body pre.shiki {
+  background-color: var(--muted) !important;
+  color: var(--foreground);
+}
+
+.markdown-body pre.shiki span {
+  color: color-mix(in srgb, var(--shiki-light) 80%, var(--foreground));
+}
+
 .dark .markdown-body pre.shiki {
-  background-color: var(--shiki-dark-bg) !important;
   color: var(--shiki-dark) !important;
 }
 
@@ -184,7 +169,7 @@
 .markdown-body :not(pre) > code {
   padding: 0.15em 0.4em;
   border: 1px solid var(--border);
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   background: var(--muted);
   font-family: var(--type-code);
   font-size: 0.875em;
@@ -209,8 +194,13 @@
 .markdown-body .callout {
   margin-block: 1.75rem;
   padding: 1rem 1.25rem;
-  border-left: 3px solid var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--card));
+  border-left: 3px solid var(--callout-color, var(--primary));
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  color: var(--foreground);
+  font-family: var(--type-interface);
+  font-size: var(--text-body);
+  font-style: normal;
 }
 
 .structured-block {
@@ -288,15 +278,12 @@
   background-size:
     auto,
     18px 18px;
-  perspective: 1000px;
 }
 
 .canvas-scene {
   width: 100%;
   min-width: 0;
   position: relative;
-  transform: rotateX(3deg) rotateY(-2deg);
-  transform-style: preserve-3d;
 }
 
 .canvas-scene__edges {
@@ -335,18 +322,11 @@
   padding: clamp(0.5rem, 2vw, 1rem);
   border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--border));
   border-radius: var(--radius-md);
-  background: linear-gradient(
-    145deg,
-    var(--card),
-    color-mix(in srgb, var(--accent) 9%, var(--card))
-  );
-  box-shadow:
-    0 0.55rem 0 color-mix(in srgb, var(--accent) 20%, var(--border)),
-    0 1.5rem 2.5rem color-mix(in srgb, var(--foreground) 18%, transparent);
+  background: var(--background);
+  box-shadow: var(--shadow-overlay);
   color: var(--foreground);
   font-family: var(--type-interface);
-  font-weight: 700;
-  transform: translate3d(0, -0.5rem, 2rem);
+  font-weight: 600;
 }
 
 .canvas-nodes span {
@@ -409,15 +389,6 @@
   border-radius: var(--radius-md);
   background: var(--card);
   overflow-wrap: anywhere;
-}
-
-.markdown-embed-left,
-.markdown-embed-right {
-  width: min(100%, 32rem);
-}
-
-.markdown-body .markdown-embed-right {
-  margin-left: auto;
 }
 
 .markdown-embed figcaption {
@@ -620,4 +591,141 @@
   color: var(--muted-foreground);
   font-size: 0.85rem;
   line-height: 1.5;
+}
+
+.markdown-body .callout-tip {
+  --callout-color: var(--success);
+}
+.markdown-body .callout-warning {
+  --callout-color: var(--warning);
+}
+.markdown-body .callout-caution {
+  --callout-color: var(--destructive);
+}
+.markdown-body .callout-important {
+  --callout-color: var(--amber);
+}
+.markdown-body .callout-title {
+  color: var(--callout-color, var(--primary));
+  font-weight: 600;
+}
+.markdown-body .contains-task-list {
+  list-style: none;
+  padding-left: 0;
+}
+.markdown-body .task-list-item input {
+  margin-right: 0.5em;
+  accent-color: var(--primary);
+}
+.markdown-body .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.markdown-body th {
+  background: var(--muted);
+  font-weight: 600;
+}
+.markdown-body .markdown-embed {
+  font-family: var(--type-interface);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+.markdown-body .markdown-article-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.markdown-body .markdown-article-list > li {
+  margin: 0;
+  min-width: 0;
+}
+.markdown-body .markdown-embed-article {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+.markdown-body .markdown-embed-article .embed-link {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  color: var(--foreground);
+  text-decoration: none;
+}
+.markdown-body .markdown-embed-article .embed-link:hover {
+  background: var(--muted);
+}
+.markdown-body .article-card-copy {
+  min-width: 0;
+  flex: 1;
+}
+.markdown-body .article-card-copy strong {
+  display: block;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.markdown-body .article-card-copy p {
+  margin: 0.125rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.article-document-icon {
+  display: block;
+  position: relative;
+  flex: 0 0 2.75rem;
+  height: 3.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--background);
+}
+.article-document-icon::before {
+  content: "";
+  position: absolute;
+  inset: 0.75rem 0.5rem;
+  background: repeating-linear-gradient(to bottom, var(--border) 0 2px, transparent 2px 6px);
+}
+.markdown-body .markdown-embed-article .embed-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.markdown-body :is(.markdown-embed, .markdown-article-list).markdown-embed-left {
+  width: min(100%, 32rem);
+  margin-inline: 0 auto;
+}
+.markdown-body :is(.markdown-embed, .markdown-article-list).markdown-embed-right {
+  width: min(100%, 32rem);
+  margin-inline: auto 0;
+}
+.markdown-body :is(.markdown-embed, .markdown-article-list).markdown-embed-narrow {
+  width: min(100%, 32rem);
+  margin-inline: auto;
+}
+.markdown-body :is(.markdown-embed, .markdown-article-list).markdown-embed-wide {
+  width: 100%;
+}
+
+.markdown-body .markdown-block-error {
+  margin-block: 1.5rem;
+  border-inline-start: 2px solid var(--destructive);
+  padding-inline-start: 1rem;
+}
+.markdown-body .markdown-block-error > [role="alert"] {
+  color: var(--destructive);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+.markdown-body .markdown-block-error > pre {
+  margin-bottom: 0;
 }

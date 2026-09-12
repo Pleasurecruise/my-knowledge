@@ -5,9 +5,8 @@ import { zh } from "./messages/zh";
 export type InterfaceMessages = {
   shell: {
     subtitle: string;
-    home: string;
+    explore: string;
     articles: string;
-    graph: string;
     navigation: string;
     changeLanguage: string;
     theme: string;
@@ -25,13 +24,9 @@ export type InterfaceMessages = {
     apiKeyCopied: string;
     apiKeyCopyFailed: string;
     done: string;
-    checkingSession: string;
     accountMenu: string;
-    signInMenu: string;
     signOut: string;
-    anonymous: string;
-    signInDescription: string;
-    signIn: string;
+    signInUnavailable: string;
     signInFailed: string;
     signOutFailed: string;
   };
@@ -57,9 +52,7 @@ export type InterfaceMessages = {
     previousPage: string;
     allArticles: string;
     backlinks: string;
-    related: string;
-    read: string;
-    backToTop: string;
+    visibility: string;
     private: string;
     public: string;
     delete: string;
@@ -76,8 +69,6 @@ export type InterfaceMessages = {
     renderingDiagram: string;
     tableOfContents: string;
     noBacklinks: string;
-    noRelated: string;
-    relationsUnavailable: string;
     edit: string;
     titleLabel: string;
     bodyLabel: string;
@@ -88,10 +79,6 @@ export type InterfaceMessages = {
     writePlaceholder: string;
     save: string;
     saving: string;
-    saved: string;
-    publish: string;
-    withdraw: string;
-    publishing: string;
     discardTitle: string;
     discardDescription: string;
     discard: string;
@@ -99,10 +86,15 @@ export type InterfaceMessages = {
     deleteNotFound: string;
     deleteFailed: string;
     stale: string;
+    editorMode: string;
+    richText: string;
+    markdownSource: string;
+    sourceRequired: string;
     formatting: string;
     slashCommands: string;
   };
   graph: {
+    all: string;
     title: string;
     description: string;
     links: string;
@@ -121,7 +113,6 @@ export type InterfaceMessages = {
     title: string;
     description: string;
     home: string;
-    articles: string;
     navigation: string;
   };
 };

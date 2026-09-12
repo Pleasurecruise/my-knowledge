@@ -4,6 +4,7 @@ import remarkMath from "remark-math";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { SKIP, visit } from "unist-util-visit";
+import { parseMarkdownEmbed } from "./embed";
 
 export function createSlug(title: string): string {
   const slug = title
@@ -31,6 +32,28 @@ export function extractWikiLinks(markdown: string): string[] {
   });
 
   return [...links];
+}
+
+export function extractArticleReferences(markdown: string): string[] {
+  const references = new Set<string>();
+  const tree = unified().use(remarkParse).parse(markdown);
+  visit(tree, "code", (node) => {
+    if (node.lang?.toLowerCase() !== "embed:article") return;
+    const embed = parseMarkdownEmbed(node.lang, node.value);
+    if (embed?.kind !== "articleList") return;
+    for (const value of embed.urls) {
+      const url = new URL(value);
+      url.hash = "";
+      url.search = "";
+      url.pathname = url.pathname
+        .split("/")
+        .map((segment) => encodeURIComponent(decodeURIComponent(segment)))
+        .join("/")
+        .replace(/\/$/u, "");
+      references.add(url.href);
+    }
+  });
+  return [...references];
 }
 
 export type ArticleHeading = { depth: number; title: string; id: string };

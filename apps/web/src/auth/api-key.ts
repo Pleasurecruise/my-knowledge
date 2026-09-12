@@ -10,13 +10,13 @@ export const apiKeyRecordSchema = z.object({
 });
 
 export interface ApiKeyNamespace {
-  getByName(name: string): { fetch(request: Request): Promise<Response> };
+  getByName(name: string): { fetch(url: string, init?: RequestInit): Promise<Response> };
 }
 
 type ApiKeyStatus = { configured: false } | { configured: true; createdAt: string };
 
 export async function getApiKeyStatus(namespace: ApiKeyNamespace): Promise<ApiKeyStatus> {
-  const response = await namespace.getByName(API_KEY_INSTANCE).fetch(new Request(API_KEY_URL));
+  const response = await namespace.getByName(API_KEY_INSTANCE).fetch(API_KEY_URL);
   if (response.status === 404) return { configured: false };
   if (!response.ok) throw new Error(`API key read failed with status ${response.status}.`);
   const apiKeyRecord = apiKeyRecordSchema.parse(await response.json());
@@ -39,13 +39,11 @@ export async function generateApiKey(namespace: ApiKeyNamespace) {
     ).join(""),
     createdAt: new Date().toISOString(),
   };
-  const response = await namespace.getByName(API_KEY_INSTANCE).fetch(
-    new Request(API_KEY_URL, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(apiKeyRecord),
-    }),
-  );
+  const response = await namespace.getByName(API_KEY_INSTANCE).fetch(API_KEY_URL, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(apiKeyRecord),
+  });
   if (!response.ok) throw new Error(`API key write failed with status ${response.status}.`);
   return { apiKey, createdAt: apiKeyRecord.createdAt };
 }
@@ -56,7 +54,7 @@ export async function verifyApiKey(request: Request, namespace: ApiKeyNamespace)
   if (!authorization.startsWith("Bearer ")) return false;
   const supplied = authorization.slice(7);
   if (!supplied) return false;
-  const response = await namespace.getByName(API_KEY_INSTANCE).fetch(new Request(API_KEY_URL));
+  const response = await namespace.getByName(API_KEY_INSTANCE).fetch(API_KEY_URL);
   if (response.status === 404) return false;
   if (!response.ok) throw new Error(`API key read failed with status ${response.status}.`);
   const apiKeyRecord = apiKeyRecordSchema.parse(await response.json());

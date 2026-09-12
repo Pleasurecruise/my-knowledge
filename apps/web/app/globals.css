@@ -1,6 +1,7 @@
 @import "katex/dist/katex.min.css";
 @import "@my-knowledge/ui/styles.css";
 @import "./styles/graph.css";
+@import "./styles/layout.css";
 
 @layer components {
   .tiptap {
@@ -35,7 +36,7 @@
   .tiptap h6 {
     margin-top: 2em;
     margin-bottom: 0.6em;
-    font-family: var(--type-heading);
+    font-family: var(--type-prose);
     font-weight: 600;
     line-height: 1.4;
   }
@@ -78,7 +79,7 @@
     padding: 1rem;
   }
   .tiptap code {
-    font-family: var(--type-mono);
+    font-family: var(--type-code);
     font-size: 0.875em;
   }
   .tiptap :not(pre) > code {

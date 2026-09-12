@@ -2,11 +2,14 @@ import type { Element } from "hast";
 import { fromHtml } from "hast-util-from-html";
 import { sanitize } from "hast-util-sanitize";
 
-type Alignment = "left" | "right" | "wide";
+export class MarkdownEmbedError extends Error {}
+
+type Alignment = "left" | "right" | "wide" | "narrow";
 export type MarkdownEmbed = { align: Alignment } & (
   | { kind: "github"; repo: string }
   | { kind: "stock"; code: string }
   | { kind: "link"; url: string }
+  | { kind: "articleList"; urls: string[] }
   | {
       kind: "media";
       type: "audio" | "video";
@@ -25,8 +28,8 @@ export type MarkdownEmbed = { align: Alignment } & (
 );
 
 function parseAlignment(value = "wide"): Alignment {
-  if (value === "left" || value === "right" || value === "wide") return value;
-  throw new Error("Embed alignment must be left, right, or wide");
+  if (value === "left" || value === "right" || value === "wide" || value === "narrow") return value;
+  throw new MarkdownEmbedError("Embed alignment must be left, right, wide, or narrow");
 }
 
 function parseFields(source: string): [string, string][] {
@@ -39,7 +42,7 @@ function parseFields(source: string): [string, string][] {
       .trim()
       .replace(/^(["'])(.*)\1$/u, "$2");
     if (separator < 1 || !field || !value) {
-      throw new Error(`Embed line ${index + 1} requires field: value`);
+      throw new MarkdownEmbedError(`Embed line ${index + 1} requires field: value`);
     }
     return [[field, value]];
   });
@@ -50,7 +53,7 @@ function parseCanvas(source: string): Element {
   const nodes = tree.children.filter((node) => node.type !== "text" || node.value.trim());
   const svg = nodes[0];
   if (nodes.length !== 1 || svg?.type !== "element" || svg.tagName !== "svg") {
-    throw new Error("Embed canvas requires one SVG document");
+    throw new MarkdownEmbedError("Embed canvas requires one SVG document");
   }
   const clean = sanitize(svg, {
     tagNames: [
@@ -110,7 +113,7 @@ function parseCanvas(source: string): Element {
     },
   });
   if (clean.type !== "element" || !clean.properties.viewBox) {
-    throw new Error("Embed SVG requires a viewBox");
+    throw new MarkdownEmbedError("Embed SVG requires a viewBox");
   }
   for (const name of ["title", "desc"]) {
     if (
@@ -121,7 +124,7 @@ function parseCanvas(source: string): Element {
           node.children.some((child) => child.type === "text" && child.value.trim()),
       )
     ) {
-      throw new Error("Embed SVG requires nonempty title and desc elements");
+      throw new MarkdownEmbedError("Embed SVG requires nonempty title and desc elements");
     }
   }
   clean.properties.role = "img";
@@ -137,12 +140,49 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
       "embed:github",
       "embed:stock",
       "embed:link",
+      "embed:article",
       "embed:media",
       "embed:architecture",
       "embed:storyboard",
     ].includes(kind)
   ) {
-    throw new Error(`Unsupported embed kind: ${language}`);
+    throw new MarkdownEmbedError(`Unsupported embed kind: ${language}`);
+  }
+  if (kind === "embed:article") {
+    const lines = source
+      .split(/\r?\n/u)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    let align: Alignment | undefined;
+    const urls: string[] = [];
+    let usesUrlField = false;
+    for (const line of lines) {
+      if (/^align\s*:/u.test(line)) {
+        if (align !== undefined)
+          throw new MarkdownEmbedError("Duplicate embed:article field: align");
+        align = parseAlignment(parseFields(line)[0]?.[1]);
+        continue;
+      }
+      const isUrlField = /^url\s*:/u.test(line);
+      if ((isUrlField && urls.length > 0) || (!isUrlField && usesUrlField))
+        throw new MarkdownEmbedError("Article fences require one url field or a URL list");
+      usesUrlField = isUrlField;
+      const value = isUrlField ? parseFields(line)[0]?.[1] : line.replace(/^[-*+]\s+/u, "");
+      if (!value || !URL.canParse(value) || /[\s\p{Cc}]/u.test(value))
+        throw new MarkdownEmbedError("Invalid article list URL");
+      const url = new URL(value);
+      if (
+        !["http:", "https:"].includes(url.protocol) ||
+        !url.hostname ||
+        url.username ||
+        url.password
+      )
+        throw new MarkdownEmbedError("Article URL must use HTTP(S) without credentials");
+      urls.push(url.href);
+    }
+    if (urls.length === 0 || urls.length > 50)
+      throw new MarkdownEmbedError("Article lists require 1–50 URLs");
+    return { kind: "articleList", align: align ?? "wide", urls };
   }
   if (kind === "embed:architecture" || kind === "embed:storyboard") {
     const lines = source.trim().split(/\r?\n/u);
@@ -166,7 +206,7 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
         .filter(Boolean);
       const header = diagram.shift();
       if ((header !== "flowchart LR" && header !== "graph LR") || diagram.length === 0) {
-        throw new Error(
+        throw new MarkdownEmbedError(
           "Architecture requires an SVG canvas or a flowchart LR diagram with an edge",
         );
       }
@@ -175,23 +215,25 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
       for (const edge of diagram) {
         const endpoints = edge.split("-->").map((node) => node.trim());
         if (endpoints.length !== 2) {
-          throw new Error("Architecture edges require node --> node, with optional [labels]");
+          throw new MarkdownEmbedError(
+            "Architecture edges require node --> node, with optional [labels]",
+          );
         }
         const parsed = endpoints.map((value) => {
           const match = /^([^\][\n]+?)(?:\[([^\][\n]+)\])?$/u.exec(value);
           const id = match?.[1]?.trim();
           const label = match?.[2]?.trim();
           if (!id || (match?.[2] !== undefined && !label))
-            throw new Error("Architecture nodes require a nonempty ID and label");
+            throw new MarkdownEmbedError("Architecture nodes require a nonempty ID and label");
           const node = { id, label: label === undefined ? id : label };
           if (!nodes.has(id)) nodes.set(id, node);
           return node;
         });
         const [from, to] = parsed;
-        if (!from || !to) throw new Error("Architecture edge endpoints are missing");
+        if (!from || !to) throw new MarkdownEmbedError("Architecture edge endpoints are missing");
         edges.push({ from: from.id, to: to.id });
       }
-      if (nodes.size < 2) throw new Error("Architecture requires at least two nodes");
+      if (nodes.size < 2) throw new MarkdownEmbedError("Architecture requires at least two nodes");
       return { kind: "architecture", align, nodes: [...nodes.values()], edges };
     }
   }
@@ -208,28 +250,31 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
             ? ["type", "src", "poster", "title", "caption", "align"]
             : ["title", "step", "align"];
   for (const [field, value] of parseFields(source)) {
-    if (!allowed.includes(field)) throw new Error(`Unsupported ${kind} field: ${field}`);
+    if (!allowed.includes(field))
+      throw new MarkdownEmbedError(`Unsupported ${kind} field: ${field}`);
     if (field === "step") {
       const separator = value.indexOf("|");
       const heading = value.slice(0, separator).trim();
       const body = value.slice(separator + 1).trim();
       if (separator < 1 || !heading || !body)
-        throw new Error("Storyboard steps require heading | description");
+        throw new MarkdownEmbedError("Storyboard steps require heading | description");
       steps.push({ heading, body });
     } else {
-      if (fields.has(field)) throw new Error(`Duplicate embed field: ${field}`);
+      if (fields.has(field)) throw new MarkdownEmbedError(`Duplicate embed field: ${field}`);
       fields.set(field, value);
     }
   }
   const align = parseAlignment(fields.get("align"));
   if (kind === "embed:media") {
     const type = fields.get("type");
-    if (type !== "audio" && type !== "video") throw new Error("Media type must be audio or video");
+    if (type !== "audio" && type !== "video")
+      throw new MarkdownEmbedError("Media type must be audio or video");
     const source = fields.get("src");
-    if (!source) throw new Error("Media requires a src field");
+    if (!source) throw new MarkdownEmbedError("Media requires a src field");
     const src = parseMediaSource(source);
     const image = fields.get("poster");
-    if (type === "audio" && image !== undefined) throw new Error("Only video supports a poster");
+    if (type === "audio" && image !== undefined)
+      throw new MarkdownEmbedError("Only video supports a poster");
     const poster = image === undefined ? null : parseMediaSource(image);
     const title = fields.get("title");
     const caption = fields.get("caption");
@@ -245,10 +290,11 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
   }
   if (kind === "embed:link") {
     const value = fields.get("url");
-    if (!value || !URL.canParse(value)) throw new Error("Link embeds require a valid HTTP(S) URL");
+    if (!value || !URL.canParse(value))
+      throw new MarkdownEmbedError("Link embeds require a valid HTTP(S) URL");
     const url = new URL(value);
     if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
-      throw new Error("Link embeds require an HTTP(S) URL without credentials");
+      throw new MarkdownEmbedError("Link embeds require an HTTP(S) URL without credentials");
     }
     return { kind: "link", align, url: url.href };
   }
@@ -259,25 +305,25 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
       !/^[\w.-]{1,39}\/[\w.-]{1,100}$/u.test(repo) ||
       repo.split("/").some((part) => part === "." || part === "..")
     ) {
-      throw new Error("GitHub embeds require repo: owner/name");
+      throw new MarkdownEmbedError("GitHub embeds require repo: owner/name");
     }
     return { kind: "github", align, repo };
   }
   if (kind === "embed:stock") {
     const code = fields.get("code")?.toUpperCase();
     if (!code || !/^[A-Z0-9.^=:-]{1,20}$/u.test(code))
-      throw new Error("Stock embeds require a valid code field");
+      throw new MarkdownEmbedError("Stock embeds require a valid code field");
     return { kind: "stock", align, code };
   }
   const title = fields.get("title");
   if (!title || steps.length < 2 || steps.length > 6)
-    throw new Error("Storyboard requires a title and two to six steps");
+    throw new MarkdownEmbedError("Storyboard requires a title and two to six steps");
   return { kind: "storyboard", align, title, steps };
 }
 
 function parseMediaSource(value: string): string {
   if (!value || /[\p{Cc}\\]/u.test(value)) {
-    throw new Error("Media requires an HTTP(S) URL or document-relative asset path");
+    throw new MarkdownEmbedError("Media requires an HTTP(S) URL or document-relative asset path");
   }
   if (URL.canParse(value)) {
     const url = new URL(value);
@@ -287,7 +333,7 @@ function parseMediaSource(value: string): string {
       url.username ||
       url.password
     ) {
-      throw new Error("Media requires an HTTP(S) URL without credentials");
+      throw new MarkdownEmbedError("Media requires an HTTP(S) URL without credentials");
     }
     return url.href;
   }
@@ -297,7 +343,7 @@ function parseMediaSource(value: string): string {
     value.startsWith("~") ||
     /[?#]/u.test(value)
   ) {
-    throw new Error("Local media requires a document-relative asset path");
+    throw new MarkdownEmbedError("Local media requires a document-relative asset path");
   }
   return Array.from(value, (character) =>
     /[\u0020"<>`{}\u0080-\u{10ffff}]/u.test(character) ? encodeURIComponent(character) : character,

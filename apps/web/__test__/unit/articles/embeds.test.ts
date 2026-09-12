@@ -1,7 +1,21 @@
 import { afterEach, expect, it, vi } from "vite-plus/test";
 import { readEmbed } from "../../../src/articles/embeds";
 
-afterEach(() => vi.unstubAllGlobals());
+const articleRow = vi.hoisted(() => vi.fn());
+const principal = vi.hoisted(() => vi.fn());
+vi.mock("@opennextjs/cloudflare", () => ({
+  getCloudflareContext: vi.fn(async () => ({
+    env: { BETTER_AUTH_URL: "https://knowledge.you-find.me" },
+  })),
+}));
+vi.mock("../../../src/auth/owner", () => ({ getPrincipal: principal }));
+vi.mock("../../../src/articles/persistence/document", () => ({ getArticleRow: articleRow }));
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  articleRow.mockReset();
+  principal.mockReset();
+});
 
 it("renders repository metadata and aligns stock prices with their trading dates", async () => {
   const fetcher = vi
@@ -154,4 +168,112 @@ it("renders media without fetching it through the provider boundary", async () =
   expect(fetcher).not.toHaveBeenCalled();
   expect(JSON.stringify(result)).toContain('"src":"https://example.com/demo.mp4#t=0.001"');
   expect(JSON.stringify(result)).toContain('"controls":true');
+});
+
+it("resolves same-site URLs to authorized web slugs without a provider fetch", async () => {
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  principal.mockResolvedValue("owner");
+  articleRow.mockResolvedValue({
+    slug: "real-web-slug",
+    title: "Automatic title",
+    summary: "Automatic summary",
+  });
+  const result = await readEmbed({
+    kind: "articleList",
+    align: "wide",
+    urls: ["https://knowledge.you-find.me/articles/article-123"],
+  });
+  expect(articleRow).toHaveBeenCalledWith(
+    { BETTER_AUTH_URL: "https://knowledge.you-find.me" },
+    "owner",
+    "slug",
+    "article-123",
+  );
+  const text = JSON.stringify(result);
+  expect(text).toContain('"href":"/articles/real-web-slug"');
+  expect(text).not.toContain('"target":"_blank"');
+  expect(text).toContain('"type":"text","value":"Automatic title"');
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it("keeps missing or unauthorized article targets non-clickable", async () => {
+  principal.mockResolvedValue("anonymous");
+  articleRow.mockResolvedValue(undefined);
+  const result = await readEmbed({
+    kind: "articleList",
+    align: "wide",
+    urls: ["https://knowledge.you-find.me/articles/private-id"],
+  });
+  expect(articleRow).toHaveBeenCalledWith(
+    { BETTER_AUTH_URL: "https://knowledge.you-find.me" },
+    "anonymous",
+    "slug",
+    "private-id",
+  );
+  expect(JSON.stringify(result)).toContain("Article unavailable");
+  expect(JSON.stringify(result)).not.toContain('"href"');
+});
+
+it.each([
+  "https://example.com/story",
+  "https://example.com/articles/real-slug",
+  "https://example.com/articles/%FF",
+  "https://knowledge.you-find.me.example.com/articles/real-slug",
+  "https://knowledge.you-find.me/explore",
+])("does not fetch or link unsupported article target %s", async (url) => {
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  const result = await readEmbed({ kind: "articleList", align: "narrow", urls: [url] });
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(articleRow).not.toHaveBeenCalled();
+  expect(JSON.stringify(result)).not.toContain('"href"');
+  expect(JSON.stringify(result)).not.toContain(url);
+});
+
+it("resolves article-list URLs through authorized metadata and web routes", async () => {
+  principal.mockResolvedValue("anonymous");
+  articleRow
+    .mockResolvedValueOnce({
+      slug: "real-slug",
+      title: "Readable article",
+      summary: "Its description",
+    })
+    .mockResolvedValueOnce(undefined);
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  const tree = await readEmbed({
+    kind: "articleList",
+    align: "wide",
+    urls: [
+      "https://knowledge.you-find.me/articles/real-slug",
+      "https://knowledge.you-find.me/articles/private-slug",
+    ],
+  });
+  const text = JSON.stringify(tree);
+  expect(text).toContain("Readable article");
+  expect(text).toContain("Its description");
+  expect(text).toContain('"href":"/articles/real-slug"');
+  expect(text).not.toContain('"target":"_blank"');
+  expect(text).not.toContain("private-slug");
+  expect(text).toContain("Article unavailable");
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it("reports fetch transport failures but propagates TypeErrors outside the request boundary", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Network failure")));
+  expect(
+    JSON.stringify(
+      await readEmbed({ kind: "link", url: "https://example.com/network", align: "left" }),
+    ),
+  ).toContain("Link preview is unavailable");
+  const response = new Response("<html></html>");
+  const error = new TypeError("Broken processing");
+  vi.spyOn(response.headers, "get").mockImplementation(() => {
+    throw error;
+  });
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+  await expect(
+    readEmbed({ kind: "link", url: "https://example.com/processing", align: "narrow" }),
+  ).rejects.toBe(error);
 });

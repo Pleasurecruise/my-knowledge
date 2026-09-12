@@ -1,5 +1,6 @@
+export { articleLinkTargets } from "./links";
 export { readEmbed } from "./embeds";
-export { getArticleBySlug } from "./persistence/document";
+export { getArticleEdition, getArticleMetadata, localizeArticles } from "./persistence/document";
 export { listArticleBacklinks } from "./persistence/relations";
 export {
   listArticles,
