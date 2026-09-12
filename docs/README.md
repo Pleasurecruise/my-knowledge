@@ -1,21 +1,22 @@
 # Documentation
 
-Status: Current index for the implemented local release
+Read the document that owns the question:
 
-Read only the document that owns the question:
+| Document                        | Core contract                                                |
+| ------------------------------- | ------------------------------------------------------------ |
+| [Product](PRODUCT.md)           | Surfaces, access, publication, release scope                 |
+| [Architecture](ARCHITECTURE.md) | Workspaces, runtime, dependency and authorization boundaries |
+| [Content](CONTENT.md)           | Editions, Markdown dialect, media, rendering semantics       |
+| [Database](DATABASE.md)         | Persistence authority, concurrency, write and cleanup order  |
+| [Workflows](WORKFLOWS.md)       | Ingestion, authoring, discovery, failure behavior            |
+| [Design](DESIGN.md)             | Page composition, shared tokens, accessibility               |
+| [Engineering](ENGINEERING.md)   | Code, dependencies, naming, documentation rules              |
+| [Testing](TESTING.md)           | Test boundaries, fixtures, evidence, release gates           |
+| [API](API.md)                   | REST resources and credential lifecycle                      |
+| [MCP](MCP.md)                   | Transport, tools, compatibility                              |
+| [Deployment](DEPLOYMENT.md)     | Configuration, credentials, release and recovery             |
+| [References](REFERENCES.md)     | Inspiration and licensing boundaries                         |
 
-- [Product](PRODUCT.md): users, product outcome, content model, and release boundary.
-- [Architecture](ARCHITECTURE.md): technical stack, modules, data authority, security, and runtime.
-- [Content](CONTENT.md): Chinese article DTO, Markdown, frontmatter, and supported source forms.
-- [Database](DATABASE.md): D1 schema, R2 keys, normalization, indexes, and mutation order.
-- [Workflows](WORKFLOWS.md): direct creation, comparison, MCP CRUD, and web discovery.
-- [Design](DESIGN.md): visual direction, tokens, page composition, components, and accessibility.
-- [Engineering](ENGINEERING.md): coding rules, naming, boundaries, security, and verification.
-- [Testing](TESTING.md): unit, integration, contract, E2E, evaluation, and release evidence.
-- [MCP](MCP.md): authentication, dual-protocol transport, simple tools, and contract tests.
-- [API](API.md): owner API-key lifecycle and article REST resources.
-- [Deployment](DEPLOYMENT.md): Cloudflare dependencies, bindings, environments, and commands.
-- [References](REFERENCES.md): inspiration, external sources, and reuse policy.
+Each file contains 100–200 English words and preserves its essential contract. Exact schemas, exhaustive examples, configuration values, and executable commands remain in their owning source, tests, or manifests. Follow links instead of duplicating facts across documents.
 
-One fact has one owner. Other documents link to it instead of copying it. Add another document only
-when none of these owners can absorb the content clearly.
+Rewrite the owning document when behavior changes; merge repetition and remove obsolete statements. Do not append implementation diaries or patch sections. Temporary plans and evidence belong in `.agents`; remove completed plans after acceptance. This index assigns ownership, rather than recording execution status.

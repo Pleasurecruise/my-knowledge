@@ -600,3 +600,24 @@
   margin: 0;
   border-radius: var(--radius-md);
 }
+
+.markdown-embed-media {
+  display: grid;
+  gap: 0.75rem;
+}
+.markdown-embed-media > audio,
+.markdown-embed-media > video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+}
+.markdown-embed-media > video {
+  max-height: 36rem;
+}
+.markdown-embed-media > figcaption {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}

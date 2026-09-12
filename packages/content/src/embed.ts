@@ -8,6 +8,14 @@ export type MarkdownEmbed = { align: Alignment } & (
   | { kind: "stock"; code: string }
   | { kind: "link"; url: string }
   | {
+      kind: "media";
+      type: "audio" | "video";
+      src: string;
+      poster: string | null;
+      title: string;
+      caption: string | null;
+    }
+  | {
       kind: "architecture";
       nodes: { id: string; label: string }[];
       edges: { from: string; to: string }[];
@@ -129,6 +137,7 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
       "embed:github",
       "embed:stock",
       "embed:link",
+      "embed:media",
       "embed:architecture",
       "embed:storyboard",
     ].includes(kind)
@@ -195,7 +204,9 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
         ? ["repo", "align"]
         : kind === "embed:stock"
           ? ["code", "align"]
-          : ["title", "step", "align"];
+          : kind === "embed:media"
+            ? ["type", "src", "poster", "title", "caption", "align"]
+            : ["title", "step", "align"];
   for (const [field, value] of parseFields(source)) {
     if (!allowed.includes(field)) throw new Error(`Unsupported ${kind} field: ${field}`);
     if (field === "step") {
@@ -211,6 +222,27 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
     }
   }
   const align = parseAlignment(fields.get("align"));
+  if (kind === "embed:media") {
+    const type = fields.get("type");
+    if (type !== "audio" && type !== "video") throw new Error("Media type must be audio or video");
+    const source = fields.get("src");
+    if (!source) throw new Error("Media requires a src field");
+    const src = parseMediaSource(source);
+    const image = fields.get("poster");
+    if (type === "audio" && image !== undefined) throw new Error("Only video supports a poster");
+    const poster = image === undefined ? null : parseMediaSource(image);
+    const title = fields.get("title");
+    const caption = fields.get("caption");
+    return {
+      kind: "media",
+      type,
+      src,
+      poster,
+      align,
+      title: title === undefined ? (type === "audio" ? "Audio player" : "Video player") : title,
+      caption: caption === undefined ? null : caption,
+    };
+  }
   if (kind === "embed:link") {
     const value = fields.get("url");
     if (!value || !URL.canParse(value)) throw new Error("Link embeds require a valid HTTP(S) URL");
@@ -241,4 +273,33 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
   if (!title || steps.length < 2 || steps.length > 6)
     throw new Error("Storyboard requires a title and two to six steps");
   return { kind: "storyboard", align, title, steps };
+}
+
+function parseMediaSource(value: string): string {
+  if (!value || /[\p{Cc}\\]/u.test(value)) {
+    throw new Error("Media requires an HTTP(S) URL or document-relative asset path");
+  }
+  if (URL.canParse(value)) {
+    const url = new URL(value);
+    if (
+      !["https:", "http:"].includes(url.protocol) ||
+      !url.hostname ||
+      url.username ||
+      url.password
+    ) {
+      throw new Error("Media requires an HTTP(S) URL without credentials");
+    }
+    return url.href;
+  }
+  if (
+    /^[a-z][a-z\d+.-]*:/iu.test(value) ||
+    value.startsWith("/") ||
+    value.startsWith("~") ||
+    /[?#]/u.test(value)
+  ) {
+    throw new Error("Local media requires a document-relative asset path");
+  }
+  return Array.from(value, (character) =>
+    /[\u0020"<>`{}\u0080-\u{10ffff}]/u.test(character) ? encodeURIComponent(character) : character,
+  ).join("");
 }

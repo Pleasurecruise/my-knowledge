@@ -138,3 +138,20 @@ it("rejects local links and redirects before fetching their destination", async 
   ).toContain("Link preview is unavailable");
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it("renders media without fetching it through the provider boundary", async () => {
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  const result = await readEmbed({
+    kind: "media",
+    type: "video",
+    src: "https://example.com/demo.mp4",
+    poster: null,
+    title: "Demo",
+    caption: null,
+    align: "wide",
+  });
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(JSON.stringify(result)).toContain('"src":"https://example.com/demo.mp4#t=0.001"');
+  expect(JSON.stringify(result)).toContain('"controls":true');
+});

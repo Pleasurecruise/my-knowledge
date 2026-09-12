@@ -1,3 +1,6 @@
+import remarkFrontmatter from "remark-frontmatter";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { SKIP, visit } from "unist-util-visit";
@@ -34,12 +37,18 @@ export type ArticleHeading = { depth: number; title: string; id: string };
 
 export function extractHeadings(markdown: string): ArticleHeading[] {
   const headings: ArticleHeading[] = [];
-  const counts = new Map<string, number>();
-  const tree = unified().use(remarkParse).parse(markdown);
+  const ids = new Set<string>();
+  const tree = unified()
+    .use(remarkParse)
+    .use(remarkFrontmatter, ["yaml"])
+    .use(remarkGfm)
+    .use(remarkMath)
+    .parse(markdown);
   visit(tree, "heading", (node) => {
     let title = "";
     visit(node, (child) => {
-      if (child.type === "text" || child.type === "inlineCode") title += child.value;
+      if (child.type === "text" || child.type === "inlineCode" || child.type === "inlineMath")
+        title += child.value;
       if (child.type === "image" && child.alt) title += child.alt;
     });
     title = title
@@ -48,12 +57,11 @@ export function extractHeadings(markdown: string): ArticleHeading[] {
         (_, target: string, label: string | undefined) => (label || target).trim(),
       )
       .trim();
-    if (!title) return;
-    const base = createSlug(title);
-    const previousCount = counts.get(base);
-    const count = previousCount === undefined ? 1 : previousCount + 1;
-    counts.set(base, count);
-    headings.push({ depth: node.depth, title, id: count === 1 ? base : `${base}-${count}` });
+    const base = /[\p{L}\p{N}]/u.test(title) ? createSlug(title) : "section";
+    let id = base;
+    for (let count = 2; ids.has(id); count += 1) id = `${base}-${count}`;
+    ids.add(id);
+    headings.push({ depth: node.depth, title: title || "Section", id });
   });
   return headings;
 }

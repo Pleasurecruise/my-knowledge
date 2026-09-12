@@ -1,94 +1,13 @@
 # Deployment
 
-Status: Worker and rebuilt D1 deployed; interactive Google callback smoke remains
+OpenNext produces one request-only Worker. `apps/web/wrangler.json` owns DB, Markdown bucket, cache, AI Search, API-key Durable Object, assets, and domain bindings. Create only missing resources; existing shared resources require an explicit ownership decision.
 
-OpenNext builds one request-only Worker. Content generation and translation run in the owner's local
-workflow and are not deployment resources. Wrangler owns bindings, variables, secrets, migrations,
-preview, and deployment.
-
-## Platform bindings
-
-| Binding            | Resource                     | Purpose                   |
-| :----------------- | :--------------------------- | :------------------------ |
-| `DB`               | Configured D1 database       | Article index and auth    |
-| `KNOWLEDGE_BUCKET` | Dedicated or approved shared | Article Markdown          |
-| `KNOWLEDGE_CACHE`  | `my-knowledge` KV            | Article caches            |
-| `AI_SEARCH`        | `default` namespace          | Chinese article retrieval |
-| `API_KEY`          | Durable Object               | This project's API key    |
-
-Create only missing resources. Keep a different R2 bucket name in `wrangler.json` only when sharing
-that bucket is an explicit decision. AI Search holds canonical Chinese items only; every result is
-re-authorized through D1.
-
-```text
-pnpm --filter @my-knowledge/web exec wrangler d1 create my-knowledge
-pnpm --filter @my-knowledge/web exec wrangler r2 bucket create my-knowledge
-pnpm --filter @my-knowledge/web exec wrangler kv namespace create my-knowledge
-```
-
-## Values and credentials
-
-`BETTER_AUTH_URL` is the sole non-secret application variable and must be the final canonical origin.
-Upload these four Wrangler secrets:
-
-| Secret                 | Purpose                    |
-| :--------------------- | :------------------------- |
-| `ALLOWED_EMAIL`        | The only owner email       |
-| `BETTER_AUTH_SECRET`   | Session signing            |
-| `GOOGLE_CLIENT_ID`     | Google OAuth configuration |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth configuration |
-
-Register `{BETTER_AUTH_URL}/api/auth/callback/google` in Google OAuth. After the first allowed-email
-sign-in, call `POST /api/settings/api-key` from that browser session. Store the returned plaintext
-once in the my-knowledge MCP or REST client. This Worker persists only its digest in the
-`my-knowledge-api-key` Durable Object instance. Regenerate with `PUT /api/settings/api-key` only after confirming
-the old my-knowledge key should be invalidated.
-`GET /api/settings/api-key` reports only configuration status and time.
-
-The local workflow's model/provider credentials stay local and never become Worker variables.
-`CLOUDFLARE_API_TOKEN`, when used by CI, authenticates Wrangler deployment only.
-
-## Local development
-
-Copy `apps/web/.env.example` to `apps/web/.env.local` for `next dev` and to `apps/web/.dev.vars` for
-the production-like OpenNext preview. Set `BETTER_AUTH_URL` to the actual command origin. Local
-contract seeding writes article fixtures to local R2. API contract runs generate a key through an
-owner session.
-
-The binding configuration uses `remote: true` for storage services that cannot be fully reproduced
-locally. The root layout and independent metadata routes are force-dynamic so build workers never
-create platform proxies during static generation.
-
-This Worker exports `ApiKeyDurableObject`. Deploy it before my-memos and my-moment, whose bindings
-use separate named instances of the same class. The first rollout requires generating one fresh API
-key in each application.
+`BETTER_AUTH_URL` is the canonical origin. Secrets are `ALLOWED_EMAIL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET`. Register `/api/auth/callback/google` at that origin. Local development uses the environment example, local state, and synthetic credentials; model-provider secrets stay outside the Worker.
 
 ## Verification and release
 
-The production build intentionally uses webpack. Release from a reviewed, committed revision; Git
-commits and deployments require separate authorization. Before release run:
+Run local migrations, `pnpm check`, `pnpm test`, `pnpm build`, `pnpm dry-run`, and `pnpm test:e2e`. Dry-run validates the bundle without publishing. Release a reviewed committed revision only with separate Git and deployment authorization. CI performs checks and dry-run, not remote migration or publication.
 
-```text
-pnpm d1:migrate:local
-pnpm check
-pnpm test
-pnpm build
-pnpm dry-run
-pnpm test:e2e
-```
+Reuse the deployed D1 baseline; ordinary releases never reset it. Before an exceptional rebuild, record a recovery point and back up required data. Rollback must pair a compatible Worker and database. Verify OAuth, REST/MCP, ingestion, search, cleanup, and anonymous privacy before discarding recovery data.
 
-Remote D1 uses the `0001_initial.sql` baseline. Dependency upgrades must verify compatibility with
-that schema through the local auth checks before release. Ordinary deployments
-reuse this database; they must not reset it. For a future rebuild, record a Time Travel bookmark,
-back up required data, and restore it into the new schema before switching the Worker. Migration
-apply does not rerun an already-recorded baseline. R2 bodies remain separate, and a rollback must
-pair the Worker with a compatible database. Verify Google login, REST/MCP, ingestion, cleanup,
-and anonymous privacy before discarding recovery data.
-
-`Commit-CI` runs checks, tests, the Worker build, and deployment dry-run on pull requests and pushes
-to main. It does not publish or modify remote D1. Any separately configured Git-triggered deployment
-must be coordinated with the database switch before pushing.
-
-Direct package versions live in their owning manifests; transitive versions live in
-`pnpm-lock.yaml`. React overrides, dependency build permissions, and `minimumReleaseAge` live in
-`pnpm-workspace.yaml`.
+Deploy the exported API-key Durable Object class before applications referencing its separate named instances. Generate credentials through each application's owner session, never by copying another application's key.

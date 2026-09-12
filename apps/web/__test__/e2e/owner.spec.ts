@@ -1,9 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { z } from "zod";
 
+import { serveMedia } from "./media";
+
 const errorsByPage = new WeakMap<Page, string[]>();
 
 test.beforeEach(async ({ page }) => {
+  await serveMedia(page);
   const browserErrors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error" || message.type() === "warning") {

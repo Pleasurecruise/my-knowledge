@@ -129,7 +129,7 @@ if (!updateTool) throw new Error("updateArticle was not discovered");
 assert.deepEqual(updateTool.inputSchema.required, ["id", "expectedHash", "document"]);
 
 const fixtureId = "11111111-1111-4111-8111-111111111111";
-const fixtureHash = "c12bca9318b17dd21669cab5e4ec3aa8ecd52d8a5cf6d7dfd876184c87a6e497";
+const fixtureHash = "67616b110084d21c9953145c75bbf8df02009a41f247e2140c0aebcc8d328319";
 const restEndpoint = `${origin}/api/articles`;
 const unauthorizedRest = await fetch(restEndpoint);
 assert.equal(unauthorizedRest.status, 401);

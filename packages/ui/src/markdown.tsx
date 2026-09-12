@@ -15,7 +15,12 @@ import { unified } from "unified";
 import type { Plugin } from "unified";
 import { SKIP, visit } from "unist-util-visit";
 
-import { createSlug, parseMarkdownEmbed, type MarkdownEmbed } from "@my-knowledge/content";
+import {
+  extractHeadings,
+  parseMarkdownEmbed,
+  type ArticleHeading,
+  type MarkdownEmbed,
+} from "@my-knowledge/content";
 
 import { renderMarkdownEmbed } from "./markdown-embeds";
 import { markdownHighlighter } from "./markdown-highlighter";
@@ -222,26 +227,13 @@ const highlightCodeBlocks: Plugin<[MarkdownHighlighter], Root> = (highlighter) =
   });
 };
 
-function headingText(node: Element): string {
-  let text = "";
-  for (const child of node.children) {
-    if (child.type === "text") text += child.value;
-    if (child.type === "element") text += headingText(child);
-  }
-  return text;
-}
-
-const headingAnchors: Plugin<[], Root> = () => (tree: Root) => {
-  const counts = new Map<string, number>();
+const headingAnchors: Plugin<[ArticleHeading[]], Root> = (headings) => (tree: Root) => {
+  let index = 0;
   visit(tree, "element", (node) => {
     if (!/^h[1-6]$/u.test(node.tagName)) return;
-    const title = headingText(node).trim();
-    if (!title) return;
-    const base = createSlug(title);
-    const previous = counts.get(base);
-    const count = previous === undefined ? 1 : previous + 1;
-    counts.set(base, count);
-    node.properties.id = count === 1 ? base : `${base}-${count}`;
+    const heading = headings[index++];
+    if (!heading) throw new Error("Heading anchor is missing");
+    node.properties.id = heading.id;
   });
 };
 
@@ -274,10 +266,10 @@ export async function Markdown({ labels, markdown, structuredBlock, embeds }: Ma
     .use(decodeCodeEntities)
     .use(remarkRehype)
     .use(rehypeSanitize, mathSchema)
+    .use(headingAnchors, extractHeadings(markdown))
     .use(rehypeKatex)
     .use(articleSemantics)
     .use(structuredBlocks, labels, embeds)
-    .use(headingAnchors)
     .use(tableWrappers);
 
   processor.use(highlightCodeBlocks, await markdownHighlighter);

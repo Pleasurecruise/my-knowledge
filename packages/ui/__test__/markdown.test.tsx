@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vite-plus/test";
 
+import { extractHeadings } from "@my-knowledge/content";
+
 import { CanvasBlock } from "../src/canvas-block";
 import { Markdown } from "../src/markdown";
 import type { StructuredBlockProps } from "../src/structured-block.types";
@@ -231,4 +233,49 @@ it("renders link embeds through the article Markdown entrypoint", async () => {
   expect(html).toContain('href="https://example.com/article?a=1&amp;b=2"');
   expect(html).toContain("markdown-embed-right");
   expect(html).not.toContain("language-embed:link");
+});
+
+it("renders playable media with automatic video previews and explicit poster overrides", async () => {
+  const result = await Markdown({
+    labels,
+    structuredBlock: StructuredBlock,
+    markdown:
+      "```embed:media\ntype: video\nsrc: ./media/demo.mp4\ntitle: Demo\ncaption: <script>text</script>\n```\n\n```embed:media\ntype: audio\nsrc: https://example.com/audio.mp3\n```\n\n```embed:media\ntype: video\nsrc: https://example.com/video.mp4#t=5\n```\n\n```embed:media\ntype: video\nsrc: ./custom.mp4\nposter: ./cover.jpg\n```",
+  });
+  const html = renderToStaticMarkup(result);
+  expect(html).toContain('src="./media/demo.mp4#t=0.001"');
+  expect(html).toContain('preload="metadata"');
+  expect(html).toContain('src="https://example.com/video.mp4#t=5"');
+  expect(html).toContain('src="./custom.mp4"');
+  expect(html).toContain('poster="./cover.jpg"');
+  expect(html).toContain("<audio");
+  expect(html.match(/controls=""/gu)).toHaveLength(4);
+  expect(html).toContain("&lt;script&gt;text&lt;/script&gt;");
+  expect(html).not.toContain("autoPlay");
+  expect(html).not.toContain("autoplay");
+});
+
+it("shares unique heading anchors with the table of contents for rich and empty headings", async () => {
+  const markdown =
+    "## Scope\n## Scope\n## Scope 2\n## ![Diagram](https://example.com/image.png)\n## 😀\n## ";
+  const headings = extractHeadings(markdown);
+  const html = renderToStaticMarkup(
+    await Markdown({ labels, markdown, structuredBlock: StructuredBlock }),
+  );
+  const ids = [...html.matchAll(/<h[1-6] id="([^"]+)"/gu)].map((match) => match[1]);
+  expect(ids).toEqual(["scope", "scope-2", "scope-2-2", "diagram", "section", "section-2"]);
+  expect(ids).toEqual(headings.map((heading) => heading.id));
+});
+
+it("keeps frontmatter, math, strikethrough and code headings aligned with the contents", async () => {
+  const markdown =
+    "---\ntitle: Example\nsummary: Example\ntags: []\n---\n## ~~Old~~ $x^2$\n## `&lt;main&gt;`\n\n$$\n# not a heading\n$$\n\nReal\n----";
+  const headings = extractHeadings(markdown);
+  const html = renderToStaticMarkup(
+    await Markdown({ labels, markdown, structuredBlock: StructuredBlock }),
+  );
+  const ids = [...html.matchAll(/<h[1-6] id="([^"]+)"/gu)].map((match) => match[1]);
+  expect(headings.map((heading) => heading.title)).toEqual(["Old x^2", "&lt;main&gt;", "Real"]);
+  expect(ids).toEqual(headings.map((heading) => heading.id));
+  expect(ids).toHaveLength(3);
 });

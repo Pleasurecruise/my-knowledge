@@ -1,12 +1,15 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+import { serveMedia } from "./media";
+
 const errorsByPage = new WeakMap<Page, string[]>();
 
 test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.project.name === "phone-dark-reduced-motion") {
     await page.emulateMedia({ reducedMotion: "reduce" });
   }
+  await serveMedia(page);
   const browserErrors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error" || message.type() === "warning") {
@@ -71,12 +74,33 @@ test("renders the current Japanese translation under a Japanese interface", asyn
   await expect(page.getByRole("figure", { name: "Mermaid 図" }).locator("svg")).toHaveCount(1, {
     timeout: 15_000,
   });
+  const diagramNodes = page.getByRole("figure", { name: "Mermaid 図" }).locator("svg .node");
+  await expect(diagramNodes).toHaveCount(3);
+  await expect
+    .poll(async () =>
+      diagramNodes.evaluateAll((nodes) =>
+        Math.min(...nodes.map((node) => node.getBoundingClientRect().width)),
+      ),
+    )
+    .toBeGreaterThan(40);
   await expect(page.getByRole("figure", { name: "Vega-Lite グラフ" }).locator("svg")).toHaveCount(
     1,
     { timeout: 15_000 },
   );
   await expect(page.locator(".canvas-block")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "削除" })).toHaveCount(0);
+
+  const headingIds = await page
+    .locator(".markdown-body :is(h1,h2,h3,h4,h5,h6)")
+    .evaluateAll((headings) => headings.map((heading) => heading.id));
+  expect(headingIds.every(Boolean)).toBe(true);
+  expect(new Set(headingIds).size).toBe(headingIds.length);
+  const contentsLinks = await page
+    .getByRole("navigation", { name: "目次", includeHidden: true })
+    .locator('a[href^="#"]')
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href")?.slice(1)));
+  expect(contentsLinks.length).toBeGreaterThan(0);
+  for (const id of contentsLinks) expect(headingIds).toContain(id);
 
   if (testInfo.project.name.startsWith("desktop")) {
     const tableOfContents = page.getByRole("navigation", { name: "目次" });
@@ -287,4 +311,59 @@ test("updates the selected graph article and follows its reading action", async 
   ).toBeVisible();
   await page.locator('[aria-live="polite"]').getByRole("link", { name: "阅读文章" }).click();
   await expect(page).toHaveURL(/\/articles\/related-article$/u);
+});
+
+test("plays embedded audio and video on click and previews the opening frame", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/articles/extensible-knowledge-boundaries");
+  const video = page.locator('video[aria-label="Video preview"]');
+  const audio = page.locator('audio[aria-label="Audio recording"]');
+  const custom = page.locator('video[aria-label="Custom video"]');
+  await video.scrollIntoViewIfNeeded();
+  await expect(video).toHaveAttribute("src", "./media-preview/video.mp4#t=0.001");
+  await expect(video).toHaveJSProperty("readyState", 4);
+  await expect(video).toHaveJSProperty("paused", true);
+  await expect(video).toHaveJSProperty("videoWidth", 640);
+  const frame = await video.evaluate((element: HTMLVideoElement) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Frame inspection is unavailable");
+    context.drawImage(element, 0, 0, 1, 1);
+    return Array.from(context.getImageData(0, 0, 1, 1).data);
+  });
+  expect(frame[0]).toBeLessThan(80);
+  expect(frame[1]).toBeGreaterThan(100);
+  expect(frame[3]).toBe(255);
+  await expect(custom).toHaveAttribute("poster", "./media-preview/cover.svg");
+  const bounds = await video.boundingBox();
+  if (!bounds) throw new Error("Video controls are not visible");
+  await video.click({ position: { x: 22, y: bounds.height - 48 } });
+  await expect(video).toHaveJSProperty("paused", false);
+  await expect
+    .poll(() => video.evaluate((element: HTMLVideoElement) => element.currentTime))
+    .toBeGreaterThan(0.2);
+  await video.focus();
+  await page.keyboard.press("Space");
+  await expect(video).toHaveJSProperty("paused", true);
+  await audio.scrollIntoViewIfNeeded();
+  await audio.click({ position: { x: 22, y: 27 } });
+  await expect(audio).toHaveJSProperty("paused", false);
+  await expect
+    .poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime))
+    .toBeGreaterThan(0.2);
+  await audio.focus();
+  await page.keyboard.press("Space");
+  await expect(audio).toHaveJSProperty("paused", true);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    ),
+  ).toBe(false);
+  await video.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `.agents/evidence/media-${testInfo.project.name}.png` });
+  const accessibility = await new AxeBuilder({ page }).include(".markdown-embed-media").analyze();
+  expect(accessibility.violations).toEqual([]);
 });

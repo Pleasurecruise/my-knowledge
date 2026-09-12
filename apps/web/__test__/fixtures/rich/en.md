@@ -38,3 +38,29 @@ graph LR
 url: https://example.com/article
 align: right
 ```
+
+## Media playback
+
+These silent fixtures demonstrate click-to-play media.
+
+```embed:media
+type: video
+src: ./media-preview/video.mp4
+title: Video preview
+caption: A silent video with an automatic opening-frame preview.
+```
+
+```embed:media
+type: audio
+src: https://media.example.test/media-preview/audio.wav
+title: Audio recording
+caption: A silent recording for playback verification.
+```
+
+```embed:media
+type: video
+src: ./media-preview/video.mp4
+poster: ./media-preview/cover.svg
+title: Custom video
+caption: A video with an explicit poster.
+```

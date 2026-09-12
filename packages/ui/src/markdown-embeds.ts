@@ -179,6 +179,38 @@ export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): Elem
     );
   }
   switch (embed.kind) {
+    case "media": {
+      const preview = embed.type === "video" && embed.poster === null;
+      const src = preview && !embed.src.includes("#") ? `${embed.src}#t=0.001` : embed.src;
+      const player = element(
+        embed.type,
+        [
+          element("a", [{ type: "text", value: "Open media" }], {
+            href: embed.src,
+            target: "_blank",
+            rel: ["noopener", "noreferrer"],
+          }),
+        ],
+        {
+          src,
+          controls: true,
+          preload: preview ? "metadata" : "none",
+          ariaLabel: embed.title,
+          ...(embed.type === "video" ? { playsInline: true } : {}),
+          ...(embed.poster === null ? {} : { poster: embed.poster }),
+        },
+      );
+      return element(
+        "figure",
+        [
+          player,
+          ...(embed.caption === null
+            ? []
+            : [element("figcaption", [{ type: "text", value: embed.caption }])]),
+        ],
+        properties,
+      );
+    }
     case "link":
       return element(
         "aside",
