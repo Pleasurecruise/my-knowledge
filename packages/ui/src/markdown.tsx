@@ -1,11 +1,8 @@
 import type { Element, ElementContent, Root } from "hast";
+import type { Root as MarkdownRoot } from "mdast";
 import rehypeKatex from "rehype-katex";
 import rehypeReact from "rehype-react";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
-import remarkFrontmatter from "remark-frontmatter";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import {
   Fragment,
@@ -21,6 +18,7 @@ import { SKIP, visit } from "unist-util-visit";
 
 import {
   extractHeadings,
+  markdownParser,
   MarkdownEmbedError,
   parseMarkdownEmbed,
   type ArticleHeading,
@@ -119,7 +117,8 @@ const structuredBlocks: Plugin<[StructuredBlockLabels, MarkdownEmbed[]?], Root> 
         if (source?.type !== "text") throw new Error("Embed source is missing");
         let embed: MarkdownEmbed | undefined;
         try {
-          embed = parseMarkdownEmbed(language, source.value);
+          // remark-rehype adds a terminal newline to fenced code text.
+          embed = parseMarkdownEmbed(language, source.value.replace(/\n$/u, ""));
         } catch (error) {
           if (!(error instanceof MarkdownEmbedError)) throw error;
           parent.children[index] = {
@@ -239,15 +238,15 @@ const highlightCodeBlocks: Plugin<[MarkdownHighlighter], Root> = (highlighter) =
   });
 };
 
-const headingAnchors: Plugin<[ArticleHeading[]], Root> = (headings) => (tree: Root) => {
-  let index = 0;
-  visit(tree, "element", (node) => {
-    if (!/^h[1-6]$/u.test(node.tagName)) return;
-    const heading = headings[index++];
-    if (!heading) throw new Error("Heading anchor is missing");
-    node.properties.id = heading.id;
-  });
-};
+const headingAnchors: Plugin<[ArticleHeading[]], MarkdownRoot> =
+  (headings) => (tree: MarkdownRoot) => {
+    let index = 0;
+    visit(tree, "heading", (node) => {
+      const heading = headings[index++];
+      if (!heading) throw new Error("Heading anchor is missing");
+      node.data = { ...node.data, hProperties: { ...node.data?.hProperties, id: heading.id } };
+    });
+  };
 
 const tableWrappers: Plugin<[], Root> = () => (tree: Root) => {
   visit(tree, "element", (node, index, parent) => {
@@ -290,16 +289,13 @@ async function EnrichedEmbed({
 
 export async function Markdown({ labels, markdown, structuredBlock, embeds, link }: MarkdownProps) {
   const deferredEmbeds: MarkdownEmbed[] = [];
-  const processor = unified()
-    .use(remarkParse)
-    .use(remarkFrontmatter, ["yaml"])
-    .use(remarkGfm)
-    .use(remarkMath)
-    .use(remarkRehype)
-    .use(rehypeSanitize, mathSchema)
+  const processor = markdownParser()
     .use(headingAnchors, extractHeadings(markdown))
-    .use(rehypeKatex)
+    .use(remarkRehype)
+    // IDs come from the heading compiler and remark's prefixed footnotes, not source HTML.
+    .use(rehypeSanitize, { ...mathSchema, clobberPrefix: "" })
     .use(articleSemantics)
+    .use(rehypeKatex)
     .use(structuredBlocks, labels, embeds ? deferredEmbeds : undefined)
     .use(tableWrappers);
 

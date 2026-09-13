@@ -32,3 +32,9 @@ it("indexes url fields and bare URLs as the same article relationship", () => {
       .links,
   ).toEqual(parseArticleDocument(source(`\`\`\`embed:article\n${url}\n\`\`\``)).links);
 });
+
+it("does not index wiki links or embedded fences inside math", () => {
+  const body =
+    "[[real]]\n\n$[[inline]]$\n\n$$\n[[display]]\n```embed:article\nhttps://example.com/inside-math\n```\n$$";
+  expect(parseArticleDocument(source(body)).links).toEqual(["real"]);
+});

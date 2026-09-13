@@ -362,3 +362,58 @@ it.each([
   expect(html).toContain("Automatic summary");
   expect(html).not.toContain("Article unavailable");
 });
+
+it("keeps generated footnote headings outside article heading anchors", async () => {
+  const html = renderToStaticMarkup(
+    await Markdown({
+      labels,
+      structuredBlock: StructuredBlock,
+      markdown: "## Body\n\nA note[^one].\n\n[^one]: Footnote text.",
+    }),
+  );
+  expect(html).toContain('<h2 id="body">Body</h2>');
+  expect(html).toContain('id="footnote-label"');
+  expect(html).toContain("Footnote text.");
+  expect(html).toContain('href="#user-content-fn-one"');
+  expect(html).toContain('id="user-content-fn-one"');
+  expect(html).toContain('href="#user-content-fnref-one"');
+  expect(html).toContain('id="user-content-fnref-one"');
+});
+
+it("renders empty legacy embed fences as block diagnostics", async () => {
+  const html = renderToStaticMarkup(
+    await Markdown({
+      labels,
+      structuredBlock: StructuredBlock,
+      markdown: "Before.\n\n```embed:article\n```\n\nAfter.",
+    }),
+  );
+  expect(html).toContain('role="alert"');
+  expect(html).toContain("Before.");
+  expect(html).toContain("After.");
+});
+
+it("preserves heading identities when footnote definitions precede body headings", async () => {
+  const html = renderToStaticMarkup(
+    await Markdown({
+      labels,
+      structuredBlock: StructuredBlock,
+      markdown: "[^one]:\n    ## Note heading\n\n## Body heading\n\nA note[^one].",
+    }),
+  );
+  expect(html).toContain('<h2 id="body-heading">Body heading</h2>');
+  expect(html).toContain('<h2 id="note-heading">Note heading</h2>');
+});
+
+it("does not rewrite wiki-like math annotations into article links", async () => {
+  const html = renderToStaticMarkup(
+    await Markdown({
+      labels,
+      structuredBlock: StructuredBlock,
+      markdown: "[[real]] and $[[math-only]]$.",
+    }),
+  );
+  expect(html).toContain('href="/articles/real"');
+  expect(html).not.toContain('href="/articles/math-only"');
+  expect(html).toContain('encoding="application/x-tex">[[math-only]]</annotation>');
+});

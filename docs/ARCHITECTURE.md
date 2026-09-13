@@ -2,7 +2,7 @@
 
 One Next.js application becomes one Cloudflare Worker through OpenNext. Development uses the built Worker preview; generation and translation run locally.
 
-`packages/content` owns article schemas, Markdown semantics, tags, links and hashes. `packages/ui` owns presentation and shared components. `apps/web` owns pages, REST/MCP transports, authentication, application operations, persistence and provider adapters. Dependencies point from web to shared packages and from UI to content. Domain code excludes platform adapters.
+`packages/content` owns article schemas, Markdown semantics, tags, links and hashes. `packages/ui` owns presentation and shared components. `apps/web` owns pages, REST/MCP transports, authentication, application operations, persistence and provider adapters. Dependencies point from web to shared packages and from UI to content. Domain code excludes platform adapters. A frozen content-owned Markdown parser fixes syntax for validation, links, editor equivalence and UI compilation.
 
 D1 authorizes existence and visibility before bodies, caches or enrichment. R2 owns Markdown; KV and AI Search are derived. Article pages and AI retrieval share version-checked content reads. Social metadata uses anonymous D1 summaries; image caching follows authorization and responses remain no-store. Provider cards stream independently of prose. Lists read metadata, and article links prefetch on intent.
 

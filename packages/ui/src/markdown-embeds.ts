@@ -223,6 +223,59 @@ export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): Elem
     );
   }
   switch (embed.kind) {
+    case "quote":
+      return element(
+        "figure",
+        [
+          element(
+            "blockquote",
+            [element("p", [{ type: "text", value: embed.text }])],
+            embed.url ? { cite: embed.url } : {},
+          ),
+          element("figcaption", [
+            { type: "text", value: embed.author },
+            ...(embed.title
+              ? [
+                  { type: "text" as const, value: " · " },
+                  element("cite", [{ type: "text", value: embed.title }]),
+                ]
+              : []),
+            ...(embed.url
+              ? [
+                  { type: "text" as const, value: " · " },
+                  element("a", [{ type: "text", value: embed.url }], {
+                    href: embed.url,
+                    target: "_blank",
+                    rel: ["noopener", "noreferrer"],
+                  }),
+                ]
+              : []),
+          ]),
+        ],
+        properties,
+      );
+    case "diff":
+      return element(
+        "figure",
+        [
+          element("figcaption", [{ type: "text", value: embed.title }]),
+          element(
+            "pre",
+            [
+              element(
+                "code",
+                embed.lines.map((line) =>
+                  element("span", [{ type: "text", value: `${line.text}\n` }], {
+                    className: [`diff-${line.kind}`],
+                  }),
+                ),
+              ),
+            ],
+            { tabIndex: 0, role: "region", ariaLabel: embed.title },
+          ),
+        ],
+        properties,
+      );
     case "media": {
       const mediaSrc = embed.src.replace(
         /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\//u,

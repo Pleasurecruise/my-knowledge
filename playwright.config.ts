@@ -27,7 +27,7 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-light",
-      testMatch: /publication\.spec\.ts/u,
+      testMatch: /(?:publication|dialect|document-embeds)\.spec\.ts/u,
       use: {
         extraHTTPHeaders: { "cf-connecting-ip": "192.0.2.1" },
         colorScheme: "light",
@@ -36,7 +36,7 @@ export default defineConfig({
     },
     {
       name: "desktop-dark",
-      testMatch: /publication\.spec\.ts/u,
+      testMatch: /(?:publication|dialect|document-embeds)\.spec\.ts/u,
       use: {
         extraHTTPHeaders: { "cf-connecting-ip": "192.0.2.2" },
         colorScheme: "dark",
@@ -45,7 +45,7 @@ export default defineConfig({
     },
     {
       name: "phone-light",
-      testMatch: /publication\.spec\.ts/u,
+      testMatch: /(?:publication|dialect|document-embeds)\.spec\.ts/u,
       use: {
         extraHTTPHeaders: { "cf-connecting-ip": "192.0.2.3" },
         colorScheme: "light",
@@ -54,7 +54,7 @@ export default defineConfig({
     },
     {
       name: "phone-dark-reduced-motion",
-      testMatch: /publication\.spec\.ts/u,
+      testMatch: /(?:publication|dialect|document-embeds)\.spec\.ts/u,
       use: {
         extraHTTPHeaders: { "cf-connecting-ip": "192.0.2.4" },
         colorScheme: "dark",

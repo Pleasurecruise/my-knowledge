@@ -80,7 +80,7 @@ export async function listArticlesOperation(
 export const updateArticleInput = z.object({
   id: z.string().uuid(),
   expectedHash: z.string().regex(/^[a-f0-9]{64}$/u),
-  document: z.string().min(1),
+  document: z.string().min(1).max(500_000),
 });
 
 export async function updateArticleOperation(
@@ -90,7 +90,14 @@ export async function updateArticleOperation(
   const updated = await updateArticleFromDocuments(env, input.id, input.expectedHash, {
     zh: input.document,
   });
-  return updated.status === "updated" ? result(updated.article) : notFound();
+  if (updated.status === "notFound") return notFound();
+  if (updated.status === "stale") {
+    return {
+      isError: true,
+      content: [{ type: "text", text: "Article changed while saving" }],
+    } satisfies McpError;
+  }
+  return result(updated.article);
 }
 
 export const deleteArticleInput = z.object({

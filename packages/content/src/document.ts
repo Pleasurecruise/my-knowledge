@@ -1,5 +1,4 @@
-import remarkParse from "remark-parse";
-import { unified } from "unified";
+import { markdownParser } from "./markdown";
 import { visit } from "unist-util-visit";
 
 import { parseMarkdownEmbed } from "./embed";
@@ -36,7 +35,8 @@ function validateFrontmatterOrder(source: string): void {
 }
 
 export function validateMarkdown(body: string): void {
-  const tree = unified().use(remarkParse).parse(body);
+  if (!body.trim()) throw new Error("Article Markdown requires a body");
+  const tree = markdownParser.parse(body);
   visit(tree, "html", () => {
     throw new Error("Raw HTML is not supported");
   });

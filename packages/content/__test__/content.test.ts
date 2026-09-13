@@ -208,3 +208,9 @@ describe("portable knowledge rules", () => {
     ]);
   });
 });
+
+it.each(["", "   ", "# Title\n"])("rejects submissions without body content: %j", (body) => {
+  expect(() =>
+    parseArticleDocument(`---\ntitle: Title\nsummary: Summary\ntags: []\n---\n${body}`),
+  ).toThrow("Article Markdown requires a body");
+});

@@ -1,8 +1,4 @@
-import remarkFrontmatter from "remark-frontmatter";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import remarkParse from "remark-parse";
-import { unified } from "unified";
+import { markdownParser } from "./markdown";
 import { SKIP, visit } from "unist-util-visit";
 import { parseMarkdownEmbed } from "./embed";
 
@@ -21,7 +17,7 @@ export function extractWikiLinks(markdown: string): string[] {
   const links = new Set<string>();
   const pattern = /\[\[([^\]|\n]+)(?:\|[^\]\n]+)?\]\]/gu;
 
-  const tree = unified().use(remarkParse).parse(markdown);
+  const tree = markdownParser.parse(markdown);
   visit(tree, (node) => {
     if (node.type === "link" || node.type === "linkReference") return SKIP;
     if (node.type !== "text") return;
@@ -36,7 +32,7 @@ export function extractWikiLinks(markdown: string): string[] {
 
 export function extractArticleReferences(markdown: string): string[] {
   const references = new Set<string>();
-  const tree = unified().use(remarkParse).parse(markdown);
+  const tree = markdownParser.parse(markdown);
   visit(tree, "code", (node) => {
     if (node.lang?.toLowerCase() !== "embed:article") return;
     const embed = parseMarkdownEmbed(node.lang, node.value);
@@ -61,12 +57,7 @@ export type ArticleHeading = { depth: number; title: string; id: string };
 export function extractHeadings(markdown: string): ArticleHeading[] {
   const headings: ArticleHeading[] = [];
   const ids = new Set<string>();
-  const tree = unified()
-    .use(remarkParse)
-    .use(remarkFrontmatter, ["yaml"])
-    .use(remarkGfm)
-    .use(remarkMath)
-    .parse(markdown);
+  const tree = markdownParser.parse(markdown);
   visit(tree, "heading", (node) => {
     let title = "";
     visit(node, (child) => {

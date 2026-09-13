@@ -11,7 +11,7 @@ describe("Markdown editor compatibility", () => {
       ["![alt](https://example.com/a.png)", "alt"],
       ["$x^2$", "x^2"],
       ["```ts file.ts\nconst x = 1;\n```", "```ts\nconst x = 1;\n```"],
-    ])
+    ] satisfies [string, string][])
       expect(markdownEquivalent(source, candidate)).toBe(false);
   });
   it("preserves structured fences and GFM tables", () => {

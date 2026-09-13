@@ -27,3 +27,4 @@ export {
   type Visibility,
 } from "./schema";
 export { canonicalizeTags, isDailyArticle, validateTagSyntax } from "./tags";
+export { markdownParser } from "./markdown";

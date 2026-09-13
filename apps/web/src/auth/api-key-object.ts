@@ -3,10 +3,6 @@ import { DurableObject } from "cloudflare:workers";
 import { apiKeyRecordSchema } from "./api-key";
 
 export class ApiKeyDurableObject extends DurableObject<Record<string, never>> {
-  constructor(ctx: DurableObjectState, env: Record<string, never>) {
-    super(ctx, env);
-  }
-
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname !== "/key") return new Response(null, { status: 404 });

@@ -1,11 +1,13 @@
 # Content contract
 
-Chinese is canonical; English/Japanese editions require matching source hashes. Missing translations display Chinese. Frontmatter contains title, summary and tags. Slugs remain stable. Editors preserve semantic Markdown; content that cannot round-trip stays in source mode.
+Chinese is canonical; English/Japanese editions require matching source hashes and otherwise display Chinese. Frontmatter contains title, summary and tags. Slugs stay stable. Non-round-trippable content stays in source mode.
 
-Support CommonMark/GFM, math, callouts, wiki links, Mermaid, Vega/Vega-Lite and JSON Canvas. Submissions reject raw HTML, executable URLs, malformed blocks and unknown/duplicate fields. Stored bodies remain readable and editable; invalid embeds show explicit block diagnostics without interpreting obsolete syntax. Headings and TOC share anchors.
+Support CommonMark/GFM, math, callouts, wiki links, Mermaid, Vega/Vega-Lite and JSON Canvas. Reject normalized-empty bodies, raw HTML, executable URLs, malformed blocks and unknown/duplicate fields. Invalid stored embeds show diagnostics. AST-bound headings preserve TOC/footnote targets.
 
-Embeds include article, link, media, GitHub, stock, architecture and storyboard. All accept `align: left`, `right`, `wide` or `narrow`. Wide fills available width; left/right use a 32rem maximum at the named edge; narrow centers that maximum.
+Embeds include article, link, media, GitHub, stock, architecture, storyboard, quote and diff. Alignment accepts left/right (32rem maximum), narrow (centered 32rem), or wide (available width).
 
-Article fences accept one `url:` field or 1–50 URL lines, plus alignment. Cards resolve authorized same-site titles/descriptions only. External URLs never fetch metadata; unsupported/inaccessible targets are non-clickable. Ordinary links stay unchanged. ID fields and overrides are rejected. Card URLs index authorized graph links and backlinks; queries/fragments do not change identity. Saving refreshes derived links.
+Article fences accept one URL field or 1–50 URLs. Cards resolve authorized same-site metadata; inaccessible/external targets are non-clickable without external fetches. Overrides/IDs are rejected. Ordinary links stay unchanged. Saving refreshes authorized graph links/backlinks; query/fragment differences preserve identity.
 
-Media requires audio/video type and src. Optional title, caption and video poster remain escaped. Sources use HTTP(S) without credentials or document-relative paths. Playback requires interaction. [Dialect tests](../packages/content/__test__/dialect.test.ts) specify fields.
+Media requires audio/video type and src; optional title, caption and video poster stay escaped. Sources accept credential-free HTTP(S) or document-relative paths. Playback requires interaction.
+
+Quote/diff metadata precedes `---` and a plain-text body. Quote requires author; title and credential-free HTTP(S) source URL are optional. Diff requires title and a complete unified text patch with matching hunk counts; binary/mode-only patches are unsupported. Both preserve text without executing HTML or Git. [Contract fixtures](../packages/content/__test__/fixtures/document-embeds.json) match my-workspace.

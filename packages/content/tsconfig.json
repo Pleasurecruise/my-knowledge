@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": ["dom", "esnext"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
@@ -9,13 +9,8 @@
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "paths": {
-      "@my-knowledge/ui/*": ["./src/*"]
-    }
+    "isolatedModules": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "__test__/**/*.tsx"],
+  "include": ["src/**/*.ts", "__test__/**/*.ts"],
   "exclude": ["node_modules"]
 }

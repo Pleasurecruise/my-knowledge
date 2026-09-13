@@ -212,3 +212,13 @@ it("normalizes workspace url fields to article lists and rejects mixed or duplic
   ])
     expect(() => parseMarkdownEmbed("embed:article", source)).toThrow();
 });
+
+it("treats math source as math during submission validation", () => {
+  expect(() => validateMarkdown("$$\n<x> + y\n$$")).not.toThrow();
+});
+
+it("rejects malformed percent encoding in article URLs at the embed boundary", () => {
+  expect(() => parseMarkdownEmbed("embed:article", "https://example.com/articles/%E0%A4")).toThrow(
+    "encoding",
+  );
+});

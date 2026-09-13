@@ -9,7 +9,7 @@ import {
 
 import { InvalidArticleInputError } from "./application/input-error";
 import { searchAiArticles } from "./persistence/ai-search";
-import { getArticleById } from "./persistence/document";
+import { getArticleById, getArticleRow } from "./persistence/document";
 import { listArticles, listTags } from "./persistence/query";
 import { createArticle, saveArticleTranslation, updateArticle } from "./persistence/write";
 import type { ArticleListQuery } from "./types";
@@ -45,11 +45,10 @@ async function parseSubmittedDocuments(input: ArticleDocuments) {
 
 async function parseDraftDocument(draft: ArticleDraft) {
   try {
-    const tags = canonicalizeTags(draft.tags);
     const source = serializeArticleDocument({
       title: draft.title,
       summary: draft.summary,
-      tags,
+      tags: draft.tags,
       body: draft.body,
     });
     return await parseArticleDocuments({ zh: source });
@@ -98,7 +97,7 @@ export async function updateArticleFromDraft(
   expectedHash: string,
   draft: ArticleDraft & { visibility?: Visibility | undefined },
 ): Promise<ArticleUpdateResult> {
-  const current = await getOwnerArticle(env, id);
+  const current = await getArticleRow(env, "owner", "id", id);
   if (!current) return { status: "notFound" };
   if (current.contentHash !== expectedHash) return { status: "stale" };
   const document = await parseDraftDocument(draft);
@@ -112,7 +111,7 @@ export async function updateArticleFromDocuments(
   expectedHash: string,
   input: ArticleDocuments,
 ): Promise<ArticleUpdateResult> {
-  const current = await getOwnerArticle(env, id);
+  const current = await getArticleRow(env, "owner", "id", id);
   if (!current) return { status: "notFound" };
   if (current.contentHash !== expectedHash) return { status: "stale" };
   const documents = await parseSubmittedDocuments(input);

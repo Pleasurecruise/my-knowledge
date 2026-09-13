@@ -38,6 +38,12 @@ async function readStoredDocument(
   const key = articleObjectKey(id, locale);
   const object = await bucket.get(key);
   if (!object) return null;
+  if (
+    object.customMetadata?.contentHash !== undefined &&
+    object.customMetadata.contentHash !== contentHash
+  ) {
+    throw new Error(`Article version changed while reading ${id}/${locale}`);
+  }
   return {
     contentHash,
     key,
@@ -137,10 +143,9 @@ export async function createArticle(
       return id;
     },
     cleanupNewVersion: async () => {
-      if (await getArticleRow(env, "owner", "id", id)) return;
-      const cleanup = [deleteArticleArtifacts(env, id, document.contentHash)];
-      if (written) cleanup.push(rollbackDocument(env.KNOWLEDGE_BUCKET, null, written));
-      await Promise.all(cleanup);
+      if (!written || (await getArticleRow(env, "owner", "id", id))) return;
+      await rollbackDocument(env.KNOWLEDGE_BUCKET, null, written);
+      await deleteArticleArtifacts(env, id, document.contentHash);
     },
   });
   const stored = await getArticleRow(env, "owner", "id", id);
@@ -213,9 +218,9 @@ export async function updateArticle(
         .returning()
         .get(),
     cleanupNewVersion: async () => {
-      const cleanup = [deleteArticleArtifacts(env, id, document.contentHash)];
-      if (written) cleanup.push(rollbackDocument(env.KNOWLEDGE_BUCKET, previousDocument, written));
-      await Promise.all(cleanup);
+      if (!written) return;
+      await rollbackDocument(env.KNOWLEDGE_BUCKET, previousDocument, written);
+      await deleteArticleArtifacts(env, id, document.contentHash);
       await indexChineseArticle(
         env,
         id,
@@ -312,27 +317,6 @@ export async function deleteArticle(
 ): Promise<boolean> {
   const previous = await getArticleRow(env, "owner", "id", id);
   if (!previous || previous.contentHash !== expectedHash) return false;
-  const chinese = await readStoredDocument(env.KNOWLEDGE_BUCKET, id, "zh", previous.contentHash);
-  if (!chinese) throw new Error(`Canonical Chinese Markdown is missing for article ${id}`);
-  const translations = await drizzle(env.DB)
-    .select()
-    .from(articleTranslations)
-    .where(eq(articleTranslations.articleId, id));
-  const translatedDocuments = await Promise.all(
-    translations.map(async (translation) => {
-      const document = await readStoredDocument(
-        env.KNOWLEDGE_BUCKET,
-        id,
-        translation.locale,
-        translation.sourceHash,
-      );
-      if (!document) {
-        throw new Error(`Translation Markdown is missing for article ${id}/${translation.locale}`);
-      }
-      return document;
-    }),
-  );
-  const documents = [chinese, ...translatedDocuments];
   return deleteStoredArticle({
     hideRow: async () => {
       const hidden = await drizzle(env.DB)
@@ -344,6 +328,22 @@ export async function deleteArticle(
       return Boolean(hidden);
     },
     cleanupVersion: async () => {
+      const chinese = await readStoredDocument(
+        env.KNOWLEDGE_BUCKET,
+        id,
+        "zh",
+        previous.contentHash,
+      );
+      const translations = await drizzle(env.DB)
+        .select()
+        .from(articleTranslations)
+        .where(eq(articleTranslations.articleId, id));
+      const translatedDocuments = await Promise.all(
+        translations.map((translation) =>
+          readStoredDocument(env.KNOWLEDGE_BUCKET, id, translation.locale, translation.sourceHash),
+        ),
+      );
+      const documents = [chinese, ...translatedDocuments].filter((document) => document !== null);
       await Promise.all([
         deleteStoredDocuments(env.KNOWLEDGE_BUCKET, documents),
         deleteArticleArtifacts(env, id, expectedHash),

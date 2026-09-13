@@ -1,8 +1,10 @@
 import type { Element } from "hast";
 import { fromHtml } from "hast-util-from-html";
 import { sanitize } from "hast-util-sanitize";
+import { parseDiff } from "./diff";
+import { MarkdownEmbedError } from "./embed-error";
 
-export class MarkdownEmbedError extends Error {}
+export { MarkdownEmbedError } from "./embed-error";
 
 type Alignment = "left" | "right" | "wide" | "narrow";
 export type MarkdownEmbed = { align: Alignment } & (
@@ -10,6 +12,12 @@ export type MarkdownEmbed = { align: Alignment } & (
   | { kind: "stock"; code: string }
   | { kind: "link"; url: string }
   | { kind: "articleList"; urls: string[] }
+  | { kind: "quote"; text: string; author: string; title: string | null; url: string | null }
+  | {
+      kind: "diff";
+      title: string;
+      lines: { text: string; kind: "add" | "remove" | "context" | "header" }[];
+    }
   | {
       kind: "media";
       type: "audio" | "video";
@@ -144,9 +152,47 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
       "embed:media",
       "embed:architecture",
       "embed:storyboard",
+      "embed:quote",
+      "embed:diff",
     ].includes(kind)
   ) {
     throw new MarkdownEmbedError(`Unsupported embed kind: ${language}`);
+  }
+  if (kind === "embed:quote" || kind === "embed:diff") {
+    const lines = source.replace(/\r\n/gu, "\n").split("\n");
+    const separator = lines.indexOf("---");
+    if (separator < 0)
+      throw new MarkdownEmbedError("Quote and diff require metadata, then --- and a body");
+    const fields = new Map<string, string>();
+    const allowed =
+      kind === "embed:quote" ? ["author", "title", "url", "align"] : ["title", "align"];
+    for (const [field, value] of parseFields(lines.slice(0, separator).join("\n"))) {
+      if (!allowed.includes(field))
+        throw new MarkdownEmbedError(`Unsupported ${kind} field: ${field}`);
+      if (fields.has(field)) throw new MarkdownEmbedError(`Duplicate embed field: ${field}`);
+      fields.set(field, value);
+    }
+    const body = lines.slice(separator + 1).join("\n");
+    if (!body.trim()) throw new MarkdownEmbedError("Embed body must not be empty");
+    const align = parseAlignment(fields.get("align"));
+    if (kind === "embed:quote") {
+      const author = fields.get("author");
+      if (!author) throw new MarkdownEmbedError("Quote requires an author");
+      const value = fields.get("url");
+      let url: string | null = null;
+      if (value !== undefined) {
+        if (!URL.canParse(value) || /[\s\p{Cc}]/u.test(value))
+          throw new MarkdownEmbedError("Invalid quote URL");
+        const parsed = new URL(value);
+        if (!["https:", "http:"].includes(parsed.protocol) || parsed.username || parsed.password)
+          throw new MarkdownEmbedError("Quote URL must use HTTP(S) without credentials");
+        url = parsed.href;
+      }
+      return { kind: "quote", align, author, title: fields.get("title") ?? null, url, text: body };
+    }
+    const title = fields.get("title");
+    if (!title) throw new MarkdownEmbedError("Diff requires a title");
+    return { kind: "diff", align, title, lines: parseDiff(body) };
   }
   if (kind === "embed:article") {
     const lines = source
@@ -178,6 +224,11 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
         url.password
       )
         throw new MarkdownEmbedError("Article URL must use HTTP(S) without credentials");
+      try {
+        decodeURIComponent(url.pathname);
+      } catch {
+        throw new MarkdownEmbedError("Article URL requires valid percent encoding");
+      }
       urls.push(url.href);
     }
     if (urls.length === 0 || urls.length > 50)
