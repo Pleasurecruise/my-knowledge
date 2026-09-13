@@ -28,6 +28,14 @@ describe("Markdown dialect", () => {
   });
 
   it("rejects unsupported and ambiguous fields", () => {
+    for (const source of [
+      "mark: missing\nnote: Note\n---\nBody",
+      "mark: word\nnote: Note\n---\nword word",
+      "mark: word\nnote: Note\ncolor: invalid\n---\nword",
+      "mark: word\nnote: Note\nurl: javascript:alert(1)\n---\nword",
+      "mark: word\nnote: Note\nnote: Duplicate\n---\nword",
+    ])
+      expect(() => parseMarkdownEmbed("embed:annotation", source)).toThrow();
     expect(() => parseMarkdownEmbed("embed:video", "url: https://example.com")).toThrow(
       "Unsupported embed",
     );

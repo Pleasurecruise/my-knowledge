@@ -14,7 +14,6 @@ import { LogOut } from "@my-knowledge/ui/icons";
 import { createAuthClient } from "better-auth/react";
 import { oneTapClient } from "better-auth/client/plugins";
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { authClient } from "@/auth/client";
 import type { InterfaceMessages } from "@/i18n/registry";
@@ -87,15 +86,7 @@ export function AuthAction({
     window.location.assign("/");
   }
 
-  if (isPending || !session)
-    return error
-      ? createPortal(
-          <div className="auth-toast" role="alert">
-            {error}
-          </div>,
-          document.body,
-        )
-      : null;
+  if (isPending || !session) return null;
 
   return (
     <Popover>

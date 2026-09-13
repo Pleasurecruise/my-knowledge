@@ -40,6 +40,19 @@ const chart = z.object({
 });
 
 class ProviderError extends Error {}
+class RateLimitError extends ProviderError {}
+
+function repositoryCard(item: z.infer<typeof repository>): CardData {
+  return {
+    kind: "github",
+    description: item.description === null ? "" : item.description,
+    language: item.language === null ? "No primary language" : item.language,
+    avatar: item.owner.avatar_url,
+    stars: item.stargazers_count,
+    forks: item.forks_count,
+    issues: item.open_issues_count,
+  };
+}
 
 function publicLink(url: URL) {
   const host = url.hostname.replace(/\.$/u, "");
@@ -95,6 +108,11 @@ function parseLink(html: string, url: URL): CardData {
 }
 
 const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Promise<CardData> => {
+  const repositoryCache =
+    kind === "github" ? (await getCloudflareContext({ async: true })).env.KNOWLEDGE_CACHE : null;
+  const cacheKey = `embed:github:${id.toLowerCase()}`;
+  const cached = repositoryCache === null ? null : await repositoryCache.get(cacheKey);
+  if (cached !== null) return repositoryCard(repository.parse(JSON.parse(cached)));
   const url =
     kind === "github"
       ? `https://api.github.com/repos/${id}`
@@ -135,6 +153,14 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
       if (mime !== "text/html" && mime !== "application/xhtml+xml")
         throw new ProviderError("Link response is not HTML");
     }
+    if (
+      kind === "github" &&
+      (response.status === 429 ||
+        (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0"))
+    ) {
+      await response.body?.cancel();
+      throw new RateLimitError("GitHub API rate limit reached. Please try again later.");
+    }
     if (!response.ok) throw new ProviderError("Provider request failed");
     const reader = response.body?.getReader();
     if (!reader) throw new ProviderError("Provider response is empty");
@@ -172,15 +198,9 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
     }
     if (kind === "github") {
       const item = repository.parse(data);
-      return {
-        kind,
-        description: item.description === null ? "" : item.description,
-        language: item.language === null ? "No primary language" : item.language,
-        avatar: item.owner.avatar_url,
-        stars: item.stargazers_count,
-        forks: item.forks_count,
-        issues: item.open_issues_count,
-      };
+      if (repositoryCache !== null)
+        await repositoryCache.put(cacheKey, JSON.stringify(item), { expirationTtl: 3600 });
+      return repositoryCard(item);
     }
     const item = chart.parse(data).chart.result[0];
     const quote = item?.indicators.quote[0];
@@ -203,11 +223,13 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
     return {
       kind: "error",
       message:
-        kind === "github"
-          ? "Repository details are unavailable. Open GitHub to view the repository."
-          : kind === "stock"
-            ? "Stock prices are unavailable. Open Yahoo Finance to view the quote."
-            : "Link preview is unavailable. Open the source to read the page.",
+        error instanceof RateLimitError
+          ? error.message
+          : kind === "github"
+            ? "Repository details are unavailable. Open GitHub to view the repository."
+            : kind === "stock"
+              ? "Stock prices are unavailable. Open Yahoo Finance to view the quote."
+              : "Link preview is unavailable. Open the source to read the page.",
     };
   }
 });
@@ -219,12 +241,12 @@ const readArticleCard = cache(async (value: string): Promise<ArticleCard | null>
     return null;
   const match = /^\/articles\/([^/]+)\/?$/u.exec(url.pathname);
   if (!match?.[1]) return null;
-  const slug = decodeURIComponent(match[1]);
+  const identity = decodeURIComponent(match[1]);
   const principal = await getPrincipal();
-  const row = await getArticleRow(env, principal, "slug", slug);
+  const row = await getArticleRow(env, principal, "link", identity);
   return row
     ? {
-        href: `/articles/${encodeURIComponent(row.slug)}${url.hash}`,
+        href: `/articles/${encodeURIComponent(row.id)}${url.hash}`,
         title: row.title,
         description: row.summary,
       }

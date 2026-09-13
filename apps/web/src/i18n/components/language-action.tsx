@@ -35,7 +35,7 @@ export async function LanguageAction() {
         aria-label={`${current.messages.shell.changeLanguage}: ${next.label}`}
         className="px-2"
         size="sm"
-        title={next.label}
+
         type="submit"
         variant="ghost"
       >

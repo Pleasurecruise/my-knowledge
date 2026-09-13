@@ -1,5 +1,6 @@
 "use client";
 
+import CodeBlock from "@tiptap/extension-code-block";
 import Placeholder from "@tiptap/extension-placeholder";
 import { TableKit } from "@tiptap/extension-table";
 import { Markdown as MarkdownExtension } from "@tiptap/markdown";
@@ -44,7 +45,12 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { markdownEquivalent, visibilitySchema } from "@my-knowledge/content";
+import {
+  markdownCodeFence,
+  markdownForEditor,
+  markdownEquivalent,
+  visibilitySchema,
+} from "@my-knowledge/content";
 
 import type { ArticleEditorProps, EditorCommand, SlashMenuPosition } from "./article-editor.types";
 import { articleReturnHref } from "@/articles/navigation";
@@ -167,12 +173,13 @@ const commands: EditorCommand[] = [
   },
 ];
 
-const saveResponseSchema = z.object({ article: z.object({ slug: z.string() }) });
+const saveResponseSchema = z.object({ article: z.object({ id: z.string() }) });
 
 export function ArticleEditor(props: ArticleEditorProps) {
   const { messages } = props;
   const article = props.mode === "edit" ? props.article : null;
   const initialBody = props.mode === "edit" ? props.article.body : "";
+  const editorBody = useMemo(() => markdownForEditor(initialBody), [initialBody]);
   const initialSummary = props.mode === "edit" ? props.article.summary : "";
   const initialTags = props.mode === "edit" ? props.article.tags : [];
   const initialTitle = props.mode === "edit" ? props.article.title : "";
@@ -198,7 +205,14 @@ export function ArticleEditor(props: ArticleEditorProps) {
 
   const extensions = useMemo(
     () => [
-      StarterKit,
+      StarterKit.configure({ codeBlock: false }),
+      CodeBlock.extend({
+        renderMarkdown(node, helpers) {
+          const value = node.content ? helpers.renderChildren(node.content) : "";
+          const fence = markdownCodeFence(value);
+          return `${fence}${node.attrs?.language || ""}\n${value}\n${fence}`;
+        },
+      }),
       Placeholder.configure({ placeholder: messages.writePlaceholder }),
       TableKit.configure({ table: { resizable: false } }),
       MarkdownExtension,
@@ -254,7 +268,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions,
-    content: initialBody,
+    content: editorBody,
     contentType: "markdown",
     onCreate: ({ editor: current }) => {
       if (!markdownEquivalent(initialBody, current.getMarkdown())) setEditorMode("source");
@@ -288,7 +302,10 @@ export function ArticleEditor(props: ArticleEditorProps) {
     setModeError(false);
     if (mode === "rich") {
       if (!editor) return;
-      editor.commands.setContent(markdown, { contentType: "markdown", emitUpdate: false });
+      editor.commands.setContent(markdownForEditor(markdown), {
+        contentType: "markdown",
+        emitUpdate: false,
+      });
       if (!markdownEquivalent(markdown, editor.getMarkdown())) {
         setModeError(true);
         return;
@@ -350,7 +367,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
     };
   }, [dirty]);
 
-  const returnHref = article === null ? "/" : `/articles/${article.slug}${context}`;
+  const returnHref = article === null ? "/" : `/articles/${article.id}${context}`;
 
   function runSlashCommand(command: EditorCommand) {
     if (!editor || !slashRange) return;
@@ -390,7 +407,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
         return;
       }
       const result = saveResponseSchema.parse(await response.json());
-      router.replace(`/articles/${result.article.slug}${context}`);
+      router.replace(`/articles/${result.article.id}${context}`);
       router.refresh();
     } catch {
       setError(messages.saveFailed);
@@ -416,17 +433,13 @@ export function ArticleEditor(props: ArticleEditorProps) {
             {title.trim() || messages.titleLabel}
           </h1>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center gap-1">
           {article === null ? null : (
             <DeleteAction expectedHash={article.contentHash} id={article.id} messages={messages} />
           )}
           <Button
             aria-label={messages.cancel}
-            className={
-              article === null
-                ? "h-8 w-8 rounded-r-none text-muted-foreground"
-                : "-ml-px h-8 w-8 rounded-none text-muted-foreground"
-            }
+            className="h-8 w-8 text-muted-foreground"
             disabled={saving}
             onClick={leave}
             size="icon-sm"
@@ -436,7 +449,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
           </Button>
           <Button
             aria-label={messages.save}
-            className="-ml-px h-8 w-8 rounded-l-none bg-foreground text-background hover:bg-foreground hover:opacity-90"
+            className="h-8 w-8 bg-foreground text-background hover:bg-foreground hover:opacity-90"
             disabled={saving || !title.trim() || !summary.trim() || !markdown.trim()}
             onClick={save}
             size="icon-sm"
@@ -446,12 +459,13 @@ export function ArticleEditor(props: ArticleEditorProps) {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-[3fr_2fr]">
-        <label className="grid gap-2" htmlFor="article-title">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[3fr_2fr]">
+        <label className="grid gap-1.5" htmlFor="article-title">
           <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
             {messages.titleLabel}
           </span>
           <Input
+            className="h-8 px-2.5"
             autoFocus
             disabled={saving}
             id="article-title"
@@ -460,11 +474,12 @@ export function ArticleEditor(props: ArticleEditorProps) {
             value={title}
           />
         </label>
-        <label className="grid gap-2" htmlFor="article-tags">
+        <label className="grid gap-1.5" htmlFor="article-tags">
           <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
             {messages.tagsLabel}
           </span>
           <Input
+            className="h-8 px-2.5"
             disabled={saving}
             id="article-tags"
             onChange={(event) => setTags(event.target.value)}
@@ -474,8 +489,8 @@ export function ArticleEditor(props: ArticleEditorProps) {
         </label>
       </div>
 
-      <div className="mt-4">
-        <div className="grid gap-2">
+      <div className="mt-3">
+        <div className="grid gap-1.5">
           <label
             className="text-muted-foreground text-[0.6875rem] font-medium tracking-widest uppercase"
             htmlFor="article-summary"
@@ -483,6 +498,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
             {messages.summaryLabel}
           </label>
           <Input
+            className="h-8 px-2.5"
             disabled={saving}
             id="article-summary"
             onChange={(event) => setSummary(event.target.value)}
@@ -493,7 +509,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
       </div>
 
       {article === null ? null : (
-        <label className="mt-4 grid max-w-48 gap-2" htmlFor="article-visibility">
+        <label className="mt-3 grid max-w-40 gap-1.5" htmlFor="article-visibility">
           <span className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
             {messages.visibility}
           </span>
@@ -508,7 +524,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
               if (value !== null) setVisibility(visibilitySchema.parse(value));
             }}
           >
-            <SelectTrigger id="article-visibility" className="w-full">
+            <SelectTrigger id="article-visibility" size="sm" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -525,7 +541,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
         </p>
       )}
 
-      <div className="mt-6 overflow-hidden rounded-lg border bg-background shadow-sm sm:mt-8">
+      <div className="mt-4 overflow-hidden rounded-lg border bg-background">
         <div
           className="flex items-center gap-1 border-b bg-muted/40 p-1"
           role="group"
@@ -570,12 +586,12 @@ export function ArticleEditor(props: ArticleEditorProps) {
                 <span className="contents" key={command.title}>
                   {command.separatorBefore ? <span className="mx-1 h-5 w-px bg-border" /> : null}
                   <Button
+                    aria-label={command.title}
                     aria-pressed={active}
                     className="size-7.5 shrink-0 text-muted-foreground hover:text-foreground"
                     disabled={editor === null || saving}
                     onClick={() => editor && command.run(editor)}
                     size="icon-sm"
-                    title={command.title}
                     type="button"
                     variant={active ? "secondary" : "ghost"}
                   >
@@ -621,7 +637,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
         {editorMode === "source" ? (
           <textarea
             aria-label={messages.markdownSource}
-            className="block min-h-96 w-full resize-y bg-background p-4 font-mono text-sm leading-7 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            className="article-writing-area block w-full resize-y bg-background p-4 font-mono text-foreground outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:p-5"
             disabled={saving}
             spellCheck={false}
             value={markdown}

@@ -17,18 +17,16 @@ const corpus: ArticleSummary[] = [2020, 2026, 2023].map((year) => ({
 }));
 it("preserves provider relevance across years instead of applying the chronology baseline", () => {
   const render = (order: "chronology" | "relevance") =>
-    renderToStaticMarkup(
-      <ArticleList articles={corpus} empty="Empty" entryUnit="articles" order={order} />,
-    );
+    renderToStaticMarkup(<ArticleList articles={corpus} empty="Empty" order={order} />);
   const baseline = render("chronology");
   const candidate = render("relevance");
   expect([...baseline.matchAll(/href="([^"]+)"/gu)].map((match) => match[1])).toEqual([
-    "/articles/article-2026",
-    "/articles/article-2023",
-    "/articles/article-2020",
+    "/articles/2026",
+    "/articles/2023",
+    "/articles/2020",
   ]);
   expect([...candidate.matchAll(/href="([^"]+)"/gu)].map((match) => match[1])).toEqual(
-    corpus.map(({ slug }) => `/articles/${slug}`),
+    corpus.map(({ id }) => `/articles/${id}`),
   );
   expect(candidate).not.toContain("article-year-heading");
 });
@@ -42,9 +40,7 @@ it("renders translated title and summary while falling back to Chinese per artic
         }
       : article,
   );
-  const html = renderToStaticMarkup(
-    <ArticleList articles={articles} empty="Empty" entryUnit="articles" locale="ja" />,
-  );
+  const html = renderToStaticMarkup(<ArticleList articles={articles} empty="Empty" locale="ja" />);
   expect(html).toContain("翻訳タイトル");
   expect(html).toContain("翻訳概要");
   expect(html).not.toContain("Title 2020");

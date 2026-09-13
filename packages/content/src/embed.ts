@@ -12,6 +12,14 @@ export type MarkdownEmbed = { align: Alignment } & (
   | { kind: "stock"; code: string }
   | { kind: "link"; url: string }
   | { kind: "articleList"; urls: string[] }
+  | {
+      kind: "annotation";
+      text: string;
+      mark: string;
+      note: string;
+      color: "blue" | "red" | "green" | "amber" | "purple";
+      url: string | null;
+    }
   | { kind: "quote"; text: string; author: string; title: string | null; url: string | null }
   | {
       kind: "diff";
@@ -152,20 +160,25 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
       "embed:media",
       "embed:architecture",
       "embed:storyboard",
+      "embed:annotation",
       "embed:quote",
       "embed:diff",
     ].includes(kind)
   ) {
     throw new MarkdownEmbedError(`Unsupported embed kind: ${language}`);
   }
-  if (kind === "embed:quote" || kind === "embed:diff") {
+  if (kind === "embed:annotation" || kind === "embed:quote" || kind === "embed:diff") {
     const lines = source.replace(/\r\n/gu, "\n").split("\n");
     const separator = lines.indexOf("---");
     if (separator < 0)
-      throw new MarkdownEmbedError("Quote and diff require metadata, then --- and a body");
+      throw new MarkdownEmbedError("This embed requires metadata, then --- and a body");
     const fields = new Map<string, string>();
     const allowed =
-      kind === "embed:quote" ? ["author", "title", "url", "align"] : ["title", "align"];
+      kind === "embed:annotation"
+        ? ["mark", "note", "color", "url", "align"]
+        : kind === "embed:quote"
+          ? ["author", "title", "url", "align"]
+          : ["title", "align"];
     for (const [field, value] of parseFields(lines.slice(0, separator).join("\n"))) {
       if (!allowed.includes(field))
         throw new MarkdownEmbedError(`Unsupported ${kind} field: ${field}`);
@@ -175,19 +188,38 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
     const body = lines.slice(separator + 1).join("\n");
     if (!body.trim()) throw new MarkdownEmbedError("Embed body must not be empty");
     const align = parseAlignment(fields.get("align"));
-    if (kind === "embed:quote") {
-      const author = fields.get("author");
-      if (!author) throw new MarkdownEmbedError("Quote requires an author");
+    if (kind === "embed:quote" || kind === "embed:annotation") {
       const value = fields.get("url");
       let url: string | null = null;
       if (value !== undefined) {
         if (!URL.canParse(value) || /[\s\p{Cc}]/u.test(value))
-          throw new MarkdownEmbedError("Invalid quote URL");
+          throw new MarkdownEmbedError("Invalid source URL");
         const parsed = new URL(value);
         if (!["https:", "http:"].includes(parsed.protocol) || parsed.username || parsed.password)
-          throw new MarkdownEmbedError("Quote URL must use HTTP(S) without credentials");
+          throw new MarkdownEmbedError("Source URL must use HTTP(S) without credentials");
         url = parsed.href;
       }
+      if (kind === "embed:annotation") {
+        const mark = fields.get("mark");
+        const note = fields.get("note");
+        const color = fields.get("color") ?? "blue";
+        if (!mark || !note) throw new MarkdownEmbedError("Annotation requires mark and note");
+        if (!body.includes(mark) || body.indexOf(mark) !== body.lastIndexOf(mark))
+          throw new MarkdownEmbedError("Annotation mark must occur exactly once in the body");
+        if (
+          color !== "blue" &&
+          color !== "red" &&
+          color !== "green" &&
+          color !== "amber" &&
+          color !== "purple"
+        )
+          throw new MarkdownEmbedError(
+            "Annotation color must be blue, red, green, amber, or purple",
+          );
+        return { kind: "annotation", align, text: body, mark, note, color, url };
+      }
+      const author = fields.get("author");
+      if (!author) throw new MarkdownEmbedError("Quote requires an author");
       return { kind: "quote", align, author, title: fields.get("title") ?? null, url, text: body };
     }
     const title = fields.get("title");

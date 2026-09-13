@@ -1,11 +1,16 @@
 import { afterEach, expect, it, vi } from "vite-plus/test";
 import { readEmbed } from "../../../src/articles/embeds";
 
+const repositoryCache = vi.hoisted(() => ({
+  get: vi.fn<() => Promise<string | null>>(async () => null),
+  put: vi.fn(async () => {}),
+}));
+
 const articleRow = vi.hoisted(() => vi.fn());
 const principal = vi.hoisted(() => vi.fn());
 vi.mock("@opennextjs/cloudflare", () => ({
   getCloudflareContext: vi.fn(async () => ({
-    env: { BETTER_AUTH_URL: "https://knowledge.you-find.me" },
+    env: { BETTER_AUTH_URL: "https://knowledge.you-find.me", KNOWLEDGE_CACHE: repositoryCache },
   })),
 }));
 vi.mock("../../../src/auth/owner", () => ({ getPrincipal: principal }));
@@ -13,6 +18,9 @@ vi.mock("../../../src/articles/persistence/document", () => ({ getArticleRow: ar
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  repositoryCache.get.mockReset();
+  repositoryCache.get.mockResolvedValue(null);
+  repositoryCache.put.mockReset();
   articleRow.mockReset();
   principal.mockReset();
 });
@@ -170,11 +178,12 @@ it("renders media without fetching it through the provider boundary", async () =
   expect(JSON.stringify(result)).toContain('"controls":true');
 });
 
-it("resolves same-site URLs to authorized web slugs without a provider fetch", async () => {
+it("resolves same-site URLs to authorized UUID links without a provider fetch", async () => {
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
   principal.mockResolvedValue("owner");
   articleRow.mockResolvedValue({
+    id: "article-123",
     slug: "real-web-slug",
     title: "Automatic title",
     summary: "Automatic summary",
@@ -185,13 +194,13 @@ it("resolves same-site URLs to authorized web slugs without a provider fetch", a
     urls: ["https://knowledge.you-find.me/articles/article-123"],
   });
   expect(articleRow).toHaveBeenCalledWith(
-    { BETTER_AUTH_URL: "https://knowledge.you-find.me" },
+    expect.objectContaining({ BETTER_AUTH_URL: "https://knowledge.you-find.me" }),
     "owner",
-    "slug",
+    "link",
     "article-123",
   );
   const text = JSON.stringify(result);
-  expect(text).toContain('"href":"/articles/real-web-slug"');
+  expect(text).toContain('"href":"/articles/article-123"');
   expect(text).not.toContain('"target":"_blank"');
   expect(text).toContain('"type":"text","value":"Automatic title"');
   expect(fetcher).not.toHaveBeenCalled();
@@ -206,9 +215,9 @@ it("keeps missing or unauthorized article targets non-clickable", async () => {
     urls: ["https://knowledge.you-find.me/articles/private-id"],
   });
   expect(articleRow).toHaveBeenCalledWith(
-    { BETTER_AUTH_URL: "https://knowledge.you-find.me" },
+    expect.objectContaining({ BETTER_AUTH_URL: "https://knowledge.you-find.me" }),
     "anonymous",
-    "slug",
+    "link",
     "private-id",
   );
   expect(JSON.stringify(result)).toContain("Article unavailable");
@@ -235,6 +244,7 @@ it("resolves article-list URLs through authorized metadata and web routes", asyn
   principal.mockResolvedValue("anonymous");
   articleRow
     .mockResolvedValueOnce({
+      id: "article-456",
       slug: "real-slug",
       title: "Readable article",
       summary: "Its description",
@@ -253,7 +263,7 @@ it("resolves article-list URLs through authorized metadata and web routes", asyn
   const text = JSON.stringify(tree);
   expect(text).toContain("Readable article");
   expect(text).toContain("Its description");
-  expect(text).toContain('"href":"/articles/real-slug"');
+  expect(text).toContain('"href":"/articles/article-456"');
   expect(text).not.toContain('"target":"_blank"');
   expect(text).not.toContain("private-slug");
   expect(text).toContain("Article unavailable");
@@ -276,4 +286,37 @@ it("reports fetch transport failures but propagates TypeErrors outside the reque
   await expect(
     readEmbed({ kind: "link", url: "https://example.com/processing", align: "narrow" }),
   ).rejects.toBe(error);
+});
+
+it("reuses public repository metadata and identifies GitHub rate limits without caching failures", async () => {
+  const item = {
+    description: "Repository",
+    language: "Rust",
+    stargazers_count: 1,
+    forks_count: 0,
+    open_issues_count: 0,
+    owner: { avatar_url: "https://avatars.githubusercontent.com/u/1" },
+  };
+  const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(item)));
+  vi.stubGlobal("fetch", fetcher);
+  await readEmbed({ kind: "github", repo: "owner/repo", align: "wide" });
+  expect(repositoryCache.put).toHaveBeenCalledWith(
+    "embed:github:owner/repo",
+    JSON.stringify(item),
+    { expirationTtl: 3600 },
+  );
+  repositoryCache.get.mockResolvedValue(JSON.stringify(item));
+  expect(
+    JSON.stringify(await readEmbed({ kind: "github", repo: "Owner/Repo", align: "wide" })),
+  ).toContain("Repository");
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  repositoryCache.get.mockResolvedValue(null);
+  repositoryCache.put.mockClear();
+  fetcher.mockResolvedValue(
+    new Response("limited", { status: 403, headers: { "x-ratelimit-remaining": "0" } }),
+  );
+  expect(
+    JSON.stringify(await readEmbed({ kind: "github", repo: "owner/repo", align: "wide" })),
+  ).toContain("GitHub API rate limit reached");
+  expect(repositoryCache.put).not.toHaveBeenCalled();
 });

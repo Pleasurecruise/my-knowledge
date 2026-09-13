@@ -18,7 +18,7 @@ export function PrimaryNavigation({ messages }: { messages: InterfaceMessages["s
         href="/"
       >
         <Library data-icon="inline-start" />
-        {messages.articles}
+        <span className="sr-only">{messages.articles}</span>
       </Link>
       <Link
         aria-current={pathname === "/explore" ? "page" : undefined}
@@ -26,7 +26,7 @@ export function PrimaryNavigation({ messages }: { messages: InterfaceMessages["s
         href="/explore"
       >
         <Search data-icon="inline-start" />
-        {messages.explore}
+        <span className="sr-only">{messages.explore}</span>
       </Link>
     </nav>
   );

@@ -5,7 +5,7 @@ import {
   readArticleDocument,
   resolveLocale,
 } from "@my-knowledge/content";
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
 import { readArticleCache, writeArticleCache } from "./cache";
@@ -96,7 +96,7 @@ export async function localizeArticles(
 }
 
 export async function getArticleMetadata(env: CloudflareEnv, slug: string) {
-  const row = await getArticleRow(env, "anonymous", "slug", decodeURIComponent(slug));
+  const row = await getArticleRow(env, "anonymous", "link", decodeURIComponent(slug));
   return row ? articleSummary(row) : null;
 }
 
@@ -106,7 +106,7 @@ export async function getArticleEdition(
   slug: string,
   requestedLocale: string,
 ) {
-  const row = await getArticleRow(env, principal, "slug", decodeURIComponent(slug));
+  const row = await getArticleRow(env, principal, "link", decodeURIComponent(slug));
   if (!row) return null;
   const translations =
     requestedLocale === "zh"
@@ -128,14 +128,18 @@ export async function getArticleEdition(
 export async function getArticleRow(
   env: CloudflareEnv,
   principal: Principal,
-  field: "id" | "slug",
+  field: "id" | "slug" | "link",
   value: string,
 ) {
-  const identity = field === "id" ? eq(articles.id, value) : eq(articles.slug, value);
+  const identity =
+    field === "link"
+      ? or(eq(articles.id, value), eq(articles.slug, value))
+      : eq(articles[field], value);
   return drizzle(env.DB)
     .select()
     .from(articles)
     .where(and(identity, authorizedCondition(principal)))
+    .orderBy(desc(eq(articles.id, value)))
     .get();
 }
 

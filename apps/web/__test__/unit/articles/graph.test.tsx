@@ -47,6 +47,8 @@ it("deduplicates URL/wiki edges and excludes targets absent from authorized reco
         article.id === "source"
           ? [
               "target-slug",
+              "target",
+              "https://knowledge.you-find.me/articles/target",
               "https://knowledge.you-find.me/articles/target-slug",
               "http://localhost:8787/articles/target-slug",
               "https://knowledge.you-find.me/articles/private-secret",

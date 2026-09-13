@@ -1,3 +1,4 @@
+import { MarkdownBody } from "./markdown-body";
 import type { Element, ElementContent, Root } from "hast";
 import type { Root as MarkdownRoot } from "mdast";
 import rehypeKatex from "rehype-katex";
@@ -218,7 +219,8 @@ const highlightCodeBlocks: Plugin<[MarkdownHighlighter], Root> = (highlighter) =
     if (!language || !languages.includes(language)) return;
     const source = code.children.at(0);
     if (source?.type !== "text") throw new Error("Code block source is missing");
-    const highlighted = highlighter.codeToHast(source.value, {
+    // remark-rehype appends one newline; it is not part of the authored code.
+    const highlighted = highlighter.codeToHast(source.value.replace(/\n$/u, ""), {
       lang: language,
       defaultColor: false,
       themes: { light: "github-light", dark: "github-dark" },
@@ -326,5 +328,5 @@ export async function Markdown({ labels, markdown, structuredBlock, embeds, link
     })
     .process(markdown);
 
-  return <div className="markdown-body">{file.result}</div>;
+  return <MarkdownBody>{file.result}</MarkdownBody>;
 }

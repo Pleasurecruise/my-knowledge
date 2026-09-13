@@ -1,11 +1,4 @@
-import {
-  type ArticleSummary,
-  createSlug,
-  normalizeLocale,
-  visibilitySchema,
-} from "@my-knowledge/content";
-import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
+import { type ArticleSummary, normalizeLocale, visibilitySchema } from "@my-knowledge/content";
 import { z } from "zod";
 
 import { articles, articleTranslations } from "@/db/schema";
@@ -50,18 +43,4 @@ export function articleSummary(
 export function articleLinks(row: ArticleRow): string[] {
   const parsed: unknown = JSON.parse(row.linksJson);
   return stringArraySchema.parse(parsed);
-}
-
-export async function allocateArticleSlug(env: CloudflareEnv, title: string): Promise<string> {
-  const base = createSlug(title);
-  for (let suffix = 1; suffix <= 1_000; suffix += 1) {
-    const slug = suffix === 1 ? base : `${base}-${suffix}`;
-    const existing = await drizzle(env.DB)
-      .select({ id: articles.id })
-      .from(articles)
-      .where(eq(articles.slug, slug))
-      .get();
-    if (!existing) return slug;
-  }
-  throw new Error("Could not allocate a unique article slug");
 }

@@ -28,17 +28,16 @@ test.afterEach(async ({ page }) => {
 });
 
 test("uses readable article typography without decorative icons", async ({ page }, testInfo) => {
-  await page.goto("/articles/extensible-knowledge-boundaries");
+  await page.goto("/articles/extensible-knowledge-boundaries?from=explore#content");
+  await expect(page).toHaveURL(
+    /\/articles\/11111111-1111-4111-8111-111111111111\?from=explore#content$/u,
+  );
   await expect(page.locator(".site-masthead")).toBeHidden();
   await expect(page.getByRole("link", { name: "编辑", exact: true })).toHaveCount(0);
   const prose = page.locator("#article > .markdown-body");
-  const phone = testInfo.project.name.startsWith("phone");
-  await expect(page.locator(".article-reading-page")).toHaveCSS(
-    "padding-top",
-    phone ? "48px" : "72px",
-  );
-  await expect(prose).toHaveCSS("font-size", "15px");
-  await expect(prose).toHaveCSS("line-height", "25.5px");
+  await expect(page.locator(".article-reading-page")).toHaveCSS("padding-top", "72px");
+  await expect(prose).toHaveCSS("font-size", "16px");
+  await expect(prose).toHaveCSS("line-height", "28.8px");
   await expect(prose).toHaveCSS("font-family", /Geist.*PingFang SC/u);
   await expect(page.locator(".heading-identity")).toHaveCount(0);
   expect(
@@ -87,7 +86,7 @@ test("renders the current Japanese translation under a Japanese interface", asyn
   );
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    /\/articles\/extensible-knowledge-boundaries$/u,
+    /\/articles\/11111111-1111-4111-8111-111111111111$/u,
   );
   const openGraphImage = await page.locator('meta[property="og:image"]').getAttribute("content");
   if (!openGraphImage) throw new Error("Article Open Graph image metadata is unavailable");
@@ -98,7 +97,7 @@ test("renders the current Japanese translation under a Japanese interface", asyn
   expect(openGraphResponse.status()).toBe(200);
   expect(openGraphResponse.headers()["content-type"]).toContain("image/png");
   expect(openGraphResponse.headers()["cache-control"]).toBe("no-store");
-  expect(openGraphUrl.searchParams.get("v")).toMatch(/-3$/u);
+  expect(openGraphUrl.searchParams.get("v")).toMatch(/-4$/u);
   await expect(page.locator("article")).toHaveAttribute("lang", "ja");
   await expect(page.locator(".markdown-embed-link a")).toHaveAttribute(
     "href",
@@ -116,7 +115,7 @@ test("renders the current Japanese translation under a Japanese interface", asyn
     Math.abs(headingBox.y + headingBox.height / 2 - returnBox.y - returnBox.height / 2),
   ).toBeLessThan(2);
   await page.screenshot({ path: testInfo.outputPath("title-aligned-return.png") });
-  await expect(page.locator("header img")).toHaveAttribute("src", "/logo.png");
+  await expect(page.locator(".site-identity")).toHaveCount(0);
   await expect(page.locator(".callout")).toHaveCount(1);
   await expect(page.locator('pre.shiki[data-language="ts"]')).toHaveCount(1);
   await expect(page.locator('pre.shiki[data-language="ts"] .line span').first()).toHaveCSS(
@@ -147,23 +146,7 @@ test("renders the current Japanese translation under a Japanese interface", asyn
     .evaluateAll((headings) => headings.map((heading) => heading.id));
   expect(headingIds.every(Boolean)).toBe(true);
   expect(new Set(headingIds).size).toBe(headingIds.length);
-  const contentsLinks = await page
-    .getByRole("navigation", { name: "目次", includeHidden: true })
-    .locator('a[href^="#"]')
-    .evaluateAll((links) => links.map((link) => link.getAttribute("href")?.slice(1)));
-  expect(contentsLinks.length).toBeGreaterThan(0);
-  for (const id of contentsLinks) expect(headingIds).toContain(id);
-
-  if (testInfo.project.name.startsWith("desktop")) {
-    const tableOfContents = page.getByRole("navigation", { name: "目次" });
-    await expect(tableOfContents).toBeVisible();
-    await expect(tableOfContents).toHaveCSS("overflow-y", "auto");
-    await expect(tableOfContents).toHaveCSS("scrollbar-width", "none");
-    await expect(page.getByRole("complementary", { name: "読了率" })).toHaveCount(0);
-  } else {
-    await expect(page.getByRole("navigation", { name: "目次" })).toBeHidden();
-    await expect(page.getByRole("complementary", { name: "読了率" })).toBeHidden();
-  }
+  await expect(page.getByRole("navigation", { name: "目次" })).toHaveCount(0);
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
@@ -201,14 +184,7 @@ test("keeps the two public tabs searchable, localized, and keyboard reachable", 
   );
 
   await page.goto("/explore");
-  const navigation = page.getByRole("navigation", { name: "主要导航" });
-  await expect(navigation.getByRole("link")).toHaveCount(2);
-  await expect(navigation.getByRole("link").nth(0)).toHaveAttribute("href", "/");
-  await expect(navigation.getByRole("link").nth(1)).toHaveAttribute("href", "/explore");
-  await expect(navigation.getByRole("link", { name: "探索" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(page.getByRole("navigation", { name: "主要导航" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "搜索" })).toBeVisible();
   await expect(page.getByRole("tab")).toHaveCount(0);
   await expect(page.getByText("最近文章", { exact: true })).toHaveCount(0);
@@ -219,33 +195,33 @@ test("keeps the two public tabs searchable, localized, and keyboard reachable", 
   const sitemapResponse = await page.request.get("/sitemap.xml");
   expect(sitemapResponse.status()).toBe(200);
   const sitemap = await sitemapResponse.text();
-  expect(sitemap).toContain("/articles/extensible-knowledge-boundaries");
+  expect(sitemap).toContain("/articles/11111111-1111-4111-8111-111111111111");
   expect(sitemap).toContain("/explore</loc>");
   expect(sitemap).not.toContain("/graph</loc>");
   expect(sitemap).not.toContain("/articles</loc>");
-  expect(sitemap).not.toContain("/articles/private-deletion-fixture");
+  expect(sitemap).not.toContain("/articles/33333333-3333-4333-8333-333333333333");
   const rssResponse = await page.request.get("/rss.xml");
   expect(rssResponse.status()).toBe(200);
   expect(rssResponse.headers()["content-type"]).toContain("application/rss+xml");
   const rss = await rssResponse.text();
-  expect(rss).toContain("/articles/extensible-knowledge-boundaries");
+  expect(rss).toContain("/articles/11111111-1111-4111-8111-111111111111");
   expect(rss).not.toContain("Private deletion fixture");
   const llmsResponse = await page.request.get("/llms.txt");
   expect(llmsResponse.status()).toBe(200);
   expect(llmsResponse.headers()["content-type"]).toContain("text/plain");
   const llms = await llmsResponse.text();
-  expect(llms).toContain("/articles/extensible-knowledge-boundaries");
+  expect(llms).toContain("/articles/11111111-1111-4111-8111-111111111111");
   expect(llms).not.toContain("Private deletion fixture");
 
   await page.getByRole("button", { name: "切换语言: English" }).click();
-  await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary navigation" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Search" })).toBeVisible();
 
   const aiResponse = await page.request.post("/api/search/ai", {
     data: { query: "private knowledge" },
   });
   expect(aiResponse.status()).toBe(404);
-  const privateResponse = await page.request.get("/articles/private-deletion-fixture");
+  const privateResponse = await page.request.get("/articles/33333333-3333-4333-8333-333333333333");
   const privatePage = await privateResponse.text();
   expect(privatePage).toContain('<meta name="robots" content="noindex');
   expect(privatePage).toContain("404 · 未找到页面");
@@ -259,20 +235,20 @@ test("keeps the two public tabs searchable, localized, and keyboard reachable", 
   await expect(page.getByRole("link", { name: "Related practice" })).toBeVisible();
   await expect(page.getByText("Private", { exact: true })).toHaveCount(0);
   await page.getByRole("link", { name: "Extensible knowledge boundaries" }).click();
-  await expect(page).toHaveURL(/\/articles\/extensible-knowledge-boundaries$/u);
+  await expect(page).toHaveURL(/\/articles\/11111111-1111-4111-8111-111111111111$/u);
   await page.getByRole("link", { name: "Back", exact: true }).click();
   await expect(page).toHaveURL(/\/$/u);
   await page.goto("/graph");
   await expect(page.locator(".graph-node")).toHaveCount(2);
   const [graphTitleBox, headerBox] = await Promise.all([
     page.locator("main header").boundingBox(),
-    page.getByRole("banner").locator(":scope > div").boundingBox(),
+    page.locator(".page-content").boundingBox(),
   ]);
-  if (!graphTitleBox || !headerBox) throw new Error("Wide title layout was not measurable");
+  if (!graphTitleBox || !headerBox) throw new Error("Narrow title layout was not measurable");
   expect(graphTitleBox.x).toBeCloseTo(headerBox.x, 0);
   expect(graphTitleBox.x + graphTitleBox.width).toBeCloseTo(headerBox.x + headerBox.width, 0);
   await expect(
-    page.locator('[aria-live="polite"]').getByText("可扩展的知识边界", {
+    page.locator(".graph-details").getByText("可扩展的知识边界", {
       exact: true,
     }),
   ).toBeVisible();
@@ -281,7 +257,7 @@ test("keeps the two public tabs searchable, localized, and keyboard reachable", 
   ).toHaveCount(2);
   await expect(page.getByRole("group", { name: "Knowledge graph canvas" })).toBeVisible();
   await expect(page.getByRole("combobox")).toHaveCount(0);
-  const cardBounds = await page.locator('[aria-live="polite"]').boundingBox();
+  const cardBounds = await page.locator(".graph-details").boundingBox();
   const graphBounds = await page.locator(".graph-stage").boundingBox();
   const graphGridBounds = await page.locator(".graph-workspace-body").boundingBox();
   const relationshipBounds = await page
@@ -293,15 +269,11 @@ test("keeps the two public tabs searchable, localized, and keyboard reachable", 
   expect(graphBounds.x + graphBounds.width).toBeLessThanOrEqual(
     graphGridBounds.x + graphGridBounds.width,
   );
-  expect(graphBounds.y).toBeCloseTo(cardBounds.y, 0);
-  expect(graphBounds.height).toBeCloseTo(
-    relationshipBounds.y + relationshipBounds.height - cardBounds.y,
-    0,
-  );
+  expect(cardBounds.y).toBeGreaterThanOrEqual(graphBounds.y + graphBounds.height);
   expect(relationshipBounds.y).toBeGreaterThanOrEqual(cardBounds.y + cardBounds.height);
   expect(
     await page
-      .locator('[aria-live="polite"] .overflow-y-auto')
+      .locator(".graph-details .overflow-y-auto")
       .evaluate((element) => getComputedStyle(element).scrollbarWidth),
   ).toBe("none");
   expect(
@@ -363,50 +335,16 @@ test("prefetches prose links before clicking and keeps navigation in the client"
     if (request.isNavigationRequest()) navigations.push(request.url());
   });
   await reference.click();
-  await expect(page).toHaveURL(/\/articles\/related-article$/u);
+  await expect(page).toHaveURL(/\/articles\/22222222-2222-4222-8222-222222222222$/u);
   await expect(page.locator(".article-return")).toHaveAttribute(
     "href",
-    "/articles/extensible-knowledge-boundaries",
+    "/articles/11111111-1111-4111-8111-111111111111",
   );
   await expect(page.locator(".markdown-body")).toBeVisible();
   expect(navigations).toEqual([]);
-  const backlink = page.getByRole("link", { name: "可扩展的知识边界", exact: true });
-  await expect(backlink).toHaveAttribute(
-    "href",
-    "/articles/extensible-knowledge-boundaries#reference=related-article",
-  );
-  await backlink.click();
+  await page.goto("/articles/extensible-knowledge-boundaries#reference=related-article");
   await expect(reference).toBeFocused();
   await expect(reference).toBeInViewport();
-  await page.getByRole("navigation", { name: "文章目录" }).hover();
-  await page.getByRole("link", { name: "数据视图", exact: true }).click();
-  await expect(page.locator(".markdown-body h2", { hasText: "数据视图" })).toBeInViewport();
-});
-
-test("reveals TOC labels on hover and keyboard focus", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.startsWith("phone"), "The reading rail is hidden on phones");
-  await page.goto("/articles/extensible-knowledge-boundaries");
-  await expect(page.locator(".article-actions")).toHaveCount(0);
-  const toc = page.getByRole("navigation", { name: "文章目录" });
-  const label = toc.locator(".article-toc-text").first();
-  await expect(label).toHaveCSS("opacity", "0");
-  await expect(label).toHaveCSS("height", "0px");
-  await expect(toc).toHaveCSS("width", "68px");
-  await expect(toc).toHaveCSS("scrollbar-width", "none");
-  await expect(toc.locator(".article-toc-label")).toHaveCount(0);
-  const collapsed = await toc.boundingBox();
-  expect(collapsed?.height).toBeLessThanOrEqual(34);
-  await page.screenshot({ path: testInfo.outputPath("toc-collapsed.png") });
-  await toc.hover();
-  await expect(label).toHaveCSS("opacity", "1");
-  await page.screenshot({ path: testInfo.outputPath("toc-hover.png") });
-  await page.mouse.move(0, 0);
-  const link = toc.getByRole("link").first();
-  await link.focus();
-  await expect(label).toHaveCSS("opacity", "1");
-  await link.press("Enter");
-  await expect(link).toHaveAttribute("aria-current", "location");
-  await page.screenshot({ path: testInfo.outputPath("toc-expanded.png") });
 });
 
 test("cycles every registered interface locale", async ({ page }, testInfo) => {
@@ -439,11 +377,9 @@ test("updates the selected graph article and follows its reading action", async 
   await expect(page.locator(".graph-edge--link")).toHaveCount(0);
   await page.getByRole("button", { name: "全部关系" }).click();
   await page.getByRole("button", { name: "查看 相关实践" }).click();
-  await expect(
-    page.locator('[aria-live="polite"]').getByText("相关实践", { exact: true }),
-  ).toBeVisible();
-  await page.locator('[aria-live="polite"]').getByRole("link", { name: "阅读文章" }).click();
-  await expect(page).toHaveURL(/\/articles\/related-article\?from=/u);
+  await expect(page.locator(".graph-details").getByText("相关实践", { exact: true })).toBeVisible();
+  await page.locator(".graph-details").getByRole("link", { name: "阅读文章" }).click();
+  await expect(page).toHaveURL(/\/articles\/22222222-2222-4222-8222-222222222222\?from=/u);
   await expect(page.locator(".article-return")).toHaveAttribute("href", "/explore?view=graph");
 });
 
@@ -516,10 +452,10 @@ test("matches the design theme and preserves it through a keyboard toggle", asyn
     "background-color",
     dark ? "rgb(28, 32, 31)" : "rgb(246, 246, 242)",
   );
-  await expect(page.locator(".markdown-body")).toHaveCSS("font-size", "15px");
-  expect(await page.evaluate(() => document.fonts.check('17px "Lora"'))).toBe(true);
+  await expect(page.locator(".markdown-body")).toHaveCSS("font-size", "16px");
   await page.goto("/");
   const toggle = page.getByRole("button", { name: "切换主题" });
+  await page.keyboard.press("Tab");
   await toggle.focus();
   await expect(toggle).toBeFocused();
   await expect(toggle).toHaveCSS("outline-style", "solid");
@@ -547,11 +483,16 @@ test("keeps the shared layout, type and shapes consistent across main pages", as
   ]) {
     await page.goto(path);
     await page.evaluate(() => document.fonts.ready);
-    await expect(page.locator("main h1")).toBeVisible();
-    await expect(page.locator("main h1")).toHaveCSS(
-      "font-size",
-      testInfo.project.name.startsWith("phone") ? "22px" : "24px",
-    );
+    if (path === "/") {
+      await expect(page.locator(".site-identity")).toHaveText("Pleasure1234");
+      await expect(page.locator(".site-identity img")).toHaveCSS("border-radius", "50%");
+    } else {
+      await expect(page.locator("main h1")).toBeVisible();
+      await expect(page.locator("main h1")).toHaveCSS(
+        "font-size",
+        testInfo.project.name.startsWith("phone") ? "22px" : "24px",
+      );
+    }
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
@@ -562,10 +503,13 @@ test("keeps the shared layout, type and shapes consistent across main pages", as
       await expect(page.locator(".exploration-toggle a").first()).toHaveCSS("width", "32px");
       await expect(page.locator(".exploration-toggle")).toHaveCSS("border-width", "0px");
       await expect(page.locator('form[role="search"]')).toHaveCSS("border-radius", "7px");
-      await expect(page.locator('form[role="search"] button')).toHaveCSS("border-radius", "5px");
+      await expect(page.locator('form[role="search"] button')).toHaveCSS("border-radius", "9999px");
     }
     if (path === "/") await expect(page.locator("main .article-list")).toBeVisible();
-    if (path === "/explore") await expect(page.locator(".page-shell-narrow")).toHaveCount(0);
+    await expect(page.locator(".page-shell")).toHaveCSS(
+      "max-width",
+      testInfo.project.name.startsWith("phone") ? "690px" : "778px",
+    );
     if (path === "/explore?view=graph") {
       const label = await page.locator(".graph-node text").first().boundingBox();
       expect(label?.height).toBeGreaterThanOrEqual(12);
@@ -661,15 +605,15 @@ test("retains search context and inherits Home settings without reading controls
   await expect(page.getByRole("searchbox")).toHaveValue("边界");
 });
 
-test("shows a transient One Tap failure without blocking the page", async ({ page }, testInfo) => {
+test("keeps One Tap failures out of the reading surface", async ({ page }, testInfo) => {
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-google-prompt-count", "1");
   await page.evaluate(() => document.dispatchEvent(new Event("test-google-credential")));
-  await expect(page.locator(".auth-toast")).toContainText("400: invalid id token");
+  await expect(page.locator(".auth-toast")).toHaveCount(0);
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
   await expect(page.locator(".auth-feedback")).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("sign-in-toast.png") });
-  await page.getByRole("navigation").getByRole("link", { name: "探索", exact: true }).click();
+  await page.goto("/explore");
   await expect(page).toHaveURL(/\/explore$/u);
   await expect(page.locator(".auth-toast")).toHaveCount(0, { timeout: 7000 });
   const errors = errorsByPage.get(page);
@@ -682,7 +626,9 @@ test("switches article list titles and summaries with the Home language setting"
   page,
 }, testInfo) => {
   await page.goto("/");
-  const entry = page.locator('.article-preview[href="/articles/extensible-knowledge-boundaries"]');
+  const entry = page.locator(
+    '.article-preview[href="/articles/11111111-1111-4111-8111-111111111111"]',
+  );
   await expect(entry).toContainText("可扩展的知识边界");
   await page.getByRole("button", { name: "切换语言: English" }).click();
   await expect(entry).toContainText("Extensible Knowledge Boundaries");
@@ -695,22 +641,22 @@ test("switches article list titles and summaries with the Home language setting"
   await expect(page.locator(".site-controls")).toBeHidden();
 });
 
-test("shows a transient message when Google does not display its prompt", async ({ page }) => {
+test("does not show a toast when Google skips its prompt", async ({ page }) => {
   await serveGoogle(page, false);
   await page.goto("/");
-  await expect(page.locator(".auth-toast")).toContainText("Google One Tap 未显示");
+  await expect(page.locator(".auth-toast")).toHaveCount(0);
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
   await expect(page.locator(".auth-toast")).toHaveCount(0, { timeout: 7000 });
 });
 
-test("shows invalid-origin login failures as a toast", async ({ page }) => {
+test("keeps invalid-origin login failures out of the reading surface", async ({ page }) => {
   await page.route("**/api/auth/one-tap/callback", (route) =>
     route.fulfill({ status: 403, json: { message: "Invalid origin" } }),
   );
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-google-prompt-count", "1");
   await page.evaluate(() => document.dispatchEvent(new Event("test-google-credential")));
-  await expect(page.locator(".auth-toast")).toContainText("403: Invalid origin");
+  await expect(page.locator(".auth-toast")).toHaveCount(0);
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
   await expect(page.locator(".auth-feedback")).toHaveCount(0);
   await expect(page.locator(".auth-toast")).toHaveCount(0, { timeout: 7000 });
@@ -718,4 +664,36 @@ test("shows invalid-origin login failures as a toast", async ({ page }) => {
   expect(errors).toHaveLength(1);
   expect(errors?.[0]).toContain("403");
   if (errors) errors.length = 0;
+});
+
+test("keeps navigation compact and copies a clean article link", async ({
+  page,
+  context,
+}, testInfo) => {
+  await page.goto("/");
+  await expect(page.locator(".site-extra-actions")).toBeHidden();
+  await expect(page.getByRole("link", { name: "探索", exact: true })).toHaveCount(0);
+  await expect(page.locator(".article-visibility").first()).toHaveText("public");
+  await expect(page.locator(".article-visibility", { hasText: "private" })).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("content-first-home.png"), fullPage: true });
+  await expect(page.locator(".site-menu")).toHaveCount(0);
+  await expect(page.locator(".site-preferences")).toBeVisible();
+  await expect(page.getByRole("link", { name: "新建", exact: true })).toHaveCount(0);
+  await page.goto("/articles/extensible-knowledge-boundaries?from=explore#source");
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: "复制链接", exact: true }).click();
+  await expect(page.getByText("链接已复制", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    new URL("/articles/11111111-1111-4111-8111-111111111111", page.url()).href,
+  );
+  await page.evaluate(() => {
+    Object.defineProperty(navigator.clipboard, "writeText", {
+      configurable: true,
+      value: () => Promise.reject(new DOMException("Clipboard denied", "NotAllowedError")),
+    });
+  });
+  await page.getByRole("button", { name: "复制链接", exact: true }).click();
+  await expect(page.getByText("复制失败，请重试。", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("copy-failure.png") });
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });

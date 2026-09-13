@@ -1,23 +1,16 @@
 # Project instructions
 
-The repository follows a plan, implement, verify, and archive loop. Product facts belong in `docs/`;
-temporary execution state belongs in `.agents/`.
+Implement, document, and verify changes directly. Keep README concise, product facts in `docs/`,
+and temporary verification evidence in `.agents/`.
 
 ## Core workflow
 
-### 1. Plan
+### 1. Establish scope
 
-Before a non-trivial repository change, read `.agents/PLANS.md`. If no active plan covers the task,
-create `.agents/plans/<task>.md` and add it to the top of the index before implementation.
-
-A plan contains the objective, acceptance criteria, expected files, relationship to
-`.agents/POLARIS.md`, ordered steps, and required evidence. Update it before intentionally changing
-scope. Small explanations, read-only inspection, and isolated typo or formatting corrections do not
-need a plan.
-
-After every acceptance criterion passes, remove the plan and its index entry. Durable decisions move
-to the owning document; Git history records the completed change. Do not commit unless the user has
-authorized the Git workflow.
+Read the owning documents and identify the expected behavior and verification. Do not create a plan
+file for each code change. Create or maintain a plan only when the user explicitly requests one.
+Keep usage instructions in README and durable decisions in their owning documents. Do not commit
+unless the user has authorized the Git workflow.
 
 ### 2. Implement and document
 
@@ -51,19 +44,19 @@ Add a specification only when another repeatable feedback loop genuinely needs d
 
 ### 4. Check the product north star
 
-Every plan states which outcome in `.agents/POLARIS.md` it supports. If a proposed change serves none,
+Changes should support an outcome in `.agents/POLARIS.md`. If a proposed change serves none,
 remove it from scope or ask before proceeding. Stop and report when evidence shows a hard invariant
 regressed.
 
 ## Automatic goal or loop execution
 
-1. Register the plan, select applicable specifications, and state the north-star relationship.
-2. Complete one bounded step, run its smallest truthful check, and update the plan.
+1. Select applicable specifications and identify the north-star relationship; no plan file is required.
+2. Complete one bounded step, run its smallest truthful check, and report meaningful progress.
 3. Pause for user direction when the goal has materially different interpretations, scope must expand,
    a hard invariant may regress, or completion needs an account, secret, payment, or policy decision.
 4. After the same acceptance criterion fails three times for the same reason, report the evidence and
    blocker instead of retrying indefinitely.
-5. Archive the plan only after all required evidence exists.
+5. Finish after required evidence exists; archive a user-requested plan if one was used.
 
 ## Product invariants
 

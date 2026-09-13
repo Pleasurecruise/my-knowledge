@@ -17,9 +17,10 @@ export async function GraphView() {
   const visibleArticles = records.map(({ article }) => article);
   const known = new Map<string, ArticleSummary>(
     visibleArticles.flatMap((article) =>
-      articleLinkTargets(env.BETTER_AUTH_URL, article.slug).map(
-        (target): [string, ArticleSummary] => [target, article],
-      ),
+      articleLinkTargets(env.BETTER_AUTH_URL, article).map((target): [string, ArticleSummary] => [
+        target,
+        article,
+      ]),
     ),
   );
   const relationships = records.flatMap(({ article, links }) =>
@@ -43,7 +44,6 @@ export async function GraphView() {
   );
   const nodes = visibleArticles.map((article) => ({
     id: article.id,
-    slug: article.slug,
     title: article.editions.zh.title,
     summary: article.editions.zh.summary,
     tags: article.tags,

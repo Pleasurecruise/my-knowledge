@@ -1,18 +1,17 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { extractHeadings, readArticleDocument } from "@my-knowledge/content";
+import { readArticleDocument } from "@my-knowledge/content";
 import { Markdown } from "@my-knowledge/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getArticleEdition, getArticleMetadata, listArticleBacklinks, readEmbed } from "@/articles";
+import { getArticleEdition, getArticleMetadata, readEmbed } from "@/articles";
 import { articleReturnHref } from "@/articles/navigation";
 import { ArticleLink } from "@/articles/components/article-link";
 import { articleOpenGraphVersion } from "@/articles/components/article-open-graph-card";
 import { ArticleHeader } from "@/articles/components/article-header";
 import { ArticleNavigationActions } from "@/articles/components/article-navigation-actions";
-import { ArticleRelationList } from "@/articles/components/article-relations";
+import { ArticleAddress } from "@/articles/components/article-address";
 import { ReferencePosition } from "@/articles/components/referencePosition";
-import { ArticleToc } from "@/articles/components/article-toc";
 import { ArticleEditorShell } from "@/articles/components/editor-shell";
 import { StructuredBlock } from "@/articles/components/structured-block";
 import { getPrincipal } from "@/auth/owner";
@@ -25,13 +24,13 @@ export async function generateMetadata({
   const article = await getArticleMetadata(env, slug);
   if (!article) return { title: "Article not found", robots: { index: false, follow: false } };
   const edition = article.editions.zh;
-  const canonical = new URL(`/articles/${article.slug}`, env.BETTER_AUTH_URL);
-  const socialImage = new URL(`/articles/${article.slug}/opengraph-image`, env.BETTER_AUTH_URL);
+  const canonical = new URL(`/articles/${article.id}`, env.BETTER_AUTH_URL);
+  const socialImage = new URL(`/articles/${article.id}/opengraph-image`, env.BETTER_AUTH_URL);
   socialImage.searchParams.set("v", `${article.contentHash}-${articleOpenGraphVersion}`);
   return {
     title: edition.title,
     description: edition.summary,
-    alternates: { canonical },
+    alternates: { canonical: canonical.href },
     keywords: article.tags,
     openGraph: {
       type: "article",
@@ -84,13 +83,13 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
     const zhEdition = text;
     const document = readArticleDocument(zhEdition.markdown);
     return (
-      <div className="page-shell">
+      <div className="page-shell" data-article-id={article.id}>
+        <ArticleAddress id={article.id} />
         <ArticleEditorShell
           article={{
             body: document.body,
             contentHash: article.contentHash,
             id: article.id,
-            slug: article.slug,
             summary: zhEdition.summary,
             tags: article.tags,
             title: zhEdition.title,
@@ -102,35 +101,29 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
       </div>
     );
   }
-  const backlinks = await listArticleBacklinks(env, principal, article);
-  const headings = extractHeadings(text.markdown);
   return (
     <div className="page-shell article-reading-page relative">
       <article
         className="mx-auto min-w-0 w-full max-w-(--article-measure)"
         id="article"
+        data-article-id={article.id}
         lang={locale === "zh" ? "zh-CN" : locale}
       >
         <div className="article-title-row">
-          <ArticleHeader text={text.markdown} title={text.title}>
+          <ArticleHeader title={text.title}>
             <ArticleNavigationActions
+              key={article.slug}
+              articleHref={`/articles/${article.id}`}
               returnHref={returnHref}
               edit={
                 principal === "owner"
-                  ? { enabled: true, href: `/articles/${article.slug}?edit=1${context}` }
+                  ? { enabled: true, href: `/articles/${article.id}?edit=1${context}` }
                   : { enabled: false }
               }
               messages={i18n.messages.article}
             />
           </ArticleHeader>
         </div>
-        {headings.length > 0 ? (
-          <ArticleToc
-            headings={headings}
-            key={locale}
-            label={i18n.messages.article.tableOfContents}
-          />
-        ) : null}
         <Markdown
           embeds={readEmbed}
           link={ArticleLink}
@@ -146,15 +139,8 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
           structuredBlock={StructuredBlock}
           markdown={text.markdown}
         />
-        <div className="mt-10 border-t border-dashed pt-6">
-          <ReferencePosition key={`${article.slug}:${locale}`} />
-          <ArticleRelationList
-            targetSlug={article.slug}
-            articles={backlinks}
-            empty={i18n.messages.article.noBacklinks}
-            heading={i18n.messages.article.backlinks}
-          />
-        </div>
+        <ArticleAddress id={article.id} />
+        <ReferencePosition key={`${article.slug}:${locale}`} />
       </article>
     </div>
   );

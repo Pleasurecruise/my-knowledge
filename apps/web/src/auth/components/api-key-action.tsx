@@ -11,8 +11,7 @@ import {
   AlertDialogTitle,
 } from "@my-knowledge/ui/components/alert-dialog";
 import { Button } from "@my-knowledge/ui/components/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@my-knowledge/ui/components/tooltip";
-import { Copy, RefreshCw, Shield } from "@my-knowledge/ui/icons";
+import { Copy, RefreshCw } from "@my-knowledge/ui/icons";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
@@ -95,34 +94,27 @@ export function ApiKeyAction({ messages }: { messages: InterfaceMessages["shell"
 
   return (
     <>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              aria-label={statusFailed ? messages.apiKeyStatusFailed : actionLabel}
-              disabled={loading}
-              onClick={() => {
-                if (statusFailed) {
-                  setLoading(true);
-                  setStatusFailed(false);
-                  setStatusAttempt((current) => current + 1);
-                } else if (configured) {
-                  setError(null);
-                  setConfirmOpen(true);
-                } else {
-                  void generateApiKey("POST");
-                }
-              }}
-              size="icon-sm"
-              type="button"
-              variant="ghost"
-            />
+      <Button
+        aria-label={statusFailed ? messages.apiKeyStatusFailed : actionLabel}
+        disabled={loading}
+        onClick={() => {
+          if (statusFailed) {
+            setLoading(true);
+            setStatusFailed(false);
+            setStatusAttempt((current) => current + 1);
+          } else if (configured) {
+            setError(null);
+            setConfirmOpen(true);
+          } else {
+            void generateApiKey("POST");
           }
-        >
-          {configured ? <RefreshCw className={loading ? "animate-spin" : ""} /> : <Shield />}
-        </TooltipTrigger>
-        <TooltipContent>{statusFailed ? messages.apiKeyStatusFailed : actionLabel}</TooltipContent>
-      </Tooltip>
+        }}
+        size="icon-sm"
+        type="button"
+        variant="ghost"
+      >
+        <RefreshCw className={loading ? "animate-spin" : ""} />
+      </Button>
 
       {error && !confirmOpen && !keyOpen ? (
         <p className="auth-feedback" role="alert">

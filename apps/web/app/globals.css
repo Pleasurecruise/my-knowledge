@@ -4,13 +4,17 @@
 @import "./styles/layout.css";
 
 @layer components {
+  .article-writing-area,
   .tiptap {
-    min-height: 52vh;
+    min-height: max(28rem, 65svh);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .tiptap {
     padding: 1rem;
     color: var(--foreground);
     font-family: var(--type-prose);
-    font-size: 1rem;
-    line-height: 1.65;
     outline: none;
     overflow-wrap: break-word;
   }
@@ -25,7 +29,7 @@
   .tiptap blockquote,
   .tiptap pre,
   .tiptap table {
-    margin-block: 1em;
+    margin-block: 0.65em;
   }
 
   .tiptap h1,
@@ -34,8 +38,8 @@
   .tiptap h4,
   .tiptap h5,
   .tiptap h6 {
-    margin-top: 2em;
-    margin-bottom: 0.6em;
+    margin-top: 1.4em;
+    margin-bottom: 0.4em;
     font-family: var(--type-prose);
     font-weight: 600;
     line-height: 1.4;
@@ -57,8 +61,8 @@
     padding-left: 1.6em;
   }
   .tiptap li {
-    margin: 0.4em 0;
-    line-height: 1.75;
+    margin: 0.2em 0;
+    line-height: inherit;
   }
   .tiptap ul {
     list-style: disc;
@@ -119,6 +123,11 @@
   }
 
   @media (min-width: 640px) {
+    .article-writing-area,
+    .tiptap {
+      font-size: 0.875rem;
+    }
+
     .tiptap {
       padding: 1.25rem;
     }

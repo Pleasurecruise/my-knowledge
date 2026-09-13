@@ -19,7 +19,7 @@ export function createRssFeed(articles: readonly ArticleSummary[], origin: URL):
   const lastBuildDate = visibleArticles.at(0)?.updatedAt;
   const items = visibleArticles
     .map((article) => {
-      const articleUrl = new URL(`/articles/${article.slug}`, origin).href;
+      const articleUrl = new URL(`/articles/${article.id}`, origin).href;
       const edition = article.editions.zh;
       return [
         "    <item>",
@@ -56,7 +56,7 @@ export function createLlmsText(articles: readonly ArticleSummary[], origin: URL)
   const links = articles
     .filter((article) => article.visibility === "public")
     .map((article) => {
-      const articleUrl = new URL(`/articles/${article.slug}`, origin).href;
+      const articleUrl = new URL(`/articles/${article.id}`, origin).href;
       const title = article.editions.zh.title
         .replaceAll(/\s+/gu, " ")
         .trim()

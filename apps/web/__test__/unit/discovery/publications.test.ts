@@ -37,9 +37,11 @@ describe("public discovery serialization", () => {
     expect(rss).toContain("XML &lt;与&gt; [Markdown]");
     expect(rss).toContain("第一行 &amp; details\n第二行");
     expect(rss).toContain("Thu, 20 Aug 2026 01:02:03 GMT");
-    expect(rss).toContain("https://knowledge.example/articles/xml-and-markdown");
+    expect(rss).toContain(
+      "https://knowledge.example/articles/6d4f2e69-80ac-4ba5-94b1-6f83d8d5cf1b",
+    );
     expect(rss).not.toContain("Private title");
-    expect(rss).not.toContain("private-notes");
+    expect(rss).not.toContain(privateArticle.id);
   });
 
   it("creates a concise Markdown index and excludes private input", () => {
@@ -47,10 +49,10 @@ describe("public discovery serialization", () => {
 
     expect(text).toContain("# my knowledge");
     expect(text).toContain(
-      "- [XML <与> \\[Markdown\\]](https://knowledge.example/articles/xml-and-markdown): 第一行 & details 第二行",
+      "- [XML <与> \\[Markdown\\]](https://knowledge.example/articles/6d4f2e69-80ac-4ba5-94b1-6f83d8d5cf1b): 第一行 & details 第二行",
     );
     expect(text).not.toContain("Private title");
-    expect(text).not.toContain("private-notes");
+    expect(text).not.toContain(privateArticle.id);
   });
 
   it("emits valid empty representations", () => {

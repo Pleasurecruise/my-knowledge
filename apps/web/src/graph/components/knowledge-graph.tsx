@@ -152,7 +152,7 @@ export function KnowledgeGraph({ edges, messages, nodes }: KnowledgeGraphProps) 
                     size: "sm",
                     variant: "outline",
                   })}
-                  href={`/articles/${selected.slug}`}
+                  href={`/articles/${selected.id}`}
                 >
                   {messages.readArticle}
                   <ArrowRight aria-hidden="true" />
@@ -190,14 +190,14 @@ export function KnowledgeGraph({ edges, messages, nodes }: KnowledgeGraphProps) 
                       <span className="min-w-0">
                         <Link
                           className="hover:text-primary font-medium"
-                          href={`/articles/${source.slug}`}
+                          href={`/articles/${source.id}`}
                         >
                           {source.title}
                         </Link>
                         <span aria-hidden="true"> → </span>
                         <Link
                           className="hover:text-primary font-medium"
-                          href={`/articles/${target.slug}`}
+                          href={`/articles/${target.id}`}
                         >
                           {target.title}
                         </Link>

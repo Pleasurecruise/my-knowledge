@@ -20,7 +20,7 @@ export function ExplorationToggle({
       <IntentLink
         href={searchHref}
         aria-label={messages.home.title}
-        title={messages.home.title}
+
         aria-current={!graph ? "page" : undefined}
       >
         <Search aria-hidden="true" />
@@ -28,7 +28,7 @@ export function ExplorationToggle({
       <IntentLink
         href={`/explore?${search}`}
         aria-label={messages.graph.title}
-        title={messages.graph.title}
+
         aria-current={graph ? "page" : undefined}
       >
         <Network aria-hidden="true" />

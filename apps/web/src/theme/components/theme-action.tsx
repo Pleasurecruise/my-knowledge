@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@my-knowledge/ui/components/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@my-knowledge/ui/components/tooltip";
 import { Moon, Sun } from "@my-knowledge/ui/icons";
 import { applyTheme, themeStorageKey, type Theme } from "@my-knowledge/ui/lib/theme";
 
@@ -15,22 +14,15 @@ export function ThemeAction({ messages }: { messages: InterfaceMessages["shell"]
   }
 
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            aria-label={messages.theme}
-            onClick={toggle}
-            size="icon-sm"
-            type="button"
-            variant="ghost"
-          />
-        }
-      >
-        <Moon className="dark:hidden" />
-        <Sun className="hidden dark:block" />
-      </TooltipTrigger>
-      <TooltipContent>{messages.theme}</TooltipContent>
-    </Tooltip>
+    <Button
+      aria-label={messages.theme}
+      onClick={toggle}
+      size="icon-sm"
+      type="button"
+      variant="ghost"
+    >
+      <Moon className="dark:hidden" />
+      <Sun className="hidden dark:block" />
+    </Button>
   );
 }

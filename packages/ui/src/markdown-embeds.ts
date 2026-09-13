@@ -1,5 +1,6 @@
 import type { Element, ElementContent } from "hast";
 import type { MarkdownEmbed } from "@my-knowledge/content";
+import { layoutArchitecture } from "./architecture";
 
 function element(
   tagName: string,
@@ -223,6 +224,37 @@ export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): Elem
     );
   }
   switch (embed.kind) {
+    case "annotation": {
+      const start = embed.text.indexOf(embed.mark);
+      return element(
+        "figure",
+        [
+          element("p", [
+            { type: "text", value: embed.text.slice(0, start) },
+            element("mark", [{ type: "text", value: embed.mark }], {
+              className: ["annotation-mark"],
+            }),
+            { type: "text", value: embed.text.slice(start + embed.mark.length) },
+          ]),
+          element(
+            "figcaption",
+            [
+              element("svg", [element("path", [], { d: "" })], {
+                viewBox: "0 0 44 30",
+                ariaHidden: "true",
+              }),
+              element(
+                embed.url ? "a" : "span",
+                [{ type: "text", value: embed.note }],
+                embed.url ? { href: embed.url } : {},
+              ),
+            ],
+            { className: ["annotation-note"] },
+          ),
+        ],
+        { className: [...properties.className, "annotation-anchor", `annotation-${embed.color}`] },
+      );
+    }
     case "quote":
       return element(
         "figure",
@@ -349,60 +381,62 @@ export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): Elem
       );
     }
     case "architecture": {
-      const nodes = embed.nodes.map((node, index) =>
-        element(
-          "g",
+      const diagrams = [false, true].map((compact) => {
+        const layout = layoutArchitecture(embed, compact);
+        const nodes = layout.nodes.map((node) =>
+          element(
+            "g",
+            [
+              element("rect", [], {
+                x: String(node.x),
+                y: String(node.y),
+                width: 160,
+                height: 80,
+                rx: String(12),
+              }),
+              element("text", [{ type: "text", value: node.label }], {
+                x: String(node.x + 80),
+                y: String(node.y + 45),
+                textAnchor: "middle",
+                className: ["th"],
+              }),
+            ],
+            {
+              className: [
+                "node",
+                node.level % 3 === 0 ? "c-blue" : node.level % 3 === 1 ? "c-green" : "c-amber",
+              ],
+            },
+          ),
+        );
+        const edges = layout.edges.map((edge) =>
+          element("path", [], { className: ["arr"], d: edge.path }),
+        );
+        return element(
+          "svg",
           [
-            element("rect", [], {
-              x: String(24 + index * 224),
-              y: String(50),
-              width: 160,
-              height: 80,
-              rx: String(12),
-            }),
-            element("text", [{ type: "text", value: node.label }], {
-              x: String(104 + index * 224),
-              y: String(95),
-              textAnchor: "middle",
-              className: ["th"],
-            }),
+            element("title", [{ type: "text", value: "Architecture flow" }]),
+            element("desc", [
+              {
+                type: "text",
+                value: "An architecture diagram grouped by dependency.",
+              },
+            ]),
+            ...edges,
+            ...nodes,
           ],
           {
-            className: ["node", index % 2 === 0 ? "c-teal" : "c-purple"],
+            viewBox: `0 0 ${layout.width} ${layout.height}`,
+            width: layout.width,
+            height: layout.height,
+            role: "img",
+            className: [compact ? "architecture-compact" : "architecture-wide"],
           },
-        ),
-      );
-      const edges = embed.edges.map((edge) => {
-        const from = embed.nodes.findIndex((node) => node.id === edge.from);
-        const to = embed.nodes.findIndex((node) => node.id === edge.to);
-        const start = 184 + from * 224;
-        const end = 24 + to * 224;
-        const direction = end > start ? 1 : -1;
-        return element("path", [], {
-          className: ["arr"],
-          d: `M${start} 90 L${end} 90 M${end - 8 * direction} 84 L${end} 90 L${end - 8 * direction} 96`,
-        });
+        );
       });
-      return element(
-        "figure",
-        [
-          element(
-            "svg",
-            [
-              element("title", [{ type: "text", value: "Architecture flow" }]),
-              element("desc", [
-                { type: "text", value: "A left-to-right system architecture diagram." },
-              ]),
-              ...edges,
-              ...nodes,
-            ],
-            { viewBox: `0 0 ${embed.nodes.length * 224 - 16} 180`, role: "img" },
-          ),
-        ],
-        {
-          className: [...properties.className, "markdown-embed-svg"],
-        },
-      );
+      return element("figure", diagrams, {
+        className: [...properties.className, "markdown-embed-svg", "architecture-flow"],
+      });
     }
     case "storyboard": {
       const notes = embed.steps.flatMap((step, index) => {

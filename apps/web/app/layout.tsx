@@ -1,11 +1,14 @@
+import { Toaster } from "@my-knowledge/ui/components/toast";
+import Image from "next/image";
+import Link from "next/link";
+import { Plus } from "@my-knowledge/ui/icons";
+import { buttonVariants } from "@my-knowledge/ui/components/button";
+import { getPrincipal } from "@/auth/owner";
 import { ReadingTrail } from "@/articles/components/reading-trail";
 import { SiteHeader } from "@/shell/site-header";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { TooltipProvider } from "@my-knowledge/ui/components/tooltip";
 import { themeStorageKey } from "@my-knowledge/ui/lib/theme";
 import type { Metadata } from "next";
-import Image from "next/image";
-import { IntentLink as Link } from "@/shell/intent-link";
 
 import { AuthAction } from "@/auth/components/auth-action";
 import { ApiKeyAction } from "@/auth/components/api-key-action";
@@ -27,14 +30,15 @@ export async function generateMetadata(): Promise<Metadata> {
       template: "%s · my knowledge",
     },
     description: "A private-first multilingual knowledge library.",
-    icons: { icon: "/logo.png", apple: "/logo.png" },
+    icons: { icon: "/logo.png?v=avatar", apple: "/logo.png?v=avatar" },
   };
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const [i18n, { env }] = await Promise.all([
+  const [i18n, { env }, principal] = await Promise.all([
     getInterfaceI18n(),
     getCloudflareContext({ async: true }),
+    getPrincipal(),
   ]);
 
   return (
@@ -50,47 +54,46 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body>
         <ReadingTrail>
-          <TooltipProvider>
-            <SiteHeader
-              controls={
-                <>
-                  <LanguageAction />
-                  <ApiKeyAction messages={i18n.messages.shell} />
-                  <ThemeAction messages={i18n.messages.shell} />
-                  <AuthAction
-                    googleClientId={env.GOOGLE_CLIENT_ID}
-                    messages={i18n.messages.shell}
-                  />
-                </>
-              }
-            >
-              <Link className="group mr-auto flex min-w-0 items-center gap-3" href="/">
-                <span className="border-border relative size-7 shrink-0 overflow-hidden rounded-md border">
-                  <Image
-                    alt=""
-                    className="scale-125 object-cover object-[56%_44%]"
-                    fill
-                    priority
-                    sizes="28px"
-                    src="/logo.png"
-                  />
-                </span>
-                <span className="min-w-0">
-                  <span className="font-serif block truncate text-xl leading-none font-normal">
-                    my knowledge
-                  </span>
-                  <span className="text-muted-foreground mt-1 hidden text-xs sm:block">
-                    {i18n.messages.shell.subtitle}
-                  </span>
-                </span>
-              </Link>
-              <div className="site-navigation">
-                <PrimaryNavigation messages={i18n.messages.shell} />
+          <SiteHeader
+            owner={principal === "owner"}
+            label={i18n.messages.shell.moreActions}
+            preferences={
+              <div className="site-preferences">
+                <LanguageAction />
+                <ThemeAction messages={i18n.messages.shell} />
               </div>
-            </SiteHeader>
-            <main>{children}</main>
-          </TooltipProvider>
+            }
+            discovery={
+              principal === "owner" ? <PrimaryNavigation messages={i18n.messages.shell} /> : null
+            }
+            identity={
+              <div className="site-identity">
+                <Image alt="" src="/logo.png" width={44} height={44} priority />
+                <span>Pleasure1234</span>
+              </div>
+            }
+            action={
+              principal === "owner" ? (
+                <Link
+                  href="/articles/new"
+                  aria-label={i18n.messages.articles.newArticle}
+
+                  className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+                >
+                  <Plus aria-hidden="true" />
+                </Link>
+              ) : null
+            }
+            controls={
+              <>
+                <ApiKeyAction messages={i18n.messages.shell} />
+                <AuthAction googleClientId={env.GOOGLE_CLIENT_ID} messages={i18n.messages.shell} />
+              </>
+            }
+          />
+          <main>{children}</main>
         </ReadingTrail>
+        <Toaster />
       </body>
     </html>
   );

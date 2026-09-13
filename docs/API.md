@@ -1,6 +1,6 @@
 # REST API
 
-Owner article resources use `/api/articles` and `/api/articles/{id}`. External clients send the shared `Authorization: Bearer <key>` credential. Without that header, browser authoring may use the allowed-email session; an invalid header never falls back. Unauthorized requests return `401` with a Bearer challenge.
+Owner article resources use `/api/articles` and `/api/articles/{id}`. Article links also use `/articles/{id}`; returned `slug` values only support legacy clients. External clients send the shared `Authorization: Bearer <key>` credential. Without that header, browser authoring may use the allowed-email session; an invalid header never falls back. Unauthorized requests return `401` with a Bearer challenge.
 
 | Method          | Contract                                                                       |
 | --------------- | ------------------------------------------------------------------------------ |

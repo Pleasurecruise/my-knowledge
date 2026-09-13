@@ -121,13 +121,15 @@
   color: color-mix(in srgb, var(--primary) 78%, var(--foreground));
 }
 
-.markdown-body pre,
 .markdown-table-scroll {
   max-width: 100%;
-  overflow-x: auto;
+  min-width: 0;
 }
 
 .markdown-body pre {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   margin: 1.75em 0;
   padding: 0.875rem 1rem;
   border: 1px solid var(--border);
@@ -136,7 +138,6 @@
   font-family: var(--type-code);
   font-size: 0.8125rem;
   line-height: 1.65;
-  scrollbar-width: thin;
 }
 
 .markdown-body pre.shiki code {
@@ -208,7 +209,7 @@
   max-width: 100%;
   margin-block: 2rem;
   margin-inline: 0;
-  overflow-x: auto;
+  min-width: 0;
   padding: clamp(1rem, 2vw, 1.5rem);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -228,7 +229,7 @@
 .chart-block .vega-embed {
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
+  min-width: 0;
 }
 
 .diagram-block > div,
@@ -401,7 +402,6 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  overflow-x: auto;
 }
 
 .markdown-embed-svg svg {
@@ -410,6 +410,30 @@
   height: auto;
   max-height: 42rem;
   color: var(--foreground);
+}
+
+.markdown-body .architecture-flow {
+  min-width: 0;
+  max-width: 100%;
+}
+.architecture-flow svg {
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+}
+.architecture-flow .architecture-compact {
+  display: none;
+}
+.markdown-body .architecture-flow .node rect {
+  fill: color-mix(in oklch, currentColor 18%, var(--background));
+}
+@media (max-width: 640px) {
+  .architecture-flow .architecture-wide {
+    display: none;
+  }
+  .architecture-flow .architecture-compact {
+    display: block;
+  }
 }
 
 .markdown-embed-architecture svg {
@@ -750,8 +774,6 @@
 .markdown-embed-diff pre {
   margin: 0;
   padding: 0.75rem 0;
-  max-height: 32rem;
-  overflow: auto;
 }
 .markdown-embed-diff pre:focus-visible {
   outline: 2px solid var(--ring);
@@ -759,12 +781,11 @@
 }
 .markdown-embed-diff code {
   display: block;
-  min-width: max-content;
 }
 .markdown-embed-diff code span {
   display: block;
   padding: 0 1rem;
-  white-space: pre;
+  white-space: pre-wrap;
 }
 .markdown-embed-diff .diff-add {
   color: var(--success);
@@ -776,4 +797,93 @@
 }
 .markdown-embed-diff .diff-header {
   color: var(--muted-foreground);
+}
+
+.markdown-body .markdown-embed-annotation {
+  position: relative;
+  padding: 1rem 0;
+  border: 0;
+  background: transparent;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.markdown-body .markdown-embed-annotation > p {
+  margin: 0;
+  color: var(--foreground);
+  font: inherit;
+  line-height: inherit;
+}
+.annotation-anchor {
+  --annotation-ink: #426e9b;
+}
+.dark .annotation-anchor {
+  --annotation-ink: #92bce5;
+}
+.annotation-red {
+  --annotation-ink: #b24e48;
+}
+.annotation-green {
+  --annotation-ink: #427554;
+}
+.annotation-amber {
+  --annotation-ink: #92631d;
+}
+.annotation-purple {
+  --annotation-ink: #80529b;
+}
+.dark .annotation-red {
+  --annotation-ink: #e8a09a;
+}
+.dark .annotation-green {
+  --annotation-ink: #9bccaa;
+}
+.dark .annotation-amber {
+  --annotation-ink: #dfbd7a;
+}
+.dark .annotation-purple {
+  --annotation-ink: #c9a5e0;
+}
+.annotation-mark {
+  padding-inline: 0.18em;
+  color: inherit;
+  background: linear-gradient(
+    transparent 35%,
+    color-mix(in srgb, var(--annotation-ink) 18%, transparent) 35%,
+    color-mix(in srgb, var(--annotation-ink) 18%, transparent) 95%,
+    transparent 95%
+  );
+}
+.markdown-body .annotation-note {
+  display: flex;
+  align-items: start;
+  gap: 0.35rem;
+  max-width: 100%;
+  margin: 1.25rem 0 0;
+  padding-left: 3rem;
+  color: var(--annotation-ink);
+  font-family: "KaiTi", "STKaiti", cursive;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.annotation-note > a,
+.annotation-note > span {
+  min-width: 0;
+  width: max-content;
+  max-width: 100%;
+}
+.annotation-note > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  visibility: hidden;
+  pointer-events: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.markdown-body .annotation-note a {
+  color: inherit;
 }

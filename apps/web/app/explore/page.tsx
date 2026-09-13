@@ -31,9 +31,7 @@ export default async function ExplorePage({ searchParams }: PageProps<"/explore"
   return (
     <PageLayout
       action={action}
-      description={graph ? i18n.messages.graph.description : i18n.messages.home.introduction}
       title={graph ? i18n.messages.graph.title : i18n.messages.home.title}
-      view="wide"
     >
       {graph ? (
         <Suspense fallback={<GraphLoading />}>
@@ -56,7 +54,6 @@ export default async function ExplorePage({ searchParams }: PageProps<"/explore"
                 articles={await localizeArticles(env, results, i18n.code)}
                 locale={i18n.code}
                 empty={i18n.messages.search.noResults}
-                entryUnit={i18n.messages.articles.entryUnit}
               />
             </section>
           ) : (

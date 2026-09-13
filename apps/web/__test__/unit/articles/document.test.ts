@@ -36,7 +36,8 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: () => ({
     select: () => ({
       from: (table: unknown) => ({
-        where: () => (table === articles ? { get: reads.row } : reads.translations()),
+        where: () =>
+          table === articles ? { orderBy: () => ({ get: reads.row }) } : reads.translations(),
       }),
     }),
   }),

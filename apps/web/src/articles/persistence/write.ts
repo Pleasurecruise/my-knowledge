@@ -14,7 +14,7 @@ import { deleteSearchItem, indexChineseArticle } from "./ai-search";
 import { deleteArticleCache } from "./cache";
 import { getArticleRow, readArticle } from "./document";
 import { createStoredArticle, deleteStoredArticle, updateStoredArticle } from "./mutation";
-import { allocateArticleSlug, articleObjectKey, articleSummary } from "./record";
+import { articleObjectKey, articleSummary } from "./record";
 import type { StoredArticleDocument, WrittenArticleDocument } from "./types";
 import { articles, articleTranslations } from "@/db/schema";
 
@@ -111,7 +111,6 @@ export async function createArticle(
   const existing = await getArticleRow(env, "owner", "id", id);
   if (existing) return readArticle(env, existing);
   const chinese = document.editions.zh;
-  const slug = await allocateArticleSlug(env, chinese.title);
   const timestamp = new Date().toISOString();
   let written: WrittenArticleDocument | null = null;
   await createStoredArticle({
@@ -130,7 +129,7 @@ export async function createArticle(
         .insert(articles)
         .values({
           id,
-          slug,
+          slug: id,
           title: chinese.title,
           summary: chinese.summary,
           contentHash: document.contentHash,

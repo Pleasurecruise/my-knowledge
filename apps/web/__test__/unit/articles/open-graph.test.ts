@@ -37,7 +37,7 @@ beforeEach(() => {
 
 it("checks visibility before cached images and rejects a withdrawn article", async () => {
   const request = new Request(
-    `https://example.com/articles/example/opengraph-image?v=${article.contentHash}-3`,
+    `https://example.com/articles/example/opengraph-image?v=${article.contentHash}-4`,
   );
   const params = Promise.resolve({ slug: "example" });
   const publicImage = await GET(request, { params });
@@ -51,7 +51,7 @@ it("checks visibility before cached images and rejects a withdrawn article", asy
   expect(reads.asset).not.toHaveBeenCalled();
 });
 
-it.each(["old-content-3", `${article.contentHash}-1`, ""])(
+it.each(["old-content-4", `${article.contentHash}-1`, ""])(
   "rejects stale image version %s before cache access",
   async (version) => {
     const response = await GET(
@@ -69,7 +69,7 @@ it("propagates cache failures instead of disguising them as successful image rea
   await expect(
     GET(
       new Request(
-        `https://example.com/articles/example/opengraph-image?v=${article.contentHash}-3`,
+        `https://example.com/articles/example/opengraph-image?v=${article.contentHash}-4`,
       ),
       { params: Promise.resolve({ slug: "example" }) },
     ),

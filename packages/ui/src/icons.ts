@@ -31,6 +31,7 @@ export {
   RefreshCw,
   Save,
   Search,
+  Share2,
   Shield,
   Strikethrough,
   Sun,

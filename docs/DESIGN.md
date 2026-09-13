@@ -1,11 +1,11 @@
 # Frontend design
 
-Use Rana’s silver-white/ink surfaces, slate-blue actions, amber metadata, matcha accents, fine borders and restrained radii. Preserve the icon; show focus, respect reduced motion and hide scrollbars.
+All pages share a 650px column and 72px top spacing. Home places Pleasure1234's avatar above yearly article lists with dates and visibility pills. Browser icons use the same avatar. Its small footer links to Twitter, Design, GitHub and personal navigation, resting at the viewport bottom on short pages.
 
-Bundle Geist, Geist Mono and Lora with licenses. Interface/supporting text is 14px/13px. Chinese uses system sans, English uses Lora. Reading text uses 15px/1.7. Reading width is 650px within a 1120px shell. Title blocks have no separator.
+Language and theme remain visible outside reading. The owner's circular expander reveals search, creation and account controls to its left on click. Escape closes it. Reading shows return, share and owner edit actions beside the title; no toolbar, statistics, TOC or backlinks. Icons use accessible labels without tooltips. Clipboard results appear in a bottom toast; anonymous authentication failures do not.
 
-Home lists chronological articles. Explore combines search and Graph through compact icon controls. Reading hides the masthead and inherits language/theme settings. Return and owner edit actions share the title row and align vertically. Return follows the tab’s bounded reading trail, survives reloads and excludes creation editors.
+Editors use compact 32px metadata controls. Writing areas retain at least 448px or 65svh, with 14px desktop/16px phone text and 1.5 line spacing. Source resizes vertically.
 
-Article rows pair document thumbnails with resolved titles and descriptions. Backlinks focus and scroll to the first source reference, including deferred cards. Alignment follows [Content](CONTENT.md). Editors offer rich/source modes and stage visibility in a component select until Save. Quotes preserve original text; diffs retain plus/minus markers and keyboard scrolling.
+Silver surfaces, slate-blue actions, matcha quotations and restrained amber support 16px/1.8 reading. Geist, Geist Mono and Lora are bundled. Diagrams scale without internal scrollbars; architecture uses dependency columns or paired mobile rows. Code wraps. Annotation arrows track highlighted text through layout changes.
 
-Error pages share reading width, calm spacing and recovery actions. Social covers use public metadata. Header controls follow language, API key, theme, account order. Authentication failures show transient messages; mutation failures remain retryable. Verify responsive states through the [frontend specification](../.agents/specs/frontend.md).
+Social images use the same palette. Verify responsive geometry, focus, accessibility and reduced motion through the [frontend specification](../.agents/specs/frontend.md).

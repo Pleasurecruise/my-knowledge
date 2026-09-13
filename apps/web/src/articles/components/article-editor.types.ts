@@ -9,7 +9,6 @@ export type ExistingArticleEditor = {
   body: string;
   contentHash: string;
   id: string;
-  slug: string;
   summary: string;
   tags: string[];
   title: string;

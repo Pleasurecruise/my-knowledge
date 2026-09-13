@@ -5,5 +5,4 @@ export type ArticleListProps = {
   order?: "chronology" | "relevance";
   articles: ArticleSummary[];
   empty: string;
-  entryUnit: string;
 };

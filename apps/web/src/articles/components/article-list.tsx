@@ -7,7 +7,6 @@ const articleDate = new Intl.DateTimeFormat("en-US", { month: "2-digit", day: "2
 export function ArticleList({
   articles,
   empty,
-  entryUnit,
   order = "chronology",
   locale = "zh",
 }: ArticleListProps) {
@@ -27,14 +26,7 @@ export function ArticleList({
         .sort(([left], [right]) => right - left)
         .map(([year, entries]) => (
           <section className="article-year" key={year}>
-            {order === "chronology" ? (
-              <h2 className="article-year-heading">
-                {year}
-                <span>
-                  {entries.length} {entryUnit}
-                </span>
-              </h2>
-            ) : null}
+            {order === "chronology" ? <h2 className="article-year-heading">{year}</h2> : null}
             <ol>
               {entries.map((article) => {
                 const edition =
@@ -44,12 +36,12 @@ export function ArticleList({
                   <li key={article.id}>
                     <IntentLink
                       className="article-preview"
-                      href={`/articles/${article.slug}`}
+                      href={`/articles/${article.id}`}
                       aria-label={edition.title}
                     >
                       <span className="article-preview-heading">
                         <span className="article-preview-title">{edition.title}</span>
-                        <span className="article-preview-rule" aria-hidden="true" />
+                        <span className="article-visibility">{article.visibility}</span>
                         <time dateTime={article.updatedAt}>
                           {articleDate.format(new Date(article.updatedAt))}
                         </time>

@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <div aria-busy="true" className="page-shell">
+    <div aria-busy="true" className="page-shell page-loading">
       <span className="sr-only">
         <span className="hidden [html:lang(zh)_&]:inline">正在载入</span>
         <span className="hidden [html:lang(en)_&]:inline">Loading</span>
@@ -10,7 +10,7 @@ export default function Loading() {
         aria-hidden="true"
         className="mx-auto max-w-(--article-measure) motion-safe:animate-pulse"
       >
-        <div className="h-7 w-28 rounded-sm bg-muted" />
+        <div className="h-11 w-28 rounded-sm bg-muted" />
         <div className="mt-4 h-3 w-3/5 rounded-sm bg-muted" />
         <div className="mt-10 space-y-4 border-y py-6">
           <div className="h-3 w-full rounded-sm bg-muted" />

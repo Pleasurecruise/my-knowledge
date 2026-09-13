@@ -19,6 +19,7 @@
     "@my-knowledge/content": "workspace:*",
     "@my-knowledge/ui": "workspace:*",
     "@tiptap/core": "3.31.3",
+    "@tiptap/extension-code-block": "3.31.3",
     "@tiptap/extension-placeholder": "3.31.3",
     "@tiptap/extension-table": "3.31.3",
     "@tiptap/markdown": "3.31.3",

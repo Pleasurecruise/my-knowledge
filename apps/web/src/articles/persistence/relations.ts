@@ -16,7 +16,7 @@ export async function listArticleBacklinks(
   article: ArticleSummary,
   limit = 4,
 ): Promise<ArticleSummary[]> {
-  const targets = articleLinkTargets(env.BETTER_AUTH_URL, article.slug);
+  const targets = articleLinkTargets(env.BETTER_AUTH_URL, article);
   const rows = await drizzle(env.DB)
     .select()
     .from(articles)

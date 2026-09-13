@@ -8,6 +8,7 @@ export type InterfaceMessages = {
     explore: string;
     articles: string;
     navigation: string;
+    moreActions: string;
     changeLanguage: string;
     theme: string;
     generateApiKey: string;
@@ -38,7 +39,6 @@ export type InterfaceMessages = {
     title: string;
     description: string;
     empty: string;
-    entryUnit: string;
     newArticle: string;
   };
   search: {
@@ -50,8 +50,10 @@ export type InterfaceMessages = {
   };
   article: {
     previousPage: string;
+    copyLink: string;
+    linkCopied: string;
+    linkCopyFailed: string;
     allArticles: string;
-    backlinks: string;
     visibility: string;
     private: string;
     public: string;
@@ -67,8 +69,6 @@ export type InterfaceMessages = {
     canvasRelationships: string;
     spatialView: string;
     renderingDiagram: string;
-    tableOfContents: string;
-    noBacklinks: string;
     edit: string;
     titleLabel: string;
     bodyLabel: string;

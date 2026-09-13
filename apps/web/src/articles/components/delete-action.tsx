@@ -52,7 +52,6 @@ export function DeleteAction({ id, expectedHash, messages }: DeleteActionProps) 
             aria-label={messages.delete}
             className="h-8 w-8 text-destructive hover:text-destructive"
             size="icon-sm"
-            title={messages.delete}
             variant="destructive"
           />
         }

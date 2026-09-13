@@ -23,6 +23,7 @@ test("reads quote and Git diff dialects without losing source or executing HTML"
   });
   const body = [
     "## Sources and changes",
+    "```embed:annotation\nmark: 内容优先\nnote: 让文字成为主角，也让很长的批注在手机上自然换行\ncolor: red\nurl: https://example.com/note\n---\n我的博客坚持内容优先。\n```",
     "```embed:quote\nauthor: 项目笔记\ntitle: 知识的保存\nurl: https://example.com/source\n---\n保留知识，也保留它的上下文。\n\n<script>只是原文，不执行。</script>\n```",
     '```embed:diff\ntitle: Publication change\n---\ndiff --git a/config.ts b/config.ts\n--- a/config.ts\n+++ b/config.ts\n@@ -1,2 +1,2 @@\n-const visibility = "private";\n+const visibility = "public";\n export { visibility };\n```',
   ].join("\n\n");
@@ -43,6 +44,12 @@ test("reads quote and Git diff dialects without losing source or executing HTML"
     await owner.dispose();
   }
   await page.goto(`/articles/${slug}`);
+  const annotation = page.locator(".markdown-embed-annotation");
+  await expect(annotation.locator(".annotation-mark")).toHaveText("内容优先");
+  await expect(annotation.locator(".annotation-note a")).toHaveAttribute(
+    "href",
+    "https://example.com/note",
+  );
   const quote = page.locator(".markdown-embed-quote");
   const patch = page.locator(".markdown-embed-diff");
   await expect(quote).toContainText("保留知识，也保留它的上下文。");
