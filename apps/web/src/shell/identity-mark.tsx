@@ -14,7 +14,9 @@ export function IdentityMark({ size = 36 }: { size?: number }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {/* oxlint-disable-next-line shadcn/no-raw-colors -- brand mark color, approved by design */}
       <circle cx="14" cy="21" r="2" fill="#526682" />
+      {/* oxlint-disable-next-line shadcn/no-raw-colors -- brand mark color, approved by design */}
       <circle cx="26" cy="21" r="2" fill="#806127" />
     </svg>
   );

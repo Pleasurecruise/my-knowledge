@@ -50,7 +50,7 @@ export function DeleteAction({ id, expectedHash, messages }: DeleteActionProps) 
         render={
           <Button
             aria-label={messages.delete}
-            className="h-8 w-8 text-destructive hover:text-destructive"
+            className="h-8 w-8"
             size="icon-sm"
             variant="destructive"
           />

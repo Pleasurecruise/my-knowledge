@@ -132,7 +132,7 @@ export function KnowledgeGraph({ edges, messages, nodes }: KnowledgeGraphProps) 
 
         <div className="graph-sidebar">
           {selected ? (
-            <Card aria-live="polite" className="graph-details" size="sm">
+            <Card aria-live="polite" size="sm">
               <CardHeader>
                 <p className="text-primary text-xs font-medium">{messages.selected}</p>
                 <CardTitle className="font-serif">{selected.title}</CardTitle>

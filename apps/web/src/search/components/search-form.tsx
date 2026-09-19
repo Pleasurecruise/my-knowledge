@@ -13,14 +13,13 @@ export function SearchForm({ messages, query }: SearchFormProps) {
       </label>
       <Search className="search-field-icon" aria-hidden="true" />
       <Input
-        className="search-field-input"
         defaultValue={query}
         id="home-search"
         name="query"
         placeholder={messages.articlePlaceholder}
         type="search"
       />
-      <Button className="search-field-submit" type="submit">
+      <Button type="submit">
         <span>{messages.submit}</span>
         <ArrowRight aria-hidden="true" />
       </Button>

@@ -449,10 +449,11 @@ export function ArticleEditor(props: ArticleEditorProps) {
           </Button>
           <Button
             aria-label={messages.save}
-            className="h-8 w-8 bg-foreground text-background hover:bg-foreground hover:opacity-90"
+            className="h-8 w-8"
             disabled={saving || !title.trim() || !summary.trim() || !markdown.trim()}
             onClick={save}
             size="icon-sm"
+            variant="inverse"
           >
             <Save />
           </Button>
@@ -588,7 +589,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
                   <Button
                     aria-label={command.title}
                     aria-pressed={active}
-                    className="size-7.5 shrink-0 text-muted-foreground hover:text-foreground"
+                    className="size-7.5 shrink-0 text-muted-foreground"
                     disabled={editor === null || saving}
                     onClick={() => editor && command.run(editor)}
                     size="icon-sm"

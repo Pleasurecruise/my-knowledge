@@ -33,9 +33,7 @@ export async function LanguageAction() {
     <form action={cycleLanguage}>
       <Button
         aria-label={`${current.messages.shell.changeLanguage}: ${next.label}`}
-        className="px-2"
         size="sm"
-
         type="submit"
         variant="ghost"
       >

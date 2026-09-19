@@ -50,7 +50,6 @@ export function SiteHeader({
         </div>
         {owner ? (
           <Button
-            className="site-expander"
             ref={toggle}
             size="icon-sm"
             variant="ghost"

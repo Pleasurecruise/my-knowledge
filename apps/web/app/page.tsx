@@ -1,6 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Metadata } from "next";
-import { House } from "@my-knowledge/ui/icons";
 
 import { listArticles, localizeArticles } from "@/articles";
 import { ArticleList } from "@/articles/components/article-list";
@@ -45,30 +44,11 @@ export default async function ArticlesPage({ searchParams }: PageProps<"/">) {
           Design
         </a>
         <a
-          href="https://github.com/Pleasurecruise"
-          aria-label="GitHub"
+          href="https://github.com/Pleasurecruise/my-knowledge"
           target="_blank"
           rel="noopener noreferrer"
         >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M8 21v-3c-4 1-4-2-6-3M16 21v-4c0-1-.4-1.8-1-2.2 3-.4 5-2 5-5 0-1.4-.4-2.4-1.2-3.3.3-1.1.3-2.3-.1-3.5-1.7 0-3.1.8-4 1.5a13 13 0 0 0-5.4 0C8.4 3.8 7 3 5.3 3c-.4 1.2-.4 2.4-.1 3.5C4.4 7.4 4 8.4 4 9.8c0 3 2 4.6 5 5-.6.4-1 1.2-1 2.2" />
-          </svg>
-        </a>
-        <a
-          href="https://oh.you-find.me"
-          aria-label="oh.you-find.me"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <House aria-hidden="true" />
+          Source code
         </a>
       </footer>
     </PageLayout>

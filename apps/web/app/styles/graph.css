@@ -101,27 +101,27 @@
   min-width: 0;
   border-top: 1px solid var(--border);
 }
-.graph-details {
+.graph-sidebar [data-slot="card"] {
   gap: 0.875rem;
   padding-block: 1.25rem;
   border: 0;
   border-radius: 0;
 }
-.graph-details [data-slot="card-header"],
-.graph-details [data-slot="card-content"] {
+.graph-sidebar [data-slot="card"] [data-slot="card-header"],
+.graph-sidebar [data-slot="card"] [data-slot="card-content"] {
   padding-inline: 1.25rem;
 }
-.graph-details [data-slot="card-content"] {
+.graph-sidebar [data-slot="card"] [data-slot="card-content"] {
   font-size: var(--text-small);
 }
-.graph-details [data-slot="badge"] {
+.graph-sidebar [data-slot="card"] [data-slot="badge"] {
   border: 0;
   padding-inline: 0;
   color: var(--muted-foreground);
   font-family: var(--type-code);
   font-size: 0.6875rem;
 }
-.graph-details .graph-read-action {
+.graph-sidebar [data-slot="card"] .graph-read-action {
   display: flex;
   width: fit-content;
   gap: 0.5rem;

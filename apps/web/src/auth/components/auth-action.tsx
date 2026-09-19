@@ -91,14 +91,7 @@ export function AuthAction({
   return (
     <Popover>
       <PopoverTrigger
-        render={
-          <Button
-            aria-label={messages.accountMenu}
-            className="rounded-full"
-            size="icon-sm"
-            variant="ghost"
-          />
-        }
+        render={<Button aria-label={messages.accountMenu} size="icon-sm" variant="ghost" />}
       >
         <Avatar size="sm">
           {session.user.image ? <AvatarImage alt="" src={session.user.image} /> : null}

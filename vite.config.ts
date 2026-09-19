@@ -13,6 +13,31 @@ export default defineConfig({
   },
   lint: {
     ignorePatterns: generated,
+    jsPlugins: ["@shadcn/lint"],
+    rules: {
+      "shadcn/no-restyle": [
+        "error",
+        {
+          allow: ["layout"],
+          contracts: [
+            { pattern: "^Button$", allow: ["layout", "text-muted-foreground"] },
+            { pattern: "^Input$", allow: ["layout", "px-*"] },
+            { pattern: "^CardTitle$", allow: ["layout", "typography"] },
+            { pattern: "^CardContent$", allow: ["layout", "spacing"] },
+            { pattern: "^PopoverContent$", allow: ["layout", "account-popover"] },
+            { pattern: "^PopoverHeader$", allow: ["layout", "account-popover-header"] },
+            { pattern: "^PopoverDescription$", allow: ["layout", "typography"] },
+          ],
+        },
+      ],
+      "shadcn/no-raw-colors": "error",
+    },
+    overrides: [
+      {
+        files: ["packages/ui/src/components/**"],
+        rules: { "shadcn/no-restyle": "off" },
+      },
+    ],
     options: {
       typeAware: true,
       typeCheck: true,
