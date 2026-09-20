@@ -193,7 +193,7 @@ echo "ready"
     const html = renderToStaticMarkup(element);
     expect(html).toContain('<h1 id="body-title">Body title</h1>');
     expect(html).toContain('<h6 id="detail">Detail</h6>');
-    expect(html).toContain('<div class="markdown-table-scroll"><table>');
+    expect(html).toContain('<div class="markdown-table-scroll" tabindex="0"><table>');
   });
 
   it("renders positioned JSON Canvas nodes", async () => {

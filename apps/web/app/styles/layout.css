@@ -41,25 +41,6 @@
   align-items: center;
   gap: 0.25rem;
 }
-.account-popover {
-  width: 17rem;
-  padding: 1.25rem;
-  gap: 1.25rem;
-}
-.account-popover-header {
-  align-items: flex-start;
-  gap: 0.5rem;
-  text-align: left;
-}
-.account-popover-header [data-slot="popover-title"] {
-  font-family: var(--type-prose);
-  font-size: 1.125rem;
-  font-weight: 400;
-}
-.account-popover-header [data-slot="popover-description"] {
-  font-size: var(--text-small);
-  line-height: 1.7;
-}
 .page-shell {
   padding-top: 2rem;
   padding-bottom: 4rem;
@@ -101,20 +82,6 @@
   height: 1.125rem;
   flex-shrink: 0;
   color: var(--muted-foreground);
-}
-.search-field [data-slot="input"] {
-  flex: 1;
-  height: 2.5rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-.search-field [data-slot="button"] {
-  height: 2.25rem;
-  gap: 0.5rem;
-  padding-inline: 0.75rem;
-  font-size: var(--text-small);
 }
 .search-articles {
   margin-top: 2.5rem;
@@ -224,9 +191,6 @@
   .search-field {
     gap: 0.5rem;
     padding-left: 0.75rem;
-  }
-  .search-field [data-slot="button"] svg {
-    display: none;
   }
 }
 

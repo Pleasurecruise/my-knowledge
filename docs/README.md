@@ -17,6 +17,6 @@ Read the document that owns the question:
 | [Deployment](DEPLOYMENT.md)     | Configuration, credentials, release and recovery             |
 | [References](REFERENCES.md)     | Inspiration and licensing boundaries                         |
 
-Each file contains 100–200 English words and preserves its essential contract. Exact schemas, exhaustive examples, configuration values, and executable commands remain in their owning source, tests, or manifests.
+[Engineering](ENGINEERING.md) owns documentation and change rules; [Testing](TESTING.md) owns verification requirements. Keep product contracts here and temporary evidence in `.agents`.
 
-Rewrite the owning document when behavior changes; merge repetition and remove obsolete statements. Do not append implementation diaries or patch sections. Implement directly; write plans only when explicitly requested. Temporary evidence belongs in `.agents`; remove it after acceptance or on user request.
+Exact schemas, examples and configuration stay with their source, tests or manifests. Update the owning document when behavior changes, removing obsolete or repeated material.

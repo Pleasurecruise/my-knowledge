@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { serveGoogle } from "./google";
 
-test("compiles footnotes and math with working article anchors", async ({
+test("renders footnotes, math and keyboard-scrollable tables", async ({
   page,
   playwright,
   baseURL,
@@ -30,7 +30,7 @@ test("compiles footnotes and math with working article anchors", async ({
         title: `Markdown compiler ${testInfo.project.name}`,
         summary: "Footnote anchors and mathematical source stay consistent.",
         tags: ["daily/testing"],
-        body: "[^note]:\n    ## Footnote detail\n\n    Footnote text.\n\n## Main section\n\nA reference[^note].\n\nInline $[[math-only]]$.\n\n$$\n<x> + y\n$$",
+        body: "[^note]:\n    ## Footnote detail\n\n    Footnote text.\n\n## Main section\n\nA reference[^note].\n\nInline $[[math-only]]$.\n\n$$\n<x> + y\n$$\n\n| Label | Value |\n| --- | --- |\n| 短标签 | Short value |\n\n| Long label | Value |\n| --- | --- |\n| LongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabel | Readable content |",
       },
     });
     expect(response.status()).toBe(201);
@@ -59,6 +59,27 @@ test("compiles footnotes and math with working article anchors", async ({
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
     ),
   ).toBe(true);
+  const tables = page.locator(".markdown-table-scroll");
+  await expect(tables).toHaveCount(2);
+  expect(
+    await tables.nth(0).evaluate((element) => element.scrollWidth <= element.clientWidth),
+  ).toBe(true);
+  const wide = tables.nth(1);
+  expect(await wide.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  await tables.nth(0).focus();
+  await page.keyboard.press("Tab");
+  await expect(wide).toBeFocused();
+  await expect(wide).toHaveCSS("outline-style", "solid");
+  await wide.press("ArrowRight");
+  await expect.poll(() => wide.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+  await wide.evaluate((element) => {
+    element.scrollLeft = element.scrollWidth;
+  });
+  await expect(wide.getByRole("cell", { name: "Readable content" })).toBeInViewport();
+  await wide.screenshot({ path: testInfo.outputPath("table-scrolled.png") });
+  await wide.evaluate((element) => {
+    element.scrollLeft = 0;
+  });
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath("markdown-compiler.png"), fullPage: true });
   expect(errors).toEqual([]);

@@ -721,3 +721,26 @@ test("serializes state changes and prevents publication after failed deletion", 
   ).toBe(409);
   expect((await page.request.delete(endpoint, { data: currentVersion })).status()).toBe(500);
 });
+
+test("keeps the account popover accessible in both themes", async ({ page }, testInfo) => {
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+    await page.goto("/");
+    await page.getByRole("button", { name: "更多操作", exact: true }).click();
+    const trigger = page.getByRole("button", { name: "打开账户菜单", exact: true });
+    await trigger.click();
+    const popup = page.locator('[data-slot="popover-content"]');
+    await expect(popup).toBeVisible();
+    await expect(popup.getByRole("button", { name: "退出登录" })).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath(`account-${colorScheme}.png`) });
+    await page.keyboard.press("Escape");
+    await expect(popup).toBeHidden();
+    await expect(trigger).toBeFocused();
+  }
+});

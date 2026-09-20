@@ -24,8 +24,6 @@ export default defineConfig({
             { pattern: "^Input$", allow: ["layout", "px-*"] },
             { pattern: "^CardTitle$", allow: ["layout", "typography"] },
             { pattern: "^CardContent$", allow: ["layout", "spacing"] },
-            { pattern: "^PopoverContent$", allow: ["layout", "account-popover"] },
-            { pattern: "^PopoverHeader$", allow: ["layout", "account-popover-header"] },
             { pattern: "^PopoverDescription$", allow: ["layout", "typography"] },
           ],
         },

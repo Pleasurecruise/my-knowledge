@@ -98,8 +98,8 @@ export function AuthAction({
           <AvatarFallback>{session.user.name.slice(0, 1).toLocaleUpperCase()}</AvatarFallback>
         </Avatar>
       </PopoverTrigger>
-      <PopoverContent align="end" className="account-popover" sideOffset={10}>
-        <PopoverHeader className="account-popover-header">
+      <PopoverContent align="end" sideOffset={10}>
+        <PopoverHeader>
           <PopoverTitle>{session.user.name}</PopoverTitle>
           <PopoverDescription className="max-w-52 truncate">
             {session.user.email}

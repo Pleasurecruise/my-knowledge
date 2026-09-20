@@ -27,6 +27,7 @@ export function OwnerSearch({
         </label>
         <Search aria-hidden="true" className="search-field-icon" />
         <Input
+          variant="search"
           id="owner-search"
           name="query"
           type="search"
@@ -35,9 +36,9 @@ export function OwnerSearch({
           autoComplete="off"
           placeholder={messages.articlePlaceholder}
         />
-        <Button type="submit" variant="outline" disabled={pending}>
+        <Button size="sm" type="submit" variant="outline" disabled={pending}>
           <span>{messages.submit}</span>
-          <ArrowRight aria-hidden="true" />
+          <ArrowRight className="max-[720px]:hidden" aria-hidden="true" />
         </Button>
       </form>
       <section

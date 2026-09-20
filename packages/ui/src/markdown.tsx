@@ -256,7 +256,7 @@ const tableWrappers: Plugin<[], Root> = () => (tree: Root) => {
     parent.children[index] = {
       type: "element",
       tagName: "div",
-      properties: { className: ["markdown-table-scroll"] },
+      properties: { className: ["markdown-table-scroll"], tabIndex: 0 },
       children: [node],
     };
     return SKIP;
