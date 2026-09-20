@@ -17,10 +17,13 @@ visibility, and KV caches derived data. Local tools produce content; the service
 
 ```mermaid
 flowchart LR
-  Writing[Local writing or browser] --> API[REST / MCP]
-  API --> R2[Markdown in R2]
-  R2 --> Search[Eligible Chinese AI index]
-  Search --> D1[Public article metadata]
+  Writing[Local writing or browser] --> API[Authenticated REST / MCP]
+  API --> Writer[Per-article writer]
+  Writer --> R2[Canonical Chinese in R2]
+  R2 --> Eligible{Non-daily?}
+  Eligible -->|Yes| Search[Wait for completed AI Search item]
+  Eligible -->|No| D1[Publish D1 metadata]
+  Search --> D1
 ```
 
 ## Run locally

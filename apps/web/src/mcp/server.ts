@@ -162,7 +162,7 @@ export async function handleMcp(env: CloudflareEnv, request: Request): Promise<R
     );
   }
   const handler = createMcpHandler(() => serverFor(env), {
-    legacy: "stateless",
+    legacy: "reject",
     responseMode: "auto",
   });
   return handler.fetch(request);

@@ -43,14 +43,26 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/art
     return Response.json({ error: "Invalid article update" }, { status: 422 });
   }
   if (!("body" in input) && !("documents" in input)) {
-    const article = await setArticleVisibility(env, id, input.expectedHash, input.visibility);
+    const article = await setArticleVisibility(
+      env,
+      id,
+      input.expectedHash,
+      input.expectedUpdatedAt,
+      input.visibility,
+    );
     return article
       ? Response.json({ article })
       : Response.json({ error: "Article changed or was not found" }, { status: 409 });
   }
   if ("documents" in input) {
     try {
-      const result = await updateArticleFromDocuments(env, id, input.expectedHash, input.documents);
+      const result = await updateArticleFromDocuments(
+        env,
+        id,
+        input.expectedHash,
+        input.expectedUpdatedAt,
+        input.documents,
+      );
       if (result.status !== "updated") {
         return Response.json({ error: "Article changed or was not found" }, { status: 409 });
       }
@@ -64,7 +76,13 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/art
   }
   let result: Awaited<ReturnType<typeof updateArticleFromDraft>>;
   try {
-    result = await updateArticleFromDraft(env, id, input.expectedHash, input);
+    result = await updateArticleFromDraft(
+      env,
+      id,
+      input.expectedHash,
+      input.expectedUpdatedAt,
+      input,
+    );
   } catch (error) {
     if (error instanceof InvalidArticleInputError) {
       return Response.json({ error: error.message }, { status: 422 });
@@ -96,7 +114,7 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/ar
   } catch {
     return Response.json({ error: "Invalid article deletion" }, { status: 422 });
   }
-  return (await deleteArticle(env, id, input.expectedHash))
+  return (await deleteArticle(env, id, input.expectedHash, input.expectedUpdatedAt))
     ? new Response(null, { status: 204 })
     : Response.json({ error: "Article changed or was not found" }, { status: 409 });
 }

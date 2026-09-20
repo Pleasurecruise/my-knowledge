@@ -8,4 +8,4 @@ export {
   listPublicArticleSummaries,
   searchArticles,
 } from "./persistence/query";
-export { searchAiArticles } from "./persistence/ai-search";
+export { searchAiArticles, searchAiSummaries } from "./persistence/ai-search";

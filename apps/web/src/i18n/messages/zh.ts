@@ -40,6 +40,7 @@ export const zh = {
     newArticle: "新建",
   },
   search: {
+    failed: "搜索暂时不可用，请重试。",
     articleLabel: "搜索文章",
     submit: "搜索",
     articlePlaceholder: "搜索标题、摘要或标签…",

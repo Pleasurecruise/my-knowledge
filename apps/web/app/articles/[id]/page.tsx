@@ -17,11 +17,9 @@ import { StructuredBlock } from "@/articles/components/structured-block";
 import { getPrincipal } from "@/auth/owner";
 import { getInterfaceI18n } from "@/i18n/server";
 
-export async function generateMetadata({
-  params,
-}: PageProps<"/articles/[slug]">): Promise<Metadata> {
-  const [{ slug }, { env }] = await Promise.all([params, getCloudflareContext({ async: true })]);
-  const article = await getArticleMetadata(env, slug);
+export async function generateMetadata({ params }: PageProps<"/articles/[id]">): Promise<Metadata> {
+  const [{ id }, { env }] = await Promise.all([params, getCloudflareContext({ async: true })]);
+  const article = await getArticleMetadata(env, id);
   if (!article) return { title: "Article not found", robots: { index: false, follow: false } };
   const edition = article.editions.zh;
   const canonical = new URL(`/articles/${article.id}`, env.BETTER_AUTH_URL);
@@ -61,8 +59,8 @@ export async function generateMetadata({
   };
 }
 
-export default async function ArticlePage({ params, searchParams }: PageProps<"/articles/[slug]">) {
-  const [{ slug }, query, { env }, principal, i18n] = await Promise.all([
+export default async function ArticlePage({ params, searchParams }: PageProps<"/articles/[id]">) {
+  const [{ id }, query, { env }, principal, i18n] = await Promise.all([
     params,
     searchParams,
     getCloudflareContext({ async: true }),
@@ -72,7 +70,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
   const edition = await getArticleEdition(
     env,
     principal,
-    slug,
+    id,
     principal === "owner" && query.edit === "1" ? "zh" : i18n.code,
   );
   if (!edition) notFound();
@@ -89,6 +87,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
           article={{
             body: document.body,
             contentHash: article.contentHash,
+            updatedAt: article.updatedAt,
             id: article.id,
             summary: zhEdition.summary,
             tags: article.tags,
@@ -112,7 +111,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
         <div className="article-title-row">
           <ArticleHeader title={text.title}>
             <ArticleNavigationActions
-              key={article.slug}
+              key={article.id}
               articleHref={`/articles/${article.id}`}
               returnHref={returnHref}
               edit={
@@ -140,7 +139,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
           markdown={text.markdown}
         />
         <ArticleAddress id={article.id} />
-        <ReferencePosition key={`${article.slug}:${locale}`} />
+        <ReferencePosition key={`${article.id}:${locale}`} />
       </article>
     </div>
   );

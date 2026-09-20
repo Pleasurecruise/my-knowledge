@@ -1,6 +1,6 @@
 # Product
 
-One personal knowledge library turns completed writing into durable public articles. Home (`/`) shows chronology; Explore (`/explore`) combines search and Graph, with `?view=graph` selecting the latter. Legacy Articles and Graph routes redirect to these surfaces. Search preserves relevance and article return links retain exploration context. Owner authoring stays within existing surfaces; there is no dashboard.
+One personal library turns writing into durable public articles. Home (`/`) shows chronology; Explore (`/explore`) combines search and Graph, with `?view=graph` selecting the latter. Removed list and Graph routes return not found. Search preserves relevance; anonymous article return links retain exploration context. Owner AI questions stay in memory and are not preserved across navigation. Owner authoring uses existing surfaces; there is no dashboard.
 
 Every submission starts public after canonical Chinese persistence succeeds. The allowed-email owner may create, edit, publish, withdraw and delete. Anonymous readers receive public keyword/tag search only; AI search requires the owner session. Questions, retrieved context and generated answers are never stored.
 

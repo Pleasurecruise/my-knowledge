@@ -39,15 +39,17 @@ test("article delivery samples", async ({ page }, testInfo) => {
   const samples: { scenario: string; duration: number; ttfb?: number; bytes?: number }[] = [];
   for (const scenario of ["direct", "intent"]) {
     for (let index = -3; index < 15; index++) {
-      await page.goto("/articles");
-      const link = page.locator('main a[href="/articles/extensible-knowledge-boundaries"]').first();
+      await page.goto("/");
+      const link = page
+        .locator('main a[href="/articles/11111111-1111-4111-8111-111111111111"]')
+        .first();
       if (scenario === "intent") {
         await link.hover();
         await page.waitForTimeout(300);
       }
       const start = performance.now();
       if (scenario === "direct")
-        await page.goto("/articles/extensible-knowledge-boundaries", { waitUntil: "commit" });
+        await page.goto("/articles/11111111-1111-4111-8111-111111111111", { waitUntil: "commit" });
       else await link.click();
       await expect(page.locator(".markdown-body")).toBeVisible();
       const duration = performance.now() - start;
@@ -74,7 +76,7 @@ test("article delivery samples", async ({ page }, testInfo) => {
 
 test("open graph image samples", async ({ page }, testInfo) => {
   await serveGoogle(page);
-  await page.goto("/articles/extensible-knowledge-boundaries");
+  await page.goto("/articles/11111111-1111-4111-8111-111111111111");
   const url = await page.locator('meta[property="og:image"]').getAttribute("content");
   if (!url) throw new Error("Missing image URL");
   const samples: { index: number; duration: number; bytes: number }[] = [];

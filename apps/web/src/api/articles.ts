@@ -33,16 +33,26 @@ export const articlePatchSchema = z.union([
   articleDraftSchema
     .extend({
       expectedHash: expectedHashSchema,
+      expectedUpdatedAt: z.iso.datetime(),
       visibility: z.enum(["private", "public"]).optional(),
     })
     .strict(),
-  z.object({ expectedHash: expectedHashSchema, documents: articleDocumentsSchema }).strict(),
   z
     .object({
       expectedHash: expectedHashSchema,
+      expectedUpdatedAt: z.iso.datetime(),
+      documents: articleDocumentsSchema,
+    })
+    .strict(),
+  z
+    .object({
+      expectedHash: expectedHashSchema,
+      expectedUpdatedAt: z.iso.datetime(),
       visibility: z.enum(["private", "public"]),
     })
     .strict(),
 ]);
 
-export const articleDeleteSchema = z.object({ expectedHash: expectedHashSchema }).strict();
+export const articleDeleteSchema = z
+  .object({ expectedHash: expectedHashSchema, expectedUpdatedAt: z.iso.datetime() })
+  .strict();

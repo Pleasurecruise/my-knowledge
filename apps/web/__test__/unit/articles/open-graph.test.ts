@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vite-plus/test";
 import type { ArticleSummary } from "@my-knowledge/content";
-import { GET } from "../../../app/articles/[slug]/opengraph-image/route";
+import { GET } from "../../../app/articles/[id]/opengraph-image/route";
 
 const reads = vi.hoisted(() => ({
   metadata: vi.fn<() => Promise<ArticleSummary | null>>(),
@@ -21,7 +21,6 @@ vi.mock("@opennextjs/cloudflare", () => ({
 
 const article: ArticleSummary = {
   id: "11111111-1111-4111-8111-111111111111",
-  slug: "example",
   editions: { zh: { title: "知识", summary: "摘要" } },
   tags: [],
   visibility: "public",
@@ -39,7 +38,7 @@ it("checks visibility before cached images and rejects a withdrawn article", asy
   const request = new Request(
     `https://example.com/articles/example/opengraph-image?v=${article.contentHash}-4`,
   );
-  const params = Promise.resolve({ slug: "example" });
+  const params = Promise.resolve({ id: "example" });
   const publicImage = await GET(request, { params });
   expect(publicImage.status).toBe(200);
   expect(publicImage.headers.get("cache-control")).toBe("no-store");
@@ -56,7 +55,7 @@ it.each(["old-content-4", `${article.contentHash}-1`, ""])(
   async (version) => {
     const response = await GET(
       new Request(`https://example.com/articles/example/opengraph-image?v=${version}`),
-      { params: Promise.resolve({ slug: "example" }) },
+      { params: Promise.resolve({ id: "example" }) },
     );
     expect(response.status).toBe(404);
     expect(reads.cache).not.toHaveBeenCalled();
@@ -71,7 +70,7 @@ it("propagates cache failures instead of disguising them as successful image rea
       new Request(
         `https://example.com/articles/example/opengraph-image?v=${article.contentHash}-4`,
       ),
-      { params: Promise.resolve({ slug: "example" }) },
+      { params: Promise.resolve({ id: "example" }) },
     ),
   ).rejects.toThrow("KV unavailable");
   expect(reads.asset).not.toHaveBeenCalled();

@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { z } from "zod";
 
@@ -36,9 +38,9 @@ test.afterEach(async ({ page }, testInfo) => {
 });
 
 test("shows owner-only knowledge, visibility, and deletion controls", async ({ page }) => {
-  await page.goto("/articles");
+  await page.goto("/");
   await expect(page.getByRole("combobox")).toHaveCount(0);
-  await page.locator(".site-expander").click();
+  await page.getByRole("button", { name: "更多操作", exact: true }).click();
   await expect(page.getByRole("link", { name: "新建" })).toBeVisible();
   await expect(page.getByRole("link", { name: "私密删除夹具" })).toBeVisible();
   await page.getByRole("button", { name: "切换语言: English" }).click();
@@ -51,12 +53,12 @@ test("shows owner-only knowledge, visibility, and deletion controls", async ({ p
     const body = await response.text();
     if (path !== "/robots.txt")
       expect(body).toContain("/articles/11111111-1111-4111-8111-111111111111");
-    expect(body).not.toContain("private-deletion-fixture");
+    expect(body).not.toContain("33333333-3333-4333-8333-333333333333");
     expect(body).not.toContain("私密删除夹具");
     expect(body).not.toContain("Private deletion fixture");
   }
 
-  await page.goto("/articles/private-deletion-fixture");
+  await page.goto("/articles/33333333-3333-4333-8333-333333333333");
   await expect(page).toHaveTitle("Article not found · my knowledge");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/u);
   await expect(page.locator('meta[property="og:image"]')).toHaveCount(0);
@@ -73,7 +75,7 @@ test("shows owner-only knowledge, visibility, and deletion controls", async ({ p
 test("keeps article editing aligned with the title without a masthead", async ({
   page,
 }, testInfo) => {
-  await page.goto("/articles/extensible-knowledge-boundaries");
+  await page.goto("/articles/11111111-1111-4111-8111-111111111111");
   await expect(page.locator(".site-masthead")).toBeHidden();
   const edit = page.getByRole("link", { name: "编辑", exact: true });
   await expect(edit).toBeVisible();
@@ -108,7 +110,7 @@ test("keeps article editing aligned with the title without a masthead", async ({
 test("keeps the owner graph inside the narrow shell with hidden scrollbars", async ({
   page,
 }, testInfo) => {
-  await page.goto("/graph");
+  await page.goto("/explore?view=graph");
   await expect(page.locator(".graph-loading")).toHaveCount(0);
   const stage = page.locator(".graph-stage");
   const grid = stage.locator("..");
@@ -124,7 +126,7 @@ test("keeps the owner graph inside the narrow shell with hidden scrollbars", asy
   ).toBe(true);
   if (testInfo.project.name === "owner-desktop-light") {
     await expect(related).toHaveCSS("scrollbar-width", "none");
-    await expect(page.locator(".graph-details .overflow-y-auto")).toHaveCSS(
+    await expect(page.locator(".graph-sidebar [aria-live=polite] .overflow-y-auto")).toHaveCSS(
       "scrollbar-width",
       "none",
     );
@@ -137,7 +139,7 @@ test("expands owner controls beside the preferences", async ({ page, request }, 
 
   await page.locator(".site-actions").hover();
   await expect(page.locator(".site-extra-actions")).toBeHidden();
-  await page.locator(".site-expander").click();
+  await page.getByRole("button", { name: "更多操作", exact: true }).click();
   const credentialAction = page.getByRole("button", { name: "重新生成 API 密钥" });
   const themeAction = page.getByRole("button", { name: "切换主题" });
   await expect(credentialAction).toBeVisible();
@@ -181,7 +183,7 @@ test("recovers API key status and shows first-generation failures", async ({ pag
     });
   });
   await page.goto("/");
-  await page.locator(".site-expander").click();
+  await page.getByRole("button", { name: "更多操作", exact: true }).click();
   const retry = page.getByRole("button", { name: "无法读取 API 密钥状态，点击重试。" });
   await expect(retry).toBeEnabled();
   await retry.click();
@@ -245,6 +247,15 @@ test("shares the generated Bearer credential across REST and MCP", async ({
     .object({ result: z.object({ supportedVersions: z.array(z.string()) }) })
     .parse(await mcp.json());
   expect(mcpBody.result.supportedVersions).toEqual(["2026-07-28"]);
+  execFileSync(
+    process.execPath,
+    ["apps/web/__test__/scripts/mcp-contract.ts", "http://127.0.0.1:8787/api/mcp"],
+    {
+      env: { ...process.env, MY_KNOWLEDGE_API_KEY: credential.apiKey },
+      timeout: 20_000,
+      stdio: "pipe",
+    },
+  );
 });
 
 test("opens the owner editor, uses a slash command, and discards the draft", async ({
@@ -303,7 +314,7 @@ test("keeps deletion retryable when the local AI Search boundary is unavailable"
 }, testInfo) => {
   test.skip(testInfo.project.name !== "owner-desktop-light", "One destructive local-boundary run");
 
-  await page.goto("/articles/private-deletion-fixture");
+  await page.goto("/articles/33333333-3333-4333-8333-333333333333");
   await page.getByRole("link", { name: "编辑" }).click();
   await page.getByRole("button", { name: "删除" }).click();
   const dialog = page.getByRole("alertdialog");
@@ -322,7 +333,7 @@ test("keeps a disconnected deletion visible and retryable", async ({ page }) => 
     if (attempts === 1) return route.abort("internetdisconnected");
     return route.fulfill({ status: 204 });
   });
-  await page.goto("/articles/private-deletion-fixture?edit=1");
+  await page.goto("/articles/33333333-3333-4333-8333-333333333333?edit=1");
   await page.getByRole("button", { name: "删除", exact: true }).click();
   const dialog = page.getByRole("alertdialog");
   await dialog.getByRole("button", { name: "删除", exact: true }).click();
@@ -342,7 +353,7 @@ test("creates and edits Chinese content through an English interface and guards 
 }, testInfo) => {
   await page.goto("/");
   await page.getByRole("button", { name: "切换语言: English" }).click();
-  await page.locator(".site-expander").click();
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
   await page.getByRole("link", { name: "New", exact: true }).click();
   await page.getByLabel("Title", { exact: true }).fill(`Authoring ${testInfo.project.name}`);
   await page.getByLabel("One-sentence summary").fill("An authoring integration fixture.");
@@ -354,12 +365,12 @@ test("creates and edits Chinese content through an English interface and guards 
   await source.fill("中文正文。**保存以后继续编辑。**");
   await page.getByRole("button", { name: "Rich text", exact: true }).click();
   await expect(page.locator(".tiptap strong")).toHaveText("保存以后继续编辑。");
-  await page.locator(".site-expander").click();
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
   await page.getByRole("navigation").getByRole("link", { name: "Explore" }).click();
   await expect(page.getByRole("alertdialog")).toBeVisible();
   await page.getByRole("alertdialog").getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
-  await page.locator(".site-expander").click();
+  await page.getByRole("button", { name: "More actions", exact: true }).click();
   await expect(page.locator(".tiptap")).toContainText("中文正文");
   await page.screenshot({ path: testInfo.outputPath("authoring-new.png"), fullPage: true });
   await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -403,29 +414,37 @@ test("persists article URL backlinks and hides a withdrawn referring article", a
       title,
       summary: "An article URL relationship fixture.",
       tags: ["daily"],
-      body: "```embed:article\nurl: https://knowledge.you-find.me/articles/related-article\nalign: narrow\n```",
+      body: "```embed:article\nurl: https://knowledge.you-find.me/articles/22222222-2222-4222-8222-222222222222\nalign: narrow\n```",
     },
   });
   expect(created.status()).toBe(201);
   const { article } = z
-    .object({ article: z.object({ id: z.string(), contentHash: z.string(), slug: z.string() }) })
+    .object({
+      article: z.object({
+        id: z.string(),
+        contentHash: z.string(),
+        updatedAt: z.string(),
+      }),
+    })
     .parse(await created.json());
   const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
   try {
     const target = "/articles/22222222-2222-4222-8222-222222222222";
     const publicHtml = await (await anonymous.request.get(target)).text();
     expect(publicHtml).not.toContain(title);
-    expect(await (await anonymous.request.get(`/articles/${article.slug}`)).text()).toContain(
-      title,
-    );
+    expect(await (await anonymous.request.get(`/articles/${article.id}`)).text()).toContain(title);
     const hidden = await page.request.patch(`/api/articles/${article.id}`, {
-      data: { expectedHash: article.contentHash, visibility: "private" },
+      data: {
+        expectedHash: article.contentHash,
+        expectedUpdatedAt: article.updatedAt,
+        visibility: "private",
+      },
     });
     expect(hidden.status()).toBe(200);
     expect(await (await anonymous.request.get(target)).text()).not.toContain(title);
     await page.goto(target);
     await expect(page.getByRole("link", { name: title, exact: true })).toHaveCount(0);
-    await page.goto(`/articles/${article.slug}`);
+    await page.goto(`/articles/${article.id}`);
     await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
   } finally {
     await anonymous.close();
@@ -441,14 +460,14 @@ test("renders article-list metadata cards and stages visibility until Save", asy
       title: `Article card editor ${testInfo.project.name}`,
       summary: "Card and visibility fixture",
       tags: ["daily"],
-      body: `${"Reading context before the reference.\n\n".repeat(40)}Articles to read.\n\n\`\`\`embed:article\nhttps://knowledge.you-find.me/articles/11111111-1111-4111-8111-111111111111\nhttps://knowledge.you-find.me/articles/related-article\n\`\`\``,
+      body: `${"Reading context before the reference.\n\n".repeat(40)}Articles to read.\n\n\`\`\`embed:article\nhttps://knowledge.you-find.me/articles/11111111-1111-4111-8111-111111111111\nhttps://knowledge.you-find.me/articles/22222222-2222-4222-8222-222222222222\n\`\`\``,
     },
   });
   expect(created.status()).toBe(201);
   const { article } = z
-    .object({ article: z.object({ id: z.string(), slug: z.string(), contentHash: z.string() }) })
+    .object({ article: z.object({ id: z.string(), contentHash: z.string() }) })
     .parse(await created.json());
-  await page.goto(`/articles/${article.slug}`);
+  await page.goto(`/articles/${article.id}`);
   const cards = page.locator(".markdown-article-list");
   const target = z
     .object({
@@ -474,7 +493,7 @@ test("renders article-list metadata cards and stages visibility until Save", asy
   await expect(page).toHaveURL(new RegExp(`/articles/${target.id}$`));
   await page.reload();
   const back = page.locator(".article-return");
-  await expect(back).toHaveAttribute("href", `/articles/${article.slug}`);
+  await expect(back).toHaveAttribute("href", `/articles/${article.id}`);
   const titleBox = await page.locator(".article-heading h1").boundingBox();
   const backBox = await back.boundingBox();
   expect(titleBox).not.toBeNull();
@@ -484,10 +503,10 @@ test("renders article-list metadata cards and stages visibility until Save", asy
       Math.abs(titleBox.y + titleBox.height / 2 - backBox.y - backBox.height / 2),
     ).toBeLessThan(2);
   await back.click();
-  await expect(page).toHaveURL(new RegExp(`/articles/${article.slug}$`));
+  await expect(page).toHaveURL(new RegExp(`/articles/${article.id}$`));
   await expect(cards.locator("strong").first()).toHaveText(target.editions.zh.title);
   await cards.locator("a").first().click();
-  await page.goto(`/articles/${article.slug}#reference=${target.id}`);
+  await page.goto(`/articles/${article.id}#reference=${target.id}`);
   await expect(cards.locator("a").first()).toBeFocused();
   await expect(cards.locator("a").first()).toBeInViewport();
   await page.reload();
@@ -519,12 +538,12 @@ test("renders article-list metadata cards and stages visibility until Save", asy
     fullPage: true,
   });
   await page.getByRole("button", { name: "保存", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/articles/${article.slug}#reference=${target.id}$`));
+  await expect(page).toHaveURL(new RegExp(`/articles/${article.id}#reference=${target.id}$`));
   const saved = await (await request.get(`/api/articles/${article.id}`)).json();
   expect(saved.article.visibility).toBe("private");
   expect(saved.article.editions.zh.summary).toBe("Edited description saved with visibility");
   expect(patches).toHaveLength(1);
-  await page.goto(`/articles/${article.slug}?edit=1`);
+  await page.goto(`/articles/${article.id}?edit=1`);
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
   await page.evaluate(() => {
     document.documentElement.dataset.theme = "dark";
@@ -537,7 +556,7 @@ test("renders article-list metadata cards and stages visibility until Save", asy
   });
   await page.getByRole("option", { name: "公开", exact: true }).click();
   await page.getByRole("button", { name: "保存", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/articles/${article.slug}$`));
+  await expect(page).toHaveURL(new RegExp(`/articles/${article.id}$`));
   const published = await (await request.get(`/api/articles/${article.id}`)).json();
   expect(published.article.visibility).toBe("public");
   expect(published.article.contentHash).toBe(saved.article.contentHash);
@@ -576,9 +595,9 @@ test("aligns article, link, audio and video cards at every supported width", asy
   });
   expect(response.status()).toBe(201);
   const { article } = z
-    .object({ article: z.object({ slug: z.string() }) })
+    .object({ article: z.object({ id: z.string() }) })
     .parse(await response.json());
-  await page.goto(`/articles/${article.slug}`);
+  await page.goto(`/articles/${article.id}`);
   await expect(page.locator(".markdown-article-list strong")).toHaveCount(4);
   await expect(page.locator(".markdown-body")).not.toContainText("Article unavailable");
   await page.locator("audio, video").evaluateAll((players) => {
@@ -633,4 +652,72 @@ test("aligns article, link, audio and video cards at every supported width", asy
     );
     await page.screenshot({ path: testInfo.outputPath(`alignment-${theme}.png`), fullPage: true });
   }
+});
+
+test("keeps owner search questions out of URLs and reports unavailable retrieval", async ({
+  page,
+}, testInfo) => {
+  const question = "synthetic search privacy probe";
+  const urls: string[] = [];
+  page.on("request", (request) => urls.push(request.url()));
+  await page.goto("/explore");
+  await page.getByRole("searchbox").fill(question);
+  await page.getByRole("button", { name: "搜索", exact: true }).click();
+  await expect(page.locator(".search-articles [role=alert]")).toHaveText(
+    "搜索暂时不可用，请重试。",
+  );
+  expect(new URL(page.url()).search).toBe("");
+  expect(urls.some((url) => decodeURIComponent(url).includes(question))).toBe(false);
+  await expect(page.getByRole("button", { name: "搜索", exact: true })).toBeEnabled();
+  await page.getByRole("searchbox").focus();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "搜索", exact: true })).toBeFocused();
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("owner-search-light.png"), fullPage: true });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.getByRole("button", { name: "切换主题", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath("owner-search-dark.png"), fullPage: true });
+});
+
+test("serializes state changes and prevents publication after failed deletion", async ({
+  page,
+}) => {
+  const created = await page.request.post("/api/articles", {
+    data: {
+      title: "Concurrency fixture",
+      summary: "Synthetic",
+      tags: ["daily"],
+      body: "Synthetic content",
+    },
+  });
+  expect(created.status()).toBe(201);
+  const schema = z.object({
+    article: z.object({ id: z.string(), contentHash: z.string(), updatedAt: z.string() }),
+  });
+  const { article } = schema.parse(await created.json());
+  const endpoint = `/api/articles/${article.id}`;
+  const version = { expectedHash: article.contentHash, expectedUpdatedAt: article.updatedAt };
+  const changes = await Promise.all([
+    page.request.patch(endpoint, { data: { ...version, visibility: "private" } }),
+    page.request.patch(endpoint, { data: { ...version, visibility: "public" } }),
+  ]);
+  expect(changes.map((response) => response.status()).sort((left, right) => left - right)).toEqual([
+    200, 409,
+  ]);
+  const current = schema.parse(await (await page.request.get(endpoint)).json()).article;
+  const currentVersion = {
+    expectedHash: current.contentHash,
+    expectedUpdatedAt: current.updatedAt,
+  };
+  // The local Worker has no remote AI Search. Cleanup fails, but deletion remains exclusive.
+  expect((await page.request.delete(endpoint, { data: currentVersion })).status()).toBe(500);
+  expect(
+    (
+      await page.request.patch(endpoint, { data: { ...currentVersion, visibility: "public" } })
+    ).status(),
+  ).toBe(409);
+  expect((await page.request.delete(endpoint, { data: currentVersion })).status()).toBe(500);
 });

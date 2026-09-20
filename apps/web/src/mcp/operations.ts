@@ -80,6 +80,7 @@ export async function listArticlesOperation(
 export const updateArticleInput = z.object({
   id: z.string().uuid(),
   expectedHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  expectedUpdatedAt: z.iso.datetime(),
   document: z.string().min(1).max(500_000),
 });
 
@@ -87,9 +88,15 @@ export async function updateArticleOperation(
   env: CloudflareEnv,
   input: z.infer<typeof updateArticleInput>,
 ) {
-  const updated = await updateArticleFromDocuments(env, input.id, input.expectedHash, {
-    zh: input.document,
-  });
+  const updated = await updateArticleFromDocuments(
+    env,
+    input.id,
+    input.expectedHash,
+    input.expectedUpdatedAt,
+    {
+      zh: input.document,
+    },
+  );
   if (updated.status === "notFound") return notFound();
   if (updated.status === "stale") {
     return {
@@ -103,15 +110,19 @@ export async function updateArticleOperation(
 export const deleteArticleInput = z.object({
   id: z.string().uuid(),
   expectedHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  expectedUpdatedAt: z.iso.datetime(),
 });
 
 export async function deleteArticleOperation(
   env: CloudflareEnv,
   input: z.infer<typeof deleteArticleInput>,
 ) {
-  return (await deleteArticle(env, input.id, input.expectedHash))
+  return (await deleteArticle(env, input.id, input.expectedHash, input.expectedUpdatedAt))
     ? result({ deleted: true })
-    : notFound();
+    : ({
+        isError: true,
+        content: [{ type: "text", text: "Article changed or was not found" }],
+      } satisfies McpError);
 }
 
 export const searchArticlesInput = z.object({
@@ -139,12 +150,24 @@ export const setVisibilityInput = z.object({
   id: z.string().uuid(),
   visibility: z.enum(["private", "public"]),
   expectedHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  expectedUpdatedAt: z.iso.datetime(),
 });
 
 export async function setVisibilityOperation(
   env: CloudflareEnv,
   input: z.infer<typeof setVisibilityInput>,
 ) {
-  const article = await setArticleVisibility(env, input.id, input.expectedHash, input.visibility);
-  return article ? result(article) : notFound();
+  const article = await setArticleVisibility(
+    env,
+    input.id,
+    input.expectedHash,
+    input.expectedUpdatedAt,
+    input.visibility,
+  );
+  return article
+    ? result(article)
+    : ({
+        isError: true,
+        content: [{ type: "text", text: "Article changed or was not found" }],
+      } satisfies McpError);
 }

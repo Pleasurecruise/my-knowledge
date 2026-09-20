@@ -61,7 +61,6 @@ it.each([undefined, "private"])(
     });
     const previous: ArticleRow = {
       id: "source",
-      slug: "source",
       title: "Source",
       summary: "Summary",
       tagsJson: "[]",
@@ -75,6 +74,7 @@ it.each([undefined, "private"])(
     const updated = {
       ...previous,
       linksJson: JSON.stringify(document.links),
+      updatedAt: expect.any(String),
       ...(visibility === undefined ? {} : { visibility }),
     };
     writes.result.mockResolvedValue(updated);
@@ -88,6 +88,7 @@ it.each([undefined, "private"])(
     );
     expect(writes.set).toHaveBeenCalledWith({
       linksJson: JSON.stringify(document.links),
+      updatedAt: expect.any(String),
       ...(visibility === undefined ? {} : { visibility }),
     });
     expect(writes.read).toHaveBeenCalledWith(env, updated);
@@ -98,7 +99,6 @@ it.each([undefined, "private"])(
 
 const previous: ArticleRow = {
   id: "source",
-  slug: "source",
   title: "Source",
   summary: "Summary",
   tagsJson: "[]",
@@ -146,7 +146,11 @@ it("rejects a canonical object from a different in-flight version before writing
 
 it("does not clean the index when a rollback no longer owns the canonical object", async () => {
   writes.row.mockResolvedValue(previous);
-  writes.object.mockResolvedValue({ text: async () => markdown, etag: "old" });
+  writes.object.mockResolvedValue({
+    text: async () => markdown,
+    etag: "old",
+    customMetadata: { contentHash: previous.contentHash },
+  });
   writes.put.mockResolvedValue({ etag: "written" });
   writes.index.mockRejectedValue(new Error("Index unavailable"));
   writes.head.mockResolvedValue({ etag: "other-writer" });
@@ -164,7 +168,11 @@ it("retries deletion after canonical objects were deleted but search cleanup fai
   writes.result.mockResolvedValue({ id: previous.id });
   writes.translations.mockResolvedValue([{ locale: "en", sourceHash: previous.contentHash }]);
   writes.object
-    .mockResolvedValueOnce({ text: async () => markdown, etag: "old" })
+    .mockResolvedValueOnce({
+      text: async () => markdown,
+      etag: "old",
+      customMetadata: { contentHash: previous.contentHash },
+    })
     .mockResolvedValue(null);
   writes.head.mockResolvedValue({ etag: "old" });
   writes.removeIndex
@@ -175,7 +183,7 @@ it("retries deletion after canonical objects were deleted but search cleanup fai
   await expect(deleteArticle(env, previous.id, previous.contentHash)).rejects.toThrow(
     "Article version cleanup failed",
   );
-  expect(writes.set).toHaveBeenCalledWith({ visibility: "private", updatedAt: expect.any(String) });
+  expect(writes.set).toHaveBeenCalledWith({ visibility: "private" });
   expect(writes.removeRow).not.toHaveBeenCalled();
   await expect(deleteArticle(env, previous.id, previous.contentHash)).resolves.toBe(true);
   expect(writes.removeObject).toHaveBeenCalledWith("knowledge/source/zh.md");
@@ -190,6 +198,6 @@ it("hides an article before a canonical read fails during deletion", async () =>
   await expect(deleteArticle(env, previous.id, previous.contentHash)).rejects.toThrow(
     "R2 unavailable",
   );
-  expect(writes.set).toHaveBeenCalledWith({ visibility: "private", updatedAt: expect.any(String) });
+  expect(writes.set).toHaveBeenCalledWith({ visibility: "private" });
   expect(writes.removeRow).not.toHaveBeenCalled();
 });

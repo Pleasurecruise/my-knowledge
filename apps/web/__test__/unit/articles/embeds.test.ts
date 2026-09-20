@@ -184,7 +184,6 @@ it("resolves same-site URLs to authorized UUID links without a provider fetch", 
   principal.mockResolvedValue("owner");
   articleRow.mockResolvedValue({
     id: "article-123",
-    slug: "real-web-slug",
     title: "Automatic title",
     summary: "Automatic summary",
   });
@@ -196,7 +195,6 @@ it("resolves same-site URLs to authorized UUID links without a provider fetch", 
   expect(articleRow).toHaveBeenCalledWith(
     expect.objectContaining({ BETTER_AUTH_URL: "https://knowledge.you-find.me" }),
     "owner",
-    "link",
     "article-123",
   );
   const text = JSON.stringify(result);
@@ -217,7 +215,6 @@ it("keeps missing or unauthorized article targets non-clickable", async () => {
   expect(articleRow).toHaveBeenCalledWith(
     expect.objectContaining({ BETTER_AUTH_URL: "https://knowledge.you-find.me" }),
     "anonymous",
-    "link",
     "private-id",
   );
   expect(JSON.stringify(result)).toContain("Article unavailable");
@@ -245,7 +242,6 @@ it("resolves article-list URLs through authorized metadata and web routes", asyn
   articleRow
     .mockResolvedValueOnce({
       id: "article-456",
-      slug: "real-slug",
       title: "Readable article",
       summary: "Its description",
     })

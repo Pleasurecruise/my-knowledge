@@ -1,15 +1,14 @@
 import AxeBuilder from "@axe-core/playwright";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+import { getPlatformProxy } from "wrangler";
+import { fileURLToPath } from "node:url";
 import { serveGoogle } from "./google";
 
 const appDirectory = new URL("../../", import.meta.url);
 
-function fixtureRow(id: string, slug: string) {
+function fixtureRow(id: string) {
   execFileSync(
     "./node_modules/.bin/wrangler",
     [
@@ -22,8 +21,8 @@ function fixtureRow(id: string, slug: string) {
       "--persist-to",
       ".wrangler/test-state",
       "--command",
-      `INSERT INTO articles (id, slug, title, summary, contentHash, tagsJson, linksJson, visibility, createdAt, updatedAt)
-     VALUES ('${id}', '${slug}', 'Reading recovery', 'Recovery fixture', '${"a".repeat(64)}', '["daily"]', '[]', 'private', '2026-09-01', '2026-09-01')`,
+      `INSERT INTO articles (id, title, summary, contentHash, tagsJson, linksJson, visibility, createdAt, updatedAt)
+     VALUES ('${id}', 'Reading recovery', 'Recovery fixture', '${"a".repeat(64)}', '["daily"]', '[]', 'private', '2026-09-01', '2026-09-01')`,
     ],
     { cwd: appDirectory, stdio: "pipe" },
   );
@@ -37,33 +36,18 @@ test("keeps stored invalid embeds readable and editable", async ({ page }, testI
     if (message.type() === "error" || message.type() === "warning") errors.push(message.text());
   });
   const id = randomUUID();
-  const slug = `invalid-block-${id}`;
-  const directory = mkdtempSync(join(tmpdir(), "knowledge-embed-"));
+  const { env, dispose } = await getPlatformProxy<CloudflareEnv>({
+    configPath: fileURLToPath(new URL("wrangler.test.json", appDirectory)),
+    persist: { path: fileURLToPath(new URL(".wrangler/test-state/v3", appDirectory)) },
+  });
   try {
-    fixtureRow(id, slug);
-    const file = join(directory, "zh.md");
-    writeFileSync(
-      file,
+    fixtureRow(id);
+    await env.KNOWLEDGE_BUCKET.put(
+      `knowledge/${id}/zh.md`,
       "---\ntitle: Reading recovery\nsummary: Recovery fixture\ntags: [daily]\n---\nBefore the block.\n\n```embed:article\nid: removed-target\n```\n\nAfter the block.\n",
+      { customMetadata: { contentHash: "a".repeat(64) } },
     );
-    execFileSync(
-      "./node_modules/.bin/wrangler",
-      [
-        "r2",
-        "object",
-        "put",
-        `my-knowledge-test/knowledge/${id}/zh.md`,
-        "--local",
-        "--config",
-        "wrangler.test.json",
-        "--persist-to",
-        ".wrangler/test-state",
-        "--file",
-        file,
-      ],
-      { cwd: appDirectory, stdio: "pipe" },
-    );
-    await page.goto(`/articles/${slug}`);
+    await page.goto(`/articles/${id}`);
     await expect(page.locator("article")).toContainText("After the block.");
     await expect(page.locator(".markdown-block-error").getByRole("alert")).toContainText(
       "Invalid article list URL",
@@ -75,7 +59,7 @@ test("keeps stored invalid embeds readable and editable", async ({ page }, testI
     await expect(page.locator("textarea")).toHaveValue(/id: removed-target/u);
     expect(errors).toEqual([]);
   } finally {
-    rmSync(directory, { recursive: true });
+    await dispose();
   }
 });
 
@@ -86,9 +70,8 @@ test("shows recoverable error and not-found pages at reading width", async ({ pa
     if (message.type() === "error") errors.push(message.text());
   });
   const id = randomUUID();
-  const slug = `missing-body-${id}`;
-  fixtureRow(id, slug);
-  await page.goto(`/articles/${slug}`);
+  fixtureRow(id);
+  await page.goto(`/articles/${id}`);
   await expect(page.getByRole("heading", { name: "这页暂时无法载入。" })).toBeVisible();
   await page.getByRole("button", { name: "重新载入", exact: true }).focus();
   await expect(page.getByRole("button", { name: "重新载入", exact: true })).toBeFocused();

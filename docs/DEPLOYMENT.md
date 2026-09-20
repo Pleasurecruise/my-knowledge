@@ -1,9 +1,11 @@
 # Deployment
 
-OpenNext produces one Worker. apps/web/wrangler.json owns bindings, assets and domains. Create missing resources only; shared resources require an ownership decision. BETTER_AUTH_URL defines the canonical origin. Credentials belong in Worker secrets or local .dev.vars, never source control.
+apps/web/wrangler.json owns Worker bindings, assets and domains. Credentials belong in Worker secrets or local .dev.vars.
 
-Google requires the canonical JavaScript origin and /api/auth/callback/google redirect. Only its client ID reaches browsers. Local preview uses http://localhost:8787 with matching BETTER_AUTH_URL and Google configuration. Provider/FedCM failures remain distinct from application authentication failures.
+BETTER_AUTH_URL defines the canonical origin. Google requires that JavaScript origin and /api/auth/callback/google redirect; only its client ID reaches browsers. Local preview uses http://localhost:8787 with matching auth configuration.
 
-pnpm dev and preview build OpenNext and invoke Wrangler directly. Edits require rebuilding and restarting. Avoid next dev because its proxy cannot provide the internal Durable Object and nested AI Search API. Preview uses configured remote bindings and local Durable Objects; tests explicitly select local storage.
+pnpm dev and preview rebuild OpenNext and invoke Wrangler. Restart after edits. Avoid next dev: its proxy lacks internal Durable Objects and nested AI Search. Preview uses remote storage; tests explicitly use local bindings.
 
-Run migrations, checks, unit tests, build, dry-run and relevant browser tests before release. Dry-run does not publish. Git and deployment require separate authorization. Never reset the deployed D1 baseline for routine releases. Exceptional rebuilds require a recovery point and compatible database/Worker rollback. Verify authentication, ingestion, retrieval, cleanup and anonymous privacy before discarding recovery data. Deploy the exported API-key Durable Object before dependent applications.
+AI Search `my-knowledge` accepts application-uploaded Chinese items. Exclude external R2 paths (`**`), disable caching and public endpoints, and exclude it from namespace public allowlists. Workers redact query strings while retaining monitoring. Disable AI Gateway request/response logging before retrieval.
+
+Before release, run check, test, build, dry-run and relevant browser contracts. Durable Object exports declare current SQLite classes without migration tags. Removing article aliases requires rebuilding D1 from the initialization schema; rebuild incompatible application-owned stores instead of maintaining upgrade migrations. Preserve canonical content and shared resources. Recreating API-key storage requires issuing a new credential. Rebuild R2 version metadata and invalidate derived caches when replacing old stored formats. Dry-run does not publish; Git and deployment require authorization. Verify ingestion, privacy, retrieval and cleanup after rebuilding.

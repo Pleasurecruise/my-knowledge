@@ -40,6 +40,7 @@ export const ja = {
     newArticle: "新規",
   },
   search: {
+    failed: "検索できませんでした。もう一度お試しください。",
     articleLabel: "記事を検索",
     submit: "検索",
     articlePlaceholder: "タイトル、要約、タグを検索…",

@@ -1,5 +1,5 @@
 import { ArticleList } from "@/articles/components/article-list";
-import { searchAiArticles, searchArticles, localizeArticles } from "@/articles";
+import { searchArticles, localizeArticles } from "@/articles";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getPrincipal } from "@/auth/owner";
 import { getInterfaceI18n } from "@/i18n/server";
@@ -10,22 +10,27 @@ import { GraphLoading } from "@/graph/components/graph-loading";
 import { ExplorationToggle } from "@/shell/exploration-toggle";
 import { ArrowRight } from "@my-knowledge/ui/icons";
 import { SearchForm } from "@/search/components/search-form";
+import { OwnerSearch } from "@/search/components/owner-search";
 import { PageLayout } from "@/shell/page-layout";
 
 export default async function ExplorePage({ searchParams }: PageProps<"/explore">) {
   const [params, i18n] = await Promise.all([searchParams, getInterfaceI18n()]);
   const query = (Array.isArray(params.query) ? params.query[0] : params.query)?.trim() ?? "";
   const graph = params.view === "graph";
-  const action = <ExplorationToggle graph={graph} query={query} messages={i18n.messages} />;
   const [{ env }, principal] = await Promise.all([
     getCloudflareContext({ async: true }),
     getPrincipal(),
   ]);
+  const action = (
+    <ExplorationToggle
+      graph={graph}
+      query={principal === "owner" ? "" : query}
+      messages={i18n.messages}
+    />
+  );
   const results =
-    !graph && query
-      ? principal === "owner"
-        ? (await searchAiArticles(env, principal, query, 50)).map(({ article }) => article)
-        : await searchArticles(env, principal, query, 50)
+    !graph && query && principal === "anonymous"
+      ? await searchArticles(env, principal, query, 50)
       : [];
 
   return (
@@ -37,6 +42,8 @@ export default async function ExplorePage({ searchParams }: PageProps<"/explore"
         <Suspense fallback={<GraphLoading />}>
           <GraphView />
         </Suspense>
+      ) : principal === "owner" ? (
+        <OwnerSearch messages={i18n.messages.search} locale={i18n.code} />
       ) : (
         <>
           <SearchForm messages={i18n.messages.search} query={query} />

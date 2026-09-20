@@ -387,7 +387,13 @@ export function ArticleEditor(props: ArticleEditorProps) {
           method: article === null ? "POST" : "PATCH",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            ...(article === null ? {} : { expectedHash: article.contentHash, visibility }),
+            ...(article === null
+              ? {}
+              : {
+                  expectedHash: article.contentHash,
+                  expectedUpdatedAt: article.updatedAt,
+                  visibility,
+                }),
             title: title.trim(),
             summary: summary.trim(),
             body: markdown.trimEnd(),
@@ -435,7 +441,12 @@ export function ArticleEditor(props: ArticleEditorProps) {
         </div>
         <div className="flex items-center gap-1">
           {article === null ? null : (
-            <DeleteAction expectedHash={article.contentHash} id={article.id} messages={messages} />
+            <DeleteAction
+              expectedUpdatedAt={article.updatedAt}
+              expectedHash={article.contentHash}
+              id={article.id}
+              messages={messages}
+            />
           )}
           <Button
             aria-label={messages.cancel}

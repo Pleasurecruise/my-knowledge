@@ -21,5 +21,5 @@ without manual organization.
   complete, plus its Chinese-only AI Search item when eligible for indexing; an explicit owner action
   may withdraw it afterward.
 
-A plan may improve one outcome without a numeric before/after result. Hard measures are release gates
+A change may improve one outcome without a numeric before/after result. Hard measures are release gates
 and may never regress.

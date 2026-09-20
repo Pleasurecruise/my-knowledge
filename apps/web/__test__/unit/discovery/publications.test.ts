@@ -5,7 +5,6 @@ import { createLlmsText, createRssFeed } from "@/discovery/publications";
 
 const publicArticle = {
   id: "6d4f2e69-80ac-4ba5-94b1-6f83d8d5cf1b",
-  slug: "xml-and-markdown",
   editions: {
     zh: {
       title: "XML <与> [Markdown]",
@@ -22,7 +21,6 @@ const publicArticle = {
 const privateArticle = {
   ...publicArticle,
   id: "0d092880-a7ba-40b0-a338-72385d3851c0",
-  slug: "private-notes",
   editions: { zh: { title: "Private title", summary: "Private summary" } },
   visibility: "private",
 } satisfies ArticleSummary;

@@ -243,7 +243,7 @@ const readArticleCard = cache(async (value: string): Promise<ArticleCard | null>
   if (!match?.[1]) return null;
   const identity = decodeURIComponent(match[1]);
   const principal = await getPrincipal();
-  const row = await getArticleRow(env, principal, "link", identity);
+  const row = await getArticleRow(env, principal, identity);
   return row
     ? {
         href: `/articles/${encodeURIComponent(row.id)}${url.hash}`,

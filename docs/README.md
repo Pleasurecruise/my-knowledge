@@ -13,10 +13,10 @@ Read the document that owns the question:
 | [Engineering](ENGINEERING.md)   | Code, dependencies, naming, documentation rules              |
 | [Testing](TESTING.md)           | Test boundaries, fixtures, evidence, release gates           |
 | [API](API.md)                   | REST resources and credential lifecycle                      |
-| [MCP](MCP.md)                   | Transport, tools, compatibility                              |
+| [MCP](MCP.md)                   | Transport, tools, protocol                                   |
 | [Deployment](DEPLOYMENT.md)     | Configuration, credentials, release and recovery             |
 | [References](REFERENCES.md)     | Inspiration and licensing boundaries                         |
 
 Each file contains 100–200 English words and preserves its essential contract. Exact schemas, exhaustive examples, configuration values, and executable commands remain in their owning source, tests, or manifests.
 
-Rewrite the owning document when behavior changes; merge repetition and remove obsolete statements. Do not append implementation diaries or patch sections. Temporary plans and evidence belong in `.agents`; remove completed plans after acceptance.
+Rewrite the owning document when behavior changes; merge repetition and remove obsolete statements. Do not append implementation diaries or patch sections. Implement directly; write plans only when explicitly requested. Temporary evidence belongs in `.agents`; remove it after acceptance or on user request.

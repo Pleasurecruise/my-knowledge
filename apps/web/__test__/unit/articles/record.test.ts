@@ -18,7 +18,6 @@ describe("article object keys", () => {
   it("exposes only translations derived from the current Chinese hash", () => {
     const row: ArticleRow = {
       id: "11111111-1111-4111-8111-111111111111",
-      slug: "canonical-chinese",
       title: "中文标题",
       summary: "中文摘要。",
       contentHash: "a".repeat(64),

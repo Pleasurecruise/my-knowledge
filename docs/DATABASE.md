@@ -1,11 +1,11 @@
 # Database and persistence
 
-D1 stores UUIDs, legacy aliases, Chinese metadata, tags, links, visibility, hashes and timestamps. New slugs equal UUIDs; existing aliases remain. Translations store article ID, locale, metadata and source hash. Stale editions are unreadable. Deployed SQL migrations are authoritative and append-only. Better Auth owns authentication tables.
+D1 stores UUIDs, Chinese metadata, tags, links, visibility, hashes and timestamps. Translations carry article ID, locale, metadata and source hash; stale editions are unreadable. Keep one current initialization schema; rebuild incompatible stores instead of adding upgrade migrations. Better Auth owns authentication tables.
 
-R2 owns Chinese and translated Markdown under knowledge/{id}. KV caches authorized public editions by ID, hash and locale. Cache errors propagate; misses read canonical content. API-key Durable Objects store digests and creation times.
+R2 owns Markdown under knowledge/{id}. KV caches authorized public editions by ID, hash and locale. Cache errors propagate; misses read R2. API-key actors store digests and creation times.
 
-Creation writes validated Chinese R2 content, synchronizes eligible AI Search content, then inserts a public D1 row. Supplied translations follow. Daily articles skip indexing; changing an indexed article to daily removes its search item. Failures clean owned artifacts; rollback checks R2 ETags before derived data.
+Creation writes Chinese R2 content, waits up to 30 seconds for eligible indexing to complete, then publishes D1 metadata. Translations follow. Daily articles skip indexing; switching to daily removes the item. Rollback checks R2 ETags before derived cleanup.
 
-Updates use object ETags and expectedHash, synchronize search, then switch content and requested visibility together in D1. Visibility-only updates skip R2/search. Pages and AI retrieval reject R2 version markers inconsistent with the authorized D1 row. Translation writes recheck the Chinese hash.
+Updates require expectedHash and expectedUpdatedAt, use ETags, synchronize search, then switch content and visibility together. Successful saves and visibility changes advance updatedAt monotonically. Visibility-only updates skip R2/search. R2 reads require a contentHash matching D1; missing version metadata is invalid. Translations recheck the Chinese hash.
 
-Deletion hides the D1 row before removing derived data, canonical objects and search content. The row is deleted last. Cleanup failure leaves it private and retryable. Retries tolerate already-removed objects; repeated completed deletion returns not found.
+Deletion records a durable writer tombstone, hides D1, removes external artifacts, then deletes D1 last. Failure permits only deletion retries with the original version. Retries tolerate removed objects; completed deletion returns not found.

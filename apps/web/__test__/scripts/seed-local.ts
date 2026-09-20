@@ -1,11 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { generateRandomString, makeSignature } from "better-auth/crypto";
+
+import { getPlatformProxy } from "wrangler";
+import { fileURLToPath } from "node:url";
 
 import authFixture from "../fixtures/auth.json" with { type: "json" };
 
 const appDirectory = new URL("../../", import.meta.url);
-const knowledgeBucket = "my-knowledge-test";
 
 const objects: Array<[fixture: string, objectPath: string]> = [
   ["rich", "11111111-1111-4111-8111-111111111111"],
@@ -91,21 +93,31 @@ await writeFile(
   "utf8",
 );
 
-for (const [fixture, objectPath] of objects) {
-  for (const locale of ["zh", "en", "ja"]) {
-    const key = locale === "zh" ? "zh.md" : `i18n/${locale}.md`;
-    wrangler([
-      "r2",
-      "object",
-      "put",
-      `${knowledgeBucket}/knowledge/${objectPath}/${key}`,
-      "--local",
-      "--persist-to",
-      ".wrangler/test-state",
-      "--config",
-      "wrangler.test.json",
-      "--file",
-      `__test__/fixtures/${fixture}/${locale}.md`,
-    ]);
+const { env, dispose } = await getPlatformProxy<CloudflareEnv>({
+  configPath: fileURLToPath(new URL("wrangler.test.json", appDirectory)),
+  persist: { path: fileURLToPath(new URL(".wrangler/test-state/v3", appDirectory)) },
+});
+try {
+  for (const [fixture, objectPath] of objects) {
+    const documents = Object.fromEntries(
+      await Promise.all(
+        ["zh", "en", "ja"].map(async (locale): Promise<[string, string]> => [
+          locale,
+          await readFile(new URL(`../fixtures/${fixture}/${locale}.md`, import.meta.url), "utf8"),
+        ]),
+      ),
+    );
+    const row = await env.DB.prepare("SELECT contentHash FROM articles WHERE id = ?")
+      .bind(objectPath)
+      .first<{ contentHash: string }>();
+    if (!row) throw new Error("Missing fixture row");
+    for (const [locale, edition] of Object.entries(documents)) {
+      const key = locale === "zh" ? "zh.md" : `i18n/${locale}.md`;
+      await env.KNOWLEDGE_BUCKET.put(`knowledge/${objectPath}/${key}`, edition, {
+        customMetadata: { contentHash: row.contentHash },
+      });
+    }
   }
+} finally {
+  await dispose();
 }

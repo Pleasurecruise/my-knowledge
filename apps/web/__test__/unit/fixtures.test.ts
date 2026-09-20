@@ -17,9 +17,9 @@ describe("browser fixtures", () => {
   it("keeps all rich-content locale editions structurally compatible", async () => {
     const article = await parseArticleDocuments(await documents("rich"));
     expect(Object.keys(article.editions)).toEqual(["zh", "en", "ja"]);
-    expect(article.links).toEqual(["related-article"]);
+    expect(article.links).toEqual(["22222222-2222-4222-8222-222222222222"]);
     expect(article.contentHash).toBe(
-      "86098b9ce5d57f376aed3584f792f10244431f4275a7f1c64ff8e0ee723f1e8a",
+      "4a108612c0ff79f3a4683a6c61f3005cb858315f64ea4b18b61cfa1bb4980d83",
     );
   });
 

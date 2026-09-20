@@ -41,6 +41,7 @@ export const en = {
     newArticle: "New",
   },
   search: {
+    failed: "Search is unavailable. Please try again.",
     articleLabel: "Search articles",
     submit: "Search",
     articlePlaceholder: "Search titles, summaries, or tags…",

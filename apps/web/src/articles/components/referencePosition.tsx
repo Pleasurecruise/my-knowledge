@@ -12,9 +12,9 @@ export function ReferencePosition() {
     const locateReference = () => {
       observer.disconnect();
       cancelAnimationFrame(frame);
-      const slug = new URLSearchParams(window.location.hash.slice(1)).get("reference");
-      if (!slug) return;
-      const path = `/articles/${encodeURIComponent(slug)}`;
+      const id = new URLSearchParams(window.location.hash.slice(1)).get("reference");
+      if (!id) return;
+      const path = `/articles/${encodeURIComponent(id)}`;
       const reference = Array.from(body.querySelectorAll<HTMLAnchorElement>("a[href]")).find(
         (link) => {
           const url = new URL(link.href);

@@ -15,7 +15,11 @@ const articleListResultSchema = toolResultSchema.extend({
   structuredContent: z.object({ articles: z.array(articleSchema) }),
 });
 const articleResultSchema = toolResultSchema.extend({
-  structuredContent: z.object({ editions: z.record(z.string(), editionSchema) }),
+  structuredContent: z.object({
+    updatedAt: z.string(),
+    contentHash: z.string(),
+    editions: z.record(z.string(), editionSchema),
+  }),
 });
 const tagListResultSchema = toolResultSchema.extend({
   structuredContent: z.object({
@@ -23,7 +27,7 @@ const tagListResultSchema = toolResultSchema.extend({
   }),
 });
 const visibilityResultSchema = toolResultSchema.extend({
-  structuredContent: z.object({ visibility: z.enum(["private", "public"]) }),
+  structuredContent: z.object({ updatedAt: z.string(), visibility: z.enum(["private", "public"]) }),
 });
 
 const unauthorized = await fetch(endpoint, {
@@ -126,10 +130,14 @@ assert.deepEqual(createTool.inputSchema.required, ["document"]);
 assert.match(createTool.description, /complete semantic Chinese Markdown document/u);
 const updateTool = toolsBody.result.tools.find((tool) => tool.name === "updateArticle");
 if (!updateTool) throw new Error("updateArticle was not discovered");
-assert.deepEqual(updateTool.inputSchema.required, ["id", "expectedHash", "document"]);
+assert.deepEqual(updateTool.inputSchema.required, [
+  "id",
+  "expectedHash",
+  "expectedUpdatedAt",
+  "document",
+]);
 
 const fixtureId = "11111111-1111-4111-8111-111111111111";
-const fixtureHash = "67616b110084d21c9953145c75bbf8df02009a41f247e2140c0aebcc8d328319";
 const restEndpoint = `${origin}/api/articles`;
 const unauthorizedRest = await fetch(restEndpoint);
 assert.equal(unauthorizedRest.status, 401);
@@ -167,8 +175,10 @@ const japaneseEdition = fetched.structuredContent.editions.ja;
 if (!japaneseEdition) throw new Error("The Japanese fixture edition is missing");
 assert.equal(japaneseEdition.title, "拡張可能な知識の境界");
 const tags = await callTool(6, "listTags", {}, tagListResultSchema);
+// Other browser journeys create daily articles; isolate the frozen fixture tags.
+const fixtureTags = tags.structuredContent.tags.filter((tag) => tag.path !== "daily");
 assert.deepEqual(
-  tags.structuredContent.tags.map((tag) => tag.path),
+  fixtureTags.map((tag) => tag.path),
   [
     "engineering",
     "engineering/architecture",
@@ -178,23 +188,21 @@ assert.deepEqual(
     "testing/privacy",
   ],
 );
-assert.deepEqual(
-  Object.fromEntries(tags.structuredContent.tags.map((tag) => [tag.path, tag.count])),
-  {
-    engineering: 2,
-    "engineering/architecture": 2,
-    knowledge: 1,
-    "knowledge/i18n": 1,
-    testing: 1,
-    "testing/privacy": 1,
-  },
-);
+assert.deepEqual(Object.fromEntries(fixtureTags.map((tag) => [tag.path, tag.count])), {
+  engineering: 2,
+  "engineering/architecture": 2,
+  knowledge: 1,
+  "knowledge/i18n": 1,
+  testing: 1,
+  "testing/privacy": 1,
+});
 
 const staleUpdate = await callTool(
   7,
   "updateArticle",
   {
     id: fixtureId,
+    expectedUpdatedAt: fetched.structuredContent.updatedAt,
     expectedHash: "0".repeat(64),
     document: chineseEdition.markdown,
   },
@@ -206,6 +214,7 @@ const stale = await callTool(
   "setVisibility",
   {
     id: fixtureId,
+    expectedUpdatedAt: fetched.structuredContent.updatedAt,
     expectedHash: "0".repeat(64),
     visibility: "private",
   },
@@ -217,13 +226,14 @@ const hidden = await callTool(
   "setVisibility",
   {
     id: fixtureId,
-    expectedHash: fixtureHash,
+    expectedUpdatedAt: fetched.structuredContent.updatedAt,
+    expectedHash: fetched.structuredContent.contentHash,
     visibility: "private",
   },
   visibilityResultSchema,
 );
 assert.equal(hidden.structuredContent.visibility, "private");
-const privatePage = await fetch(`${origin}/articles/extensible-knowledge-boundaries`).then(
+const privatePage = await fetch(`${origin}/articles/11111111-1111-4111-8111-111111111111`).then(
   (response) => response.text(),
 );
 assert.match(privatePage, /<meta name="robots" content="noindex/u);
@@ -233,14 +243,15 @@ const restored = await callTool(
   "setVisibility",
   {
     id: fixtureId,
-    expectedHash: fixtureHash,
+    expectedUpdatedAt: hidden.structuredContent.updatedAt,
+    expectedHash: fetched.structuredContent.contentHash,
     visibility: "public",
   },
   visibilityResultSchema,
 );
 assert.equal(restored.structuredContent.visibility, "public");
 
-const legacy = await fetch(endpoint, {
+const unsupported = await fetch(endpoint, {
   method: "POST",
   headers: {
     accept: "application/json, text/event-stream",
@@ -258,9 +269,8 @@ const legacy = await fetch(endpoint, {
     },
   }),
 });
-assert.equal(legacy.status, 200);
-assert.match(await legacy.text(), /"protocolVersion":"2025-11-25"/u);
+assert.equal(unsupported.status, 400);
 
 console.log(
-  "API contract passed: shared auth, REST reads, MCP discovery, tags, stale writes, visibility, and legacy initialize",
+  "API contract passed: shared auth, REST reads, MCP discovery, tags, stale writes, visibility, and rejected obsolete initialization",
 );

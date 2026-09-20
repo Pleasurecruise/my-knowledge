@@ -7,7 +7,6 @@ vi.mock("@/shell/intent-link", () => ({ IntentLink: "a" }));
 // Frozen, already-authorized provider order: highest relevance is the oldest article.
 const corpus: ArticleSummary[] = [2020, 2026, 2023].map((year) => ({
   id: String(year),
-  slug: `article-${year}`,
   editions: { zh: { title: `Title ${year}`, summary: "Summary" } },
   tags: [],
   visibility: "public",

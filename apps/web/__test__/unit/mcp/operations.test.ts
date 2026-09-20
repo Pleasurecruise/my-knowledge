@@ -11,6 +11,7 @@ it("bounds update documents like creation documents", () => {
     updateArticleInput.safeParse({
       id: "11111111-1111-4111-8111-111111111111",
       expectedHash: "a".repeat(64),
+      expectedUpdatedAt: "2026-09-01T00:00:00.000Z",
       document: "x".repeat(500_001),
     }).success,
   ).toBe(false);
@@ -26,6 +27,7 @@ it.each([
     await updateArticleOperation(env, {
       id: "11111111-1111-4111-8111-111111111111",
       expectedHash: "a".repeat(64),
+      expectedUpdatedAt: "2026-09-01T00:00:00.000Z",
       document: "Markdown",
     }),
   ).toEqual({ isError: true, content: [{ type: "text", text: message }] });

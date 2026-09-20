@@ -1,6 +1,5 @@
 CREATE TABLE `articles` (
   `id` text PRIMARY KEY NOT NULL,
-  `slug` text NOT NULL,
   `title` text NOT NULL,
   `summary` text NOT NULL,
   `contentHash` text NOT NULL,
@@ -11,7 +10,6 @@ CREATE TABLE `articles` (
   `updatedAt` text NOT NULL
 );
 
-CREATE UNIQUE INDEX `articles_slug_unique` ON `articles` (`slug`);
 CREATE INDEX `articles_visibility_updatedAt_idx` ON `articles` (`visibility`, `updatedAt`);
 
 CREATE TABLE `articleTranslations` (

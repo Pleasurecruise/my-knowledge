@@ -7,8 +7,9 @@ and temporary verification evidence in `.agents/`.
 
 ### 1. Establish scope
 
-Read the owning documents and identify the expected behavior and verification. Do not create a plan
-file for each code change. Create or maintain a plan only when the user explicitly requests one.
+Read the owning documents and identify the expected behavior and verification, then implement
+directly. Do not start by writing a plan, in chat or in files. Create or maintain a plan only when
+the user explicitly requests one.
 Keep usage instructions in README and durable decisions in their owning documents. Do not commit
 unless the user has authorized the Git workflow.
 
@@ -56,7 +57,8 @@ regressed.
    a hard invariant may regress, or completion needs an account, secret, payment, or policy decision.
 4. After the same acceptance criterion fails three times for the same reason, report the evidence and
    blocker instead of retrying indefinitely.
-5. Finish after required evidence exists; archive a user-requested plan if one was used.
+5. Finish after required evidence exists. Remove temporary evidence after acceptance or on user request;
+   remove a user-requested plan once accepted. Keep durable decisions in their owning documents.
 
 ## Product invariants
 
@@ -65,8 +67,7 @@ regressed.
 - AI search questions, retrieved context, and generated answers are not stored.
 - Every submitted article starts public. Visibility changes require the shared API credential or the
   allowed-email browser session.
-- The web has Home (article chronology), Explore (search and Graph), and Article only. Legacy
-  Articles and Graph routes redirect to those surfaces. The allowed-email owner may create, edit,
+- The web has Home (article chronology), Explore (search and Graph), and Article only. Removed Articles and Graph routes return not found. The allowed-email owner may create, edit,
   publish, withdraw, and delete Articles from those existing surfaces; there is no owner dashboard.
 - Anonymous users receive keyword/tag search only. AI search requires the allowed-email session.
 - Article metadata, social images, robots, and sitemap use anonymous authorization and never expose
@@ -77,6 +78,9 @@ regressed.
 ## Engineering guardrails
 
 - Prefer the smallest complete implementation and the fewest durable fields.
+- Keep one current contract; remove obsolete protocols, aliases and compatibility branches.
+- Maintain current initialization definitions, not incremental upgrade migrations. For incompatible
+  personal-app state, rebuild the affected stores; preserve canonical content and shared resources.
 - Do not casually add helpers, fallbacks, assertions, unsafe types, unsafe casts, or snake_case names.
 - Do not copy code, skills, fonts, templates, or assets without license review.
 - Use Vite Plus for formatting, linting, type checking, and unit tests; do not add parallel tools.

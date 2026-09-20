@@ -18,7 +18,7 @@ import { useState } from "react";
 
 import type { DeleteActionProps } from "./delete-action.types";
 
-export function DeleteAction({ id, expectedHash, messages }: DeleteActionProps) {
+export function DeleteAction({ id, expectedHash, expectedUpdatedAt, messages }: DeleteActionProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +30,7 @@ export function DeleteAction({ id, expectedHash, messages }: DeleteActionProps) 
       const response = await fetch(`/api/articles/${id}`, {
         method: "DELETE",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ expectedHash }),
+        body: JSON.stringify({ expectedHash, expectedUpdatedAt }),
       });
       if (response.status === 204) {
         router.push("/");

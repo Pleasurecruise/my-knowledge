@@ -11,7 +11,6 @@ export const articles = sqliteTable(
   "articles",
   {
     id: text("id").primaryKey(),
-    slug: text("slug").notNull(),
     title: text("title").notNull(),
     summary: text("summary").notNull(),
     contentHash: text("contentHash").notNull(),
@@ -23,10 +22,7 @@ export const articles = sqliteTable(
     createdAt: text("createdAt").notNull(),
     updatedAt: text("updatedAt").notNull(),
   },
-  (table) => [
-    uniqueIndex("articles_slug_unique").on(table.slug),
-    index("articles_visibility_updatedAt_idx").on(table.visibility, table.updatedAt),
-  ],
+  (table) => [index("articles_visibility_updatedAt_idx").on(table.visibility, table.updatedAt)],
 );
 
 export const articleTranslations = sqliteTable(

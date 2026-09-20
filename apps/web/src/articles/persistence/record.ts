@@ -30,7 +30,6 @@ export function articleSummary(
   );
   return {
     id: row.id,
-    slug: row.slug,
     editions: { ...editions, zh: { title: row.title, summary: row.summary } },
     tags: stringArraySchema.parse(parsedTags),
     visibility: visibilitySchema.parse(row.visibility),

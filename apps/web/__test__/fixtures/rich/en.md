@@ -12,7 +12,7 @@ tags:
 
 > [!NOTE] A locale is one content dimension, not another article type.
 
-The same article can connect to [[related-article|a related practice]] and preserve $x^2$.
+The same article can connect to [[22222222-2222-4222-8222-222222222222|a related practice]] and preserve $x^2$.
 
 ```ts
 const edition: string = "en";

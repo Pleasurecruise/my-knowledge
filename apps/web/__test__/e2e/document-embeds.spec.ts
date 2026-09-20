@@ -27,7 +27,7 @@ test("reads quote and Git diff dialects without losing source or executing HTML"
     "```embed:quote\nauthor: 项目笔记\ntitle: 知识的保存\nurl: https://example.com/source\n---\n保留知识，也保留它的上下文。\n\n<script>只是原文，不执行。</script>\n```",
     '```embed:diff\ntitle: Publication change\n---\ndiff --git a/config.ts b/config.ts\n--- a/config.ts\n+++ b/config.ts\n@@ -1,2 +1,2 @@\n-const visibility = "private";\n+const visibility = "public";\n export { visibility };\n```',
   ].join("\n\n");
-  let slug: string;
+  let id: string;
   try {
     const response = await owner.post("/api/articles", {
       data: {
@@ -38,12 +38,12 @@ test("reads quote and Git diff dialects without losing source or executing HTML"
       },
     });
     expect(response.status()).toBe(201);
-    slug = z.object({ article: z.object({ slug: z.string() }) }).parse(await response.json())
-      .article.slug;
+    id = z.object({ article: z.object({ id: z.string() }) }).parse(await response.json())
+      .article.id;
   } finally {
     await owner.dispose();
   }
-  await page.goto(`/articles/${slug}`);
+  await page.goto(`/articles/${id}`);
   const annotation = page.locator(".markdown-embed-annotation");
   await expect(annotation.locator(".annotation-mark")).toHaveText("内容优先");
   await expect(annotation.locator(".annotation-note a")).toHaveAttribute(

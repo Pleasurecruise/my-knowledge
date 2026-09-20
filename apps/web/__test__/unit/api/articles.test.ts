@@ -37,6 +37,7 @@ describe("article REST contract", () => {
     expect(
       articlePatchSchema.safeParse({
         expectedHash: "a".repeat(64),
+        expectedUpdatedAt: "2026-09-01T00:00:00.000Z",
         title: "Title",
         summary: "Summary",
         body: "Body",

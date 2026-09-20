@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { listArticles, localizeArticles } from "@/articles";
 import { ArticleList } from "@/articles/components/article-list";
 import { getPrincipal } from "@/auth/owner";
-import { redirect } from "next/navigation";
 import { getInterfaceI18n } from "@/i18n/server";
 import { PageLayout } from "@/shell/page-layout";
 
@@ -13,10 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: i18n.messages.articles.title };
 }
 
-export default async function ArticlesPage({ searchParams }: PageProps<"/">) {
-  const params = await searchParams;
-  const query = Array.isArray(params.query) ? params.query[0] : params.query;
-  if (query?.trim()) redirect(`/explore?${new URLSearchParams({ query: query.trim() })}`);
+export default async function ArticlesPage() {
   const [{ env }, principal, i18n] = await Promise.all([
     getCloudflareContext({ async: true }),
     getPrincipal(),

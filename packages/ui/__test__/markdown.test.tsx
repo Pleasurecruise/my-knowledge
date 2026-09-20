@@ -380,7 +380,7 @@ it("keeps generated footnote headings outside article heading anchors", async ()
   expect(html).toContain('id="user-content-fnref-one"');
 });
 
-it("renders empty legacy embed fences as block diagnostics", async () => {
+it("renders empty embed fences as block diagnostics", async () => {
   const html = renderToStaticMarkup(
     await Markdown({
       labels,

@@ -47,6 +47,7 @@ export type InterfaceMessages = {
     articlePlaceholder: string;
     results: string;
     noResults: string;
+    failed: string;
   };
   article: {
     previousPage: string;

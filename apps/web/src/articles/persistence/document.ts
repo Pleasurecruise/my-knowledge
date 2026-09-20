@@ -5,7 +5,7 @@ import {
   readArticleDocument,
   resolveLocale,
 } from "@my-knowledge/content";
-import { and, desc, eq, or, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
 import { readArticleCache, writeArticleCache } from "./cache";
@@ -48,10 +48,7 @@ export async function readArticleText(
   }
   const object = await env.KNOWLEDGE_BUCKET.get(articleObjectKey(row.id, locale));
   if (!object) throw new Error(`Canonical ${locale} Markdown is missing for article ${row.id}`);
-  if (
-    object.customMetadata?.contentHash !== undefined &&
-    object.customMetadata.contentHash !== row.contentHash
-  )
+  if (object.customMetadata?.contentHash !== row.contentHash)
     throw new Error(`Article version changed while reading ${row.id}`);
   const document = readArticleDocument(await object.text());
   const articleText = {
@@ -95,18 +92,18 @@ export async function localizeArticles(
   });
 }
 
-export async function getArticleMetadata(env: CloudflareEnv, slug: string) {
-  const row = await getArticleRow(env, "anonymous", "link", decodeURIComponent(slug));
+export async function getArticleMetadata(env: CloudflareEnv, id: string) {
+  const row = await getArticleRow(env, "anonymous", decodeURIComponent(id));
   return row ? articleSummary(row) : null;
 }
 
 export async function getArticleEdition(
   env: CloudflareEnv,
   principal: Principal,
-  slug: string,
+  id: string,
   requestedLocale: string,
 ) {
-  const row = await getArticleRow(env, principal, "link", decodeURIComponent(slug));
+  const row = await getArticleRow(env, principal, decodeURIComponent(id));
   if (!row) return null;
   const translations =
     requestedLocale === "zh"
@@ -125,25 +122,15 @@ export async function getArticleEdition(
   return { article, locale, text: await readArticleText(env, row, locale) };
 }
 
-export async function getArticleRow(
-  env: CloudflareEnv,
-  principal: Principal,
-  field: "id" | "slug" | "link",
-  value: string,
-) {
-  const identity =
-    field === "link"
-      ? or(eq(articles.id, value), eq(articles.slug, value))
-      : eq(articles[field], value);
+export async function getArticleRow(env: CloudflareEnv, principal: Principal, value: string) {
   return drizzle(env.DB)
     .select()
     .from(articles)
-    .where(and(identity, authorizedCondition(principal)))
-    .orderBy(desc(eq(articles.id, value)))
+    .where(and(eq(articles.id, value), authorizedCondition(principal)))
     .get();
 }
 
 export async function getArticleById(env: CloudflareEnv, principal: Principal, id: string) {
-  const row = await getArticleRow(env, principal, "id", id);
+  const row = await getArticleRow(env, principal, id);
   return row ? readArticle(env, row) : undefined;
 }

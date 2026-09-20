@@ -90,7 +90,6 @@ export async function searchArticles(
 ): Promise<ArticleSummary[]> {
   const term = query.trim().toLocaleLowerCase("en-US");
   const matches = or(
-    sql`instr(lower(${articles.slug}), ${term}) > 0`,
     sql`instr(lower(${articles.title}), ${term}) > 0`,
     sql`instr(lower(${articles.summary}), ${term}) > 0`,
     sql`exists (

@@ -58,7 +58,6 @@ const articleEditionsSchema = z.object({ zh: articleTextSchema }).catchall(artic
 
 export const articleSchema = z.object({
   id: z.string().uuid(),
-  slug: z.string().min(1),
   editions: articleEditionsSchema,
   tags: z.array(z.string()).max(MAX_TAGS),
   visibility: visibilitySchema,

@@ -18,6 +18,10 @@ import { articleObjectKey, articleSummary } from "./record";
 import type { StoredArticleDocument, WrittenArticleDocument } from "./types";
 import { articles, articleTranslations } from "@/db/schema";
 
+function nextUpdatedAt(previous: string): string {
+  return new Date(Math.max(Date.now(), Date.parse(previous) + 1)).toISOString();
+}
+
 const articleLocales: readonly string[] = ["zh", "en", "ja"];
 
 async function deleteArticleArtifacts(env: CloudflareEnv, id: string, hash: string): Promise<void> {
@@ -38,10 +42,7 @@ async function readStoredDocument(
   const key = articleObjectKey(id, locale);
   const object = await bucket.get(key);
   if (!object) return null;
-  if (
-    object.customMetadata?.contentHash !== undefined &&
-    object.customMetadata.contentHash !== contentHash
-  ) {
+  if (object.customMetadata?.contentHash !== contentHash) {
     throw new Error(`Article version changed while reading ${id}/${locale}`);
   }
   return {
@@ -108,7 +109,7 @@ export async function createArticle(
   id: string,
   document: ArticleDocumentSet,
 ): Promise<Article> {
-  const existing = await getArticleRow(env, "owner", "id", id);
+  const existing = await getArticleRow(env, "owner", id);
   if (existing) return readArticle(env, existing);
   const chinese = document.editions.zh;
   const timestamp = new Date().toISOString();
@@ -129,7 +130,6 @@ export async function createArticle(
         .insert(articles)
         .values({
           id,
-          slug: id,
           title: chinese.title,
           summary: chinese.summary,
           contentHash: document.contentHash,
@@ -142,12 +142,12 @@ export async function createArticle(
       return id;
     },
     cleanupNewVersion: async () => {
-      if (!written || (await getArticleRow(env, "owner", "id", id))) return;
+      if (!written || (await getArticleRow(env, "owner", id))) return;
       await rollbackDocument(env.KNOWLEDGE_BUCKET, null, written);
       await deleteArticleArtifacts(env, id, document.contentHash);
     },
   });
-  const stored = await getArticleRow(env, "owner", "id", id);
+  const stored = await getArticleRow(env, "owner", id);
   if (!stored) throw new Error(`Created article ${id} is not readable`);
   return readArticle(env, stored);
 }
@@ -159,19 +159,24 @@ export async function updateArticle(
   document: ArticleDocumentSet,
   visibility?: Visibility,
 ): Promise<Article | undefined> {
-  const previous = await getArticleRow(env, "owner", "id", id);
+  const previous = await getArticleRow(env, "owner", id);
   if (!previous || previous.contentHash !== expectedHash) return undefined;
   if (document.contentHash === expectedHash) {
     const linksJson = JSON.stringify(document.links);
-    if (
-      linksJson === previous.linksJson &&
-      (visibility === undefined || visibility === previous.visibility)
-    )
-      return readArticle(env, previous);
     const updated = await drizzle(env.DB)
       .update(articles)
-      .set({ linksJson, ...(visibility === undefined ? {} : { visibility }) })
-      .where(and(eq(articles.id, id), eq(articles.contentHash, expectedHash)))
+      .set({
+        linksJson,
+        updatedAt: nextUpdatedAt(previous.updatedAt),
+        ...(visibility === undefined ? {} : { visibility }),
+      })
+      .where(
+        and(
+          eq(articles.id, id),
+          eq(articles.contentHash, expectedHash),
+          eq(articles.updatedAt, previous.updatedAt),
+        ),
+      )
       .returning()
       .get();
     return updated ? readArticle(env, updated) : undefined;
@@ -211,9 +216,15 @@ export async function updateArticle(
           contentHash: document.contentHash,
           tagsJson: JSON.stringify(document.tags),
           linksJson: JSON.stringify(document.links),
-          updatedAt: new Date().toISOString(),
+          updatedAt: nextUpdatedAt(previous.updatedAt),
         })
-        .where(and(eq(articles.id, id), eq(articles.contentHash, expectedHash)))
+        .where(
+          and(
+            eq(articles.id, id),
+            eq(articles.contentHash, expectedHash),
+            eq(articles.updatedAt, previous.updatedAt),
+          ),
+        )
         .returning()
         .get(),
     cleanupNewVersion: async () => {
@@ -241,7 +252,7 @@ export async function saveArticleTranslation(
   sourceHash: string,
   translation: ParsedArticleDocument,
 ): Promise<void> {
-  const article = await getArticleRow(env, "owner", "id", id);
+  const article = await getArticleRow(env, "owner", id);
   if (!article || article.contentHash !== sourceHash) return;
   const previousTranslation = await drizzle(env.DB)
     .select()
@@ -296,10 +307,18 @@ export async function setArticleVisibility(
   expectedHash: string,
   visibility: "private" | "public",
 ): Promise<ArticleSummary | undefined> {
+  const previous = await getArticleRow(env, "owner", id);
+  if (!previous || previous.contentHash !== expectedHash) return undefined;
   const updated = await drizzle(env.DB)
     .update(articles)
-    .set({ visibility, updatedAt: new Date().toISOString() })
-    .where(and(eq(articles.id, id), eq(articles.contentHash, expectedHash)))
+    .set({ visibility, updatedAt: nextUpdatedAt(previous.updatedAt) })
+    .where(
+      and(
+        eq(articles.id, id),
+        eq(articles.contentHash, expectedHash),
+        eq(articles.updatedAt, previous.updatedAt),
+      ),
+    )
     .returning()
     .get();
   if (!updated) return undefined;
@@ -314,14 +333,20 @@ export async function deleteArticle(
   id: string,
   expectedHash: string,
 ): Promise<boolean> {
-  const previous = await getArticleRow(env, "owner", "id", id);
+  const previous = await getArticleRow(env, "owner", id);
   if (!previous || previous.contentHash !== expectedHash) return false;
   return deleteStoredArticle({
     hideRow: async () => {
       const hidden = await drizzle(env.DB)
         .update(articles)
-        .set({ visibility: "private", updatedAt: new Date().toISOString() })
-        .where(and(eq(articles.id, id), eq(articles.contentHash, expectedHash)))
+        .set({ visibility: "private" })
+        .where(
+          and(
+            eq(articles.id, id),
+            eq(articles.contentHash, expectedHash),
+            eq(articles.updatedAt, previous.updatedAt),
+          ),
+        )
         .returning({ id: articles.id })
         .get();
       return Boolean(hidden);
@@ -351,7 +376,13 @@ export async function deleteArticle(
     deleteRow: async () => {
       const deleted = await drizzle(env.DB)
         .delete(articles)
-        .where(and(eq(articles.id, id), eq(articles.contentHash, expectedHash)))
+        .where(
+          and(
+            eq(articles.id, id),
+            eq(articles.contentHash, expectedHash),
+            eq(articles.updatedAt, previous.updatedAt),
+          ),
+        )
         .returning({ id: articles.id })
         .get();
       return Boolean(deleted);

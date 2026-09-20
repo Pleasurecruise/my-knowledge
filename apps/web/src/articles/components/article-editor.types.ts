@@ -8,6 +8,7 @@ import type { InterfaceMessages } from "@/i18n/registry";
 export type ExistingArticleEditor = {
   body: string;
   contentHash: string;
+  updatedAt: string;
   id: string;
   summary: string;
   tags: string[];

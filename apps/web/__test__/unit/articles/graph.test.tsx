@@ -32,7 +32,7 @@ vi.mock("@/graph/components/knowledge-graph", () => ({
 it("deduplicates URL/wiki edges and excludes targets absent from authorized records", async () => {
   const articles: ArticleSummary[] = ["source", "target"].map((id) => ({
     id,
-    slug: `${id}-slug`,
+
     editions: { zh: { title: id, summary: id } },
     tags: [],
     visibility: "public",

@@ -12,10 +12,10 @@ let coverFont: ArrayBuffer | undefined;
 
 export async function GET(
   request: Request,
-  { params }: RouteContext<"/articles/[slug]/opengraph-image">,
+  { params }: RouteContext<"/articles/[id]/opengraph-image">,
 ) {
-  const [{ slug }, { env }] = await Promise.all([params, getCloudflareContext({ async: true })]);
-  const article = await getArticleMetadata(env, slug);
+  const [{ id }, { env }] = await Promise.all([params, getCloudflareContext({ async: true })]);
+  const article = await getArticleMetadata(env, id);
   const version = new URL(request.url).searchParams.get("v");
   if (!article || version !== `${article.contentHash}-${articleOpenGraphVersion}`)
     return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });

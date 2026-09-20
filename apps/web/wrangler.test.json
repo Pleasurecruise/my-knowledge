@@ -12,15 +12,23 @@
       {
         "name": "API_KEY",
         "class_name": "ApiKeyDurableObject"
+      },
+      {
+        "name": "ARTICLE_WRITER",
+        "class_name": "ArticleWriter"
       }
     ]
   },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["ApiKeyDurableObject"]
+  "exports": {
+    "ApiKeyDurableObject": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "ArticleWriter": {
+      "type": "durable-object",
+      "storage": "sqlite"
     }
-  ],
+  },
   "name": "my-knowledge-test",
   "vars": {
     "BETTER_AUTH_URL": "http://127.0.0.1:8787"

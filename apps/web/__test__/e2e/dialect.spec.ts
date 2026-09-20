@@ -23,7 +23,7 @@ test("compiles footnotes and math with working article anchors", async ({
     baseURL,
     storageState: "apps/web/__test__/.auth/owner.json",
   });
-  let slug: string;
+  let id: string;
   try {
     const response = await owner.post("/api/articles", {
       data: {
@@ -34,12 +34,12 @@ test("compiles footnotes and math with working article anchors", async ({
       },
     });
     expect(response.status()).toBe(201);
-    slug = z.object({ article: z.object({ slug: z.string() }) }).parse(await response.json())
-      .article.slug;
+    id = z.object({ article: z.object({ id: z.string() }) }).parse(await response.json())
+      .article.id;
   } finally {
     await owner.dispose();
   }
-  await page.goto(`/articles/${slug}`);
+  await page.goto(`/articles/${id}`);
   await expect(page.locator("#main-section")).toHaveText("Main section");
   await expect(page.locator("#footnote-detail")).toHaveText("Footnote detail");
   await expect(page.locator(".katex")).toHaveCount(2);
