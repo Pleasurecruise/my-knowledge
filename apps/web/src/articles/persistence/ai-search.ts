@@ -18,7 +18,7 @@ export async function indexChineseArticle(
   const item = await env.AI_SEARCH.get(MY_KNOWLEDGE_INSTANCE).items.uploadAndPoll(
     `${articleId}/zh.md`,
     markdown,
-    { timeoutMs: 30_000 },
+    { timeoutMs: 120_000 },
   );
   if (item.status !== "completed")
     throw new Error(`AI Search indexing incomplete for ${articleId}`);
