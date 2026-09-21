@@ -22,6 +22,7 @@ import {
 } from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
 import { unified } from "unified";
+import { LRUCache } from "lru-cache";
 import type { Plugin } from "unified";
 import { SKIP, visit } from "unist-util-visit";
 
@@ -315,49 +316,14 @@ async function compileMarkdown(
   return { tree, deferredEmbeds };
 }
 
-const compilations = new Map<
-  string,
-  {
-    expires: number;
-    result: Promise<CompiledMarkdown>;
-  }
->();
-const compilationTtl = 30_000;
-const compilationLimit = 16;
+type CompilationInput = {
+  labels: StructuredBlockLabels;
+  markdown: string;
+  enrich: boolean;
+};
 
-async function readCompilation(labels: StructuredBlockLabels, markdown: string, enrich: boolean) {
-  if (markdown.length > 131_072) return compileMarkdown(labels, markdown, enrich);
-  const key = JSON.stringify([markdown, labels, enrich]);
-  const now = Date.now();
-  for (const [key, entry] of compilations) {
-    if (entry.expires <= now) compilations.delete(key);
-  }
-  const existing = compilations.get(key);
-  if (existing) {
-    compilations.delete(key);
-    compilations.set(key, existing);
-    return existing.result;
-  }
-  const entry = {
-    expires: now + compilationTtl,
-    result: compileMarkdown(labels, markdown, enrich),
-  };
-  compilations.set(key, entry);
-  for (const oldest of compilations.keys()) {
-    if (compilations.size <= compilationLimit) break;
-    compilations.delete(oldest);
-  }
-  try {
-    const result = await entry.result;
-    if (JSON.stringify(result).length > 524_288) {
-      if (compilations.get(key) === entry) compilations.delete(key);
-    } else entry.expires = Date.now() + compilationTtl;
-    return result;
-  } catch (error) {
-    if (compilations.get(key) === entry) compilations.delete(key);
-    throw error;
-  }
-}
+const privateCompilations = {};
+const compilations = new WeakMap<object, LRUCache<string, CompiledMarkdown, CompilationInput>>();
 
 export async function Markdown({
   labels,
@@ -367,23 +333,45 @@ export async function Markdown({
   link,
   cache,
 }: MarkdownProps) {
-  let compiled: CompiledMarkdown;
-  if (cache) {
-    const input = JSON.stringify([markdown, labels, Boolean(embeds)]);
-    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
-    const hash = Array.from(new Uint8Array(digest), (byte) =>
-      byte.toString(16).padStart(2, "0"),
-    ).join("");
-    const key = `compiled/${markdownArtifactVersion}/${hash}.json`;
-    const stored = await cache.get(key);
-    if (stored !== null) compiled = compiledMarkdownSchema.parse(JSON.parse(stored));
-    else {
-      compiled = await readCompilation(labels, markdown, Boolean(embeds));
-      const artifact = JSON.stringify(compiledMarkdownSchema.parse(compiled));
-      if (new TextEncoder().encode(artifact).byteLength <= 20 * 1024 * 1024)
-        await cache.put(key, artifact, { expirationTtl: 86_400 });
-    }
-  } else compiled = await readCompilation(labels, markdown, Boolean(embeds));
+  const scope = cache ?? privateCompilations;
+  let memory = compilations.get(scope);
+  if (!memory) {
+    memory = new LRUCache<string, CompiledMarkdown, CompilationInput>({
+      max: 16,
+      maxSize: 8 * 1024 * 1024,
+      maxEntrySize: 524_288,
+      ttl: 30_000,
+      ttlResolution: 0,
+      perf: { now: () => Date.now() },
+      ignoreFetchAbort: true,
+      sizeCalculation: (compiled, key) =>
+        key.length > 131_072 ? 524_289 : key.length + JSON.stringify(compiled).length,
+      fetchMethod: async (input, _previous, { context }) => {
+        let key: string | undefined;
+        if (cache) {
+          const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+          const hash = Array.from(new Uint8Array(digest), (byte) =>
+            byte.toString(16).padStart(2, "0"),
+          ).join("");
+          key = `compiled/${markdownArtifactVersion}/${hash}.json`;
+          const stored = await cache.get(key);
+          if (stored !== null) return compiledMarkdownSchema.parse(JSON.parse(stored));
+        }
+        const compiled = await compileMarkdown(context.labels, context.markdown, context.enrich);
+        if (cache && key) {
+          const artifact = JSON.stringify(compiledMarkdownSchema.parse(compiled));
+          if (new TextEncoder().encode(artifact).byteLength <= 20 * 1024 * 1024)
+            await cache.put(key, artifact, { expirationTtl: 86_400 });
+        }
+        return compiled;
+      },
+    });
+    compilations.set(scope, memory);
+  }
+  const enrich = Boolean(embeds);
+  const compiled = await memory.forceFetch(JSON.stringify([markdown, labels, enrich]), {
+    context: { labels, markdown, enrich },
+  });
   const { tree, deferredEmbeds } = compiled;
   const result = unified()
     .use(rehypeReact, {

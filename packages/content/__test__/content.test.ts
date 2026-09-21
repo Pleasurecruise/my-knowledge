@@ -5,6 +5,7 @@ import {
   createSlug,
   extractHeadings,
   hashArticle,
+  markdownParser,
   parseArticleDocument,
   parseArticleDocuments,
   resolveLocale,
@@ -177,7 +178,11 @@ describe("portable knowledge rules", () => {
   });
 
   it("creates stable, unique heading anchors", () => {
-    expect(extractHeadings("# Overview\n## Scope\n### Detail\n###### Edge\n## Scope")).toEqual([
+    expect(
+      extractHeadings(
+        markdownParser.parse("# Overview\n## Scope\n### Detail\n###### Edge\n## Scope"),
+      ),
+    ).toEqual([
       { depth: 1, title: "Overview", id: "overview" },
       { depth: 2, title: "Scope", id: "scope" },
       { depth: 3, title: "Detail", id: "detail" },
@@ -189,7 +194,7 @@ describe("portable knowledge rules", () => {
   it("ignores code examples when extracting headings", () => {
     const source =
       "~~~md\n# Example\n[[example]]\n~~~\n\n`[[inline]]`\n\n## Real [label](https://example.com)\n\nSetext title\n------------";
-    expect(extractHeadings(source)).toEqual([
+    expect(extractHeadings(markdownParser.parse(source))).toEqual([
       { depth: 2, title: "Real label", id: "real-label" },
       { depth: 2, title: "Setext title", id: "setext-title" },
     ]);

@@ -1,5 +1,4 @@
 import type { Root } from "mdast";
-import { markdownParser } from "./markdown";
 import { visit } from "unist-util-visit";
 
 export function createSlug(title: string): string {
@@ -15,10 +14,9 @@ export function createSlug(title: string): string {
 
 export type ArticleHeading = { depth: number; title: string; id: string };
 
-export function extractHeadings(markdown: string | Root): ArticleHeading[] {
+export function extractHeadings(tree: Root): ArticleHeading[] {
   const headings: ArticleHeading[] = [];
   const ids = new Set<string>();
-  const tree = typeof markdown === "string" ? markdownParser.parse(markdown) : markdown;
   visit(tree, "heading", (node) => {
     let title = "";
     visit(node, (child) => {

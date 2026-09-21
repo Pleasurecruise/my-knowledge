@@ -266,11 +266,6 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
   }
 });
 
-const readArticleMetadata = cache(async (identity: string) => {
-  const { env } = await getCloudflareContext({ async: true });
-  return getArticleRow(env, await getPrincipal(), identity);
-});
-
 const readArticleCard = cache(async (value: string): Promise<ArticleCard | null> => {
   const url = new URL(value);
   const { env } = await getCloudflareContext({ async: true });
@@ -279,7 +274,7 @@ const readArticleCard = cache(async (value: string): Promise<ArticleCard | null>
   const match = /^\/articles\/([^/]+)\/?$/u.exec(url.pathname);
   if (!match?.[1]) return null;
   const identity = decodeURIComponent(match[1]);
-  const row = await readArticleMetadata(identity);
+  const row = await getArticleRow(env, await getPrincipal(), identity);
   return row
     ? {
         href: `/articles/${encodeURIComponent(row.id)}${url.hash}`,

@@ -340,6 +340,9 @@ importers:
       katex:
         specifier: 0.18.7
         version: 0.18.7
+      lru-cache:
+        specifier: 11.5.2
+        version: 11.5.2
       lucide-react:
         specifier: 1.47.0
         version: 1.47.0(react@19.3.0)

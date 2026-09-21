@@ -170,4 +170,39 @@ it("propagates malformed artifacts and KV failures without silently recompiling"
   await expect(Markdown({ ...input, cache })).rejects.toThrow("KV write failed");
   await Markdown({ ...input, cache });
   expect(cache.put).toHaveBeenCalledTimes(2);
+  expect(highlight).toHaveBeenCalledTimes(2);
+});
+
+it("shares the entire KV operation, retains warm artifacts, expires without rewriting and isolates stores", async () => {
+  const values = new Map<string, string>();
+  const cache = {
+    get: vi.fn(async (key: string) => values.get(key) ?? null),
+    put: vi.fn(async (key: string, value: string) => {
+      values.set(key, value);
+    }),
+  };
+  const clock = vi.spyOn(Date, "now").mockReturnValue(4_000_000);
+  const highlight = vi.spyOn(await markdownHighlighter, "codeToHast");
+  const input = { labels, structuredBlock, cache, markdown: "```ts\nconst burst = true;\n```" };
+  const results = await Promise.all(Array.from({ length: 8 }, () => Markdown(input)));
+  const html = renderToStaticMarkup(results[0]);
+  for (const result of results) expect(renderToStaticMarkup(result)).toBe(html);
+  expect(cache.get).toHaveBeenCalledTimes(1);
+  expect(cache.put).toHaveBeenCalledTimes(1);
+  expect(highlight).toHaveBeenCalledTimes(1);
+  clock.mockReturnValue(4_029_999);
+  await Markdown(input);
+  expect(cache.get).toHaveBeenCalledTimes(1);
+  clock.mockReturnValue(4_030_001);
+  await Promise.all([Markdown(input), Markdown(input)]);
+  expect(cache.get).toHaveBeenCalledTimes(2);
+  expect(cache.put).toHaveBeenCalledTimes(1);
+  expect(highlight).toHaveBeenCalledTimes(1);
+  const other = { get: vi.fn(async () => null), put: vi.fn(async () => {}) };
+  await Markdown({ ...input, cache: other });
+  expect(other.get).toHaveBeenCalledTimes(1);
+  expect(other.put).toHaveBeenCalledTimes(1);
+  await Markdown({ ...input, cache: null });
+  expect(highlight).toHaveBeenCalledTimes(3);
+  expect(cache.get).toHaveBeenCalledTimes(2);
 });

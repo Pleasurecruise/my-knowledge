@@ -3,7 +3,7 @@ import { renderMarkdownEmbed } from "../src/markdown-embeds";
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vite-plus/test";
 
-import { extractHeadings } from "@my-knowledge/content";
+import { extractHeadings, markdownParser } from "@my-knowledge/content";
 
 import { CanvasBlock } from "../src/canvas-block";
 import { Markdown } from "../src/markdown";
@@ -290,7 +290,7 @@ it("uses raw audio bytes for GitHub file-view media URLs", async () => {
 it("shares unique heading anchors with the table of contents for rich and empty headings", async () => {
   const markdown =
     "## Scope\n## Scope\n## Scope 2\n## ![Diagram](https://example.com/image.png)\n## 😀\n## ";
-  const headings = extractHeadings(markdown);
+  const headings = extractHeadings(markdownParser.parse(markdown));
   const html = renderToStaticMarkup(
     await Markdown({ labels, markdown, structuredBlock: StructuredBlock }),
   );
@@ -302,7 +302,7 @@ it("shares unique heading anchors with the table of contents for rich and empty 
 it("keeps frontmatter, math, strikethrough and code headings aligned with the contents", async () => {
   const markdown =
     "---\ntitle: Example\nsummary: Example\ntags: []\n---\n## ~~Old~~ $x^2$\n## `&lt;main&gt;`\n\n$$\n# not a heading\n$$\n\nReal\n----";
-  const headings = extractHeadings(markdown);
+  const headings = extractHeadings(markdownParser.parse(markdown));
   const html = renderToStaticMarkup(
     await Markdown({ labels, markdown, structuredBlock: StructuredBlock }),
   );

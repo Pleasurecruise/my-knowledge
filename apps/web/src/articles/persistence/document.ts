@@ -7,6 +7,7 @@ import {
 } from "@my-knowledge/content";
 import { and, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+import { cache } from "react";
 
 import { readArticleCache, writeArticleCache } from "./cache";
 import { authorizedCondition } from "./query";
@@ -122,13 +123,15 @@ export async function getArticleEdition(
   return { article, locale, text: await readArticleText(env, row, locale) };
 }
 
-export async function getArticleRow(env: CloudflareEnv, principal: Principal, value: string) {
-  return drizzle(env.DB)
-    .select()
-    .from(articles)
-    .where(and(eq(articles.id, value), authorizedCondition(principal)))
-    .get();
-}
+export const getArticleRow = cache(
+  async (env: CloudflareEnv, principal: Principal, value: string) => {
+    return drizzle(env.DB)
+      .select()
+      .from(articles)
+      .where(and(eq(articles.id, value), authorizedCondition(principal)))
+      .get();
+  },
+);
 
 export async function getArticleById(env: CloudflareEnv, principal: Principal, id: string) {
   const row = await getArticleRow(env, principal, id);
