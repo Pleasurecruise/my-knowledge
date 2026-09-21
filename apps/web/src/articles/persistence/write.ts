@@ -1,4 +1,3 @@
-import { isDailyArticle, readArticleDocument } from "@my-knowledge/content";
 import type {
   Article,
   ArticleDocumentSet,
@@ -10,7 +9,6 @@ import type {
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
-import { deleteSearchItem, indexChineseArticle } from "./ai-search";
 import { deleteArticleCache } from "./cache";
 import { getArticleRow, readArticle } from "./document";
 import { createStoredArticle, deleteStoredArticle, updateStoredArticle } from "./mutation";
@@ -23,15 +21,6 @@ function nextUpdatedAt(previous: string): string {
 }
 
 const articleLocales: readonly string[] = ["zh", "en", "ja"];
-
-async function deleteArticleArtifacts(env: CloudflareEnv, id: string, hash: string): Promise<void> {
-  const results = await Promise.allSettled([
-    deleteArticleCache(env.KNOWLEDGE_CACHE, id, hash, articleLocales),
-    deleteSearchItem(env, id),
-  ]);
-  const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
-  if (errors.length > 0) throw new AggregateError(errors, `Article version cleanup failed: ${id}`);
-}
 
 async function readStoredDocument(
   bucket: R2Bucket,
@@ -124,7 +113,6 @@ export async function createArticle(
         null,
       );
     },
-    writeIndex: () => indexChineseArticle(env, id, chinese.markdown, document.tags),
     insertRow: async () => {
       await drizzle(env.DB)
         .insert(articles)
@@ -134,7 +122,6 @@ export async function createArticle(
           summary: chinese.summary,
           contentHash: document.contentHash,
           tagsJson: JSON.stringify(document.tags),
-          linksJson: JSON.stringify(document.links),
           visibility: "public",
           createdAt: timestamp,
           updatedAt: timestamp,
@@ -144,7 +131,7 @@ export async function createArticle(
     cleanupNewVersion: async () => {
       if (!written || (await getArticleRow(env, "owner", id))) return;
       await rollbackDocument(env.KNOWLEDGE_BUCKET, null, written);
-      await deleteArticleArtifacts(env, id, document.contentHash);
+      await deleteArticleCache(env.KNOWLEDGE_CACHE, id, document.contentHash, articleLocales);
     },
   });
   const stored = await getArticleRow(env, "owner", id);
@@ -162,11 +149,9 @@ export async function updateArticle(
   const previous = await getArticleRow(env, "owner", id);
   if (!previous || previous.contentHash !== expectedHash) return undefined;
   if (document.contentHash === expectedHash) {
-    const linksJson = JSON.stringify(document.links);
     const updated = await drizzle(env.DB)
       .update(articles)
       .set({
-        linksJson,
         updatedAt: nextUpdatedAt(previous.updatedAt),
         ...(visibility === undefined ? {} : { visibility }),
       })
@@ -200,12 +185,6 @@ export async function updateArticle(
         previousDocument,
       );
     },
-    writeIndex: async () => {
-      if (isDailyArticle(document.tags)) {
-        if (!isDailyArticle(readArticleDocument(previousDocument.markdown).tags))
-          await deleteSearchItem(env, id);
-      } else await indexChineseArticle(env, id, chinese.markdown, document.tags);
-    },
     switchRow: () =>
       drizzle(env.DB)
         .update(articles)
@@ -215,7 +194,6 @@ export async function updateArticle(
           summary: chinese.summary,
           contentHash: document.contentHash,
           tagsJson: JSON.stringify(document.tags),
-          linksJson: JSON.stringify(document.links),
           updatedAt: nextUpdatedAt(previous.updatedAt),
         })
         .where(
@@ -230,13 +208,7 @@ export async function updateArticle(
     cleanupNewVersion: async () => {
       if (!written) return;
       await rollbackDocument(env.KNOWLEDGE_BUCKET, previousDocument, written);
-      await deleteArticleArtifacts(env, id, document.contentHash);
-      await indexChineseArticle(
-        env,
-        id,
-        previousDocument.markdown,
-        readArticleDocument(previousDocument.markdown).tags,
-      );
+      await deleteArticleCache(env.KNOWLEDGE_CACHE, id, document.contentHash, articleLocales);
     },
     cleanupPreviousVersion: () =>
       deleteArticleCache(env.KNOWLEDGE_CACHE, id, expectedHash, articleLocales),
@@ -370,7 +342,7 @@ export async function deleteArticle(
       const documents = [chinese, ...translatedDocuments].filter((document) => document !== null);
       await Promise.all([
         deleteStoredDocuments(env.KNOWLEDGE_BUCKET, documents),
-        deleteArticleArtifacts(env, id, expectedHash),
+        deleteArticleCache(env.KNOWLEDGE_CACHE, id, expectedHash, articleLocales),
       ]);
     },
     deleteRow: async () => {

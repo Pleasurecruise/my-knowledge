@@ -41,14 +41,10 @@ export async function parseArticleDocuments(
     ) {
       throw new Error(`Edition tags must match zh: ${locale}`);
     }
-    if (base.links.join("\0") !== edition.links.join("\0")) {
-      throw new Error(`Edition link targets must match zh: ${locale}`);
-    }
   }
   return {
     editions: { ...editions, zh: base },
     tags: base.tags,
-    links: base.links,
     contentHash: await hashArticle({ zh: base.markdown }),
   };
 }

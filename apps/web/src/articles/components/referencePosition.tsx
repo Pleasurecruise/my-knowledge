@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { articleOrigin } from "@/articles/links";
+import { articleOrigin } from "@/articles/origin";
 
 export function ReferencePosition() {
   useEffect(() => {

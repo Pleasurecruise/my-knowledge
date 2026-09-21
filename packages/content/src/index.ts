@@ -7,7 +7,7 @@ export {
   type ArticleDocumentInput,
 } from "./document";
 export { hashArticle, parseArticleDocuments } from "./hash";
-export { createSlug, extractHeadings, extractWikiLinks, type ArticleHeading } from "./links";
+export { createSlug, extractHeadings, type ArticleHeading } from "./links";
 export { normalizeLocale, resolveLocale } from "./locale";
 export { markdownCodeFence, markdownForEditor } from "./markdown-editor";
 export { markdownEquivalent } from "./markdown-equivalence";
@@ -29,3 +29,5 @@ export {
 } from "./schema";
 export { canonicalizeTags, isDailyArticle, validateTagSyntax } from "./tags";
 export { markdownParser } from "./markdown";
+
+export { createEmojiCatalog, imageEmojis, type EmojiPack, type ImageEmoji } from "./emoji";

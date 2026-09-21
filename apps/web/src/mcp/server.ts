@@ -106,7 +106,8 @@ function serverFor(env: CloudflareEnv) {
   server.registerTool(
     "searchArticles",
     {
-      description: "Semantically search owner-authorized articles.",
+      description:
+        "Search authorized Chinese titles, summaries and tags by keyword; returns article summaries, newest first.",
       inputSchema: searchArticlesInput,
       annotations: {
         readOnlyHint: true,

@@ -1,8 +1,8 @@
 # Content contract
 
-Chinese is canonical; translations require its hash. Frontmatter supplies `title`, `summary`, `tags`. `/articles/{uuid}` is the only article address. Links and graph references resolve UUIDs only.
+Chinese is canonical; translations require its hash. Frontmatter supplies `title`, `summary`, `tags`. `/articles/{uuid}` is the only article address.
 
-Markdown supports GFM, math, callouts, wiki links, footnotes, anchors, Mermaid, Vega and Canvas. Submission rejects unsafe/malformed content. Invalid blocks display source.
+Markdown supports GFM, math, callouts, footnotes, anchors, Mermaid, Vega and Canvas. Submission rejects unsafe/malformed content. Invalid blocks display source.
 
 ## Dialects
 
@@ -26,3 +26,5 @@ Annotations require one mark occurrence; optional `color` and `url` style/link t
 ## Source editing
 
 Examples use longer outer fences. Consecutively closed triple-fence wrappers also work. Rich text exports safe fences; unsupported conversions retain source mode.
+
+Image shortcodes: [Stickers](STICKERS.md).

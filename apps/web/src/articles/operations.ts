@@ -1,17 +1,8 @@
-import {
-  canonicalizeTags,
-  parseArticleDocuments,
-  serializeArticleDocument,
-  translationLocaleSchema,
-  type Article,
-  type Visibility,
-} from "@my-knowledge/content";
+import { canonicalizeTags, type Article } from "@my-knowledge/content";
 
-import { InvalidArticleInputError } from "./application/input-error";
-import { searchAiArticles } from "./persistence/ai-search";
-import { getArticleById, getArticleRow } from "./persistence/document";
+import { InvalidArticleInputError } from "./input-error";
+import { getArticleById } from "./persistence/document";
 import { listArticles, listTags } from "./persistence/query";
-import { createArticle, saveArticleTranslation, updateArticle } from "./persistence/write";
 import type { ArticleListQuery } from "./types";
 
 export type ArticleDraft = {
@@ -32,120 +23,12 @@ export type ArticleUpdateResult =
   | { status: "notFound" }
   | { status: "stale" };
 
-async function parseSubmittedDocuments(input: ArticleDocuments) {
-  const documents: Record<string, string> = { zh: input.zh };
-  if (input.en !== undefined) documents.en = input.en;
-  if (input.ja !== undefined) documents.ja = input.ja;
-  try {
-    return await parseArticleDocuments(documents);
-  } catch {
-    throw new InvalidArticleInputError();
-  }
-}
-
-async function parseDraftDocument(draft: ArticleDraft) {
-  try {
-    const source = serializeArticleDocument({
-      title: draft.title,
-      summary: draft.summary,
-      tags: draft.tags,
-      body: draft.body,
-    });
-    return await parseArticleDocuments({ zh: source });
-  } catch {
-    throw new InvalidArticleInputError();
-  }
-}
-
-async function saveSuppliedTranslations(
-  env: CloudflareEnv,
-  id: string,
-  sourceHash: string,
-  editions: Awaited<ReturnType<typeof parseArticleDocuments>>["editions"],
-) {
-  for (const locale of translationLocaleSchema.options) {
-    const edition = editions[locale];
-    if (edition) await saveArticleTranslation(env, id, locale, sourceHash, edition);
-  }
-}
-
 export async function getOwnerArticle(env: CloudflareEnv, id: string) {
   return getArticleById(env, "owner", id);
 }
 
 export async function listOwnerArticles(env: CloudflareEnv, input: ArticleListQuery) {
   return listArticles(env, "owner", input);
-}
-
-export async function createArticleFromDraft(env: CloudflareEnv, draft: ArticleDraft, id: string) {
-  const document = await parseDraftDocument(draft);
-  return createArticle(env, id, document);
-}
-
-export async function createArticleFromDocuments(
-  env: CloudflareEnv,
-  input: ArticleDocuments,
-  id: string,
-) {
-  const documents = await parseSubmittedDocuments(input);
-  const article = await createArticle(env, id, documents);
-  await saveSuppliedTranslations(env, article.id, article.contentHash, documents.editions);
-  const stored = await getOwnerArticle(env, article.id);
-  if (!stored) throw new Error(`Created article ${article.id} is not readable`);
-  return stored;
-}
-
-export async function updateArticleFromDraft(
-  env: CloudflareEnv,
-  id: string,
-  expectedHash: string,
-  expectedUpdatedAt: string,
-  draft: ArticleDraft & { visibility?: Visibility | undefined },
-): Promise<ArticleUpdateResult> {
-  const current = await getArticleRow(env, "owner", id);
-  if (!current) return { status: "notFound" };
-  if (current.contentHash !== expectedHash || current.updatedAt !== expectedUpdatedAt)
-    return { status: "stale" };
-  const document = await parseDraftDocument(draft);
-  const updated = await updateArticle(env, id, expectedHash, document, draft.visibility);
-  return updated ? { status: "updated", article: updated } : { status: "stale" };
-}
-
-export async function updateArticleFromDocuments(
-  env: CloudflareEnv,
-  id: string,
-  expectedHash: string,
-  expectedUpdatedAt: string,
-  input: ArticleDocuments,
-): Promise<ArticleUpdateResult> {
-  const current = await getArticleRow(env, "owner", id);
-  if (!current) return { status: "notFound" };
-  if (current.contentHash !== expectedHash || current.updatedAt !== expectedUpdatedAt)
-    return { status: "stale" };
-  const documents = await parseSubmittedDocuments(input);
-  const article = await updateArticle(env, id, expectedHash, documents);
-  if (!article) return { status: "stale" };
-  await saveSuppliedTranslations(env, id, article.contentHash, documents.editions);
-  const stored = await getOwnerArticle(env, id);
-  if (!stored) throw new Error(`Updated article ${id} is not readable`);
-  return { status: "updated", article: stored };
-}
-
-export async function searchOwnerArticles(
-  env: CloudflareEnv,
-  query: string,
-  tags: string[] | undefined,
-  limit: number,
-) {
-  const ranked = await searchAiArticles(env, "owner", query, limit, tags);
-  return ranked.map(({ article, markdown, score }) => ({
-    id: article.id,
-    title: article.editions.zh.title,
-    summary: article.editions.zh.summary,
-    tags: article.tags,
-    excerpt: markdown.slice(0, 320),
-    score,
-  }));
 }
 
 export async function listOwnerTags(env: CloudflareEnv, parent: string | undefined) {

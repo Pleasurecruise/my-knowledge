@@ -22,7 +22,6 @@ describe("article object keys", () => {
       summary: "中文摘要。",
       contentHash: "a".repeat(64),
       tagsJson: "[]",
-      linksJson: "[]",
       visibility: "public",
       createdAt: "2026-08-21T00:00:00.000Z",
       updatedAt: "2026-08-21T00:00:00.000Z",

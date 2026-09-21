@@ -5,6 +5,5 @@ export function articleReturnHref(from: string | string[] | undefined): string {
   const query = new URLSearchParams();
   const search = url.searchParams.get("query");
   if (search) query.set("query", search);
-  if (url.searchParams.get("view") === "graph") query.set("view", "graph");
   return query.size ? `/explore?${query}` : "/explore";
 }

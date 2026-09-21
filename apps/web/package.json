@@ -11,7 +11,8 @@
     "seed:local": "node __test__/scripts/seed-local.ts",
     "test:mcp": "node __test__/scripts/mcp-contract.ts http://localhost:8787/api/mcp",
     "dry-run": "wrangler deploy --dry-run --config wrangler.json",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "check:database": "node scripts/check-database.ts",
+    "deploy": "pnpm check:database --remote && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "types": "wrangler types node_modules/.wrangler-types.d.ts --env-interface CloudflareEnv && next typegen"
   },
   "dependencies": {

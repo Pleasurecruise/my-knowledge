@@ -21,20 +21,28 @@ test.beforeEach(async ({ page }) => {
   errorsByPage.set(page, browserErrors);
 });
 
-test.afterEach(async ({ page }, testInfo) => {
+test.afterEach(async ({ page }) => {
   const errors = errorsByPage.get(page);
-  if (
-    testInfo.project.name === "owner-desktop-light" &&
-    testInfo.title === "keeps deletion retryable when the local AI Search boundary is unavailable"
-  ) {
-    if (!errors) throw new Error("Browser error collection was not initialized");
-    expect(errors).toHaveLength(1);
-    const error = errors[0];
-    if (!error) throw new Error("Expected the deletion request to report a 503 console error");
-    expect(error).toContain("500 (Internal Server Error)");
-    return;
-  }
   expect(errors).toEqual([]);
+});
+
+test("searches private articles by keyword without exposing them anonymously", async ({
+  page,
+  browser,
+}, testInfo) => {
+  await page.goto("/explore");
+  await page.getByRole("searchbox", { name: "搜索文章" }).fill("testing/privacy");
+  await page.getByRole("button", { name: "搜索", exact: true }).click();
+  await expect(page.getByRole("link", { name: "私密删除夹具", exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("owner-keyword-search.png"), fullPage: true });
+  const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  try {
+    const response = await anonymous.request.get(page.url());
+    expect(response.status()).toBe(200);
+    expect(await response.text()).not.toContain("私密删除夹具");
+  } finally {
+    await anonymous.close();
+  }
 });
 
 test("shows owner-only knowledge, visibility, and deletion controls", async ({ page }) => {
@@ -105,32 +113,6 @@ test("keeps article editing aligned with the title without a masthead", async ({
   await page.getByRole("button", { name: "取消", exact: true }).click();
   await expect(page).toHaveURL(/\/articles\/11111111-1111-4111-8111-111111111111$/u);
   await expect(edit).toBeVisible();
-});
-
-test("keeps the owner graph inside the narrow shell with hidden scrollbars", async ({
-  page,
-}, testInfo) => {
-  await page.goto("/explore?view=graph");
-  await expect(page.locator(".graph-loading")).toHaveCount(0);
-  const stage = page.locator(".graph-stage");
-  const grid = stage.locator("..");
-  const related = page.getByRole("region", { name: "关系列表" }).getByRole("list");
-  const [stageBounds, gridBounds] = await Promise.all([stage.boundingBox(), grid.boundingBox()]);
-  if (!stageBounds || !gridBounds) throw new Error("Graph bounds are unavailable");
-  expect(stageBounds.x).toBeGreaterThanOrEqual(gridBounds.x);
-  expect(stageBounds.x + stageBounds.width).toBeLessThanOrEqual(gridBounds.x + gridBounds.width);
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-    ),
-  ).toBe(true);
-  if (testInfo.project.name === "owner-desktop-light") {
-    await expect(related).toHaveCSS("scrollbar-width", "none");
-    await expect(page.locator(".graph-sidebar [aria-live=polite] .overflow-y-auto")).toHaveCSS(
-      "scrollbar-width",
-      "none",
-    );
-  }
 });
 
 test("expands owner controls beside the preferences", async ({ page, request }, testInfo) => {
@@ -309,22 +291,6 @@ test("opens the owner editor, uses a slash command, and discards the draft", asy
   await expect(page).toHaveURL(/\/$/u);
 });
 
-test("keeps deletion retryable when the local AI Search boundary is unavailable", async ({
-  page,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== "owner-desktop-light", "One destructive local-boundary run");
-
-  await page.goto("/articles/33333333-3333-4333-8333-333333333333");
-  await page.getByRole("link", { name: "编辑" }).click();
-  await page.getByRole("button", { name: "删除" }).click();
-  const dialog = page.getByRole("alertdialog");
-  await expect(dialog.getByRole("heading", { name: "删除这篇文章？" })).toBeVisible();
-  await dialog.getByRole("button", { name: "删除" }).click();
-  await expect(page.getByRole("alert")).toHaveText("文章删除失败，请稍后重试。");
-  await expect(page).toHaveURL(/\/articles\/33333333-3333-4333-8333-333333333333/u);
-  await expect(page.locator('#article-visibility [data-slot="select-value"]')).toHaveText("私密");
-});
-
 test("keeps a disconnected deletion visible and retryable", async ({ page }) => {
   let attempts = 0;
   await page.route("**/api/articles/*", async (route) => {
@@ -404,7 +370,7 @@ test("creates and edits Chinese content through an English interface and guards 
   await page.screenshot({ path: testInfo.outputPath("authoring-source-dark.png"), fullPage: true });
 });
 
-test("persists article URL backlinks and hides a withdrawn referring article", async ({
+test("keeps article references one-way when the referring article is withdrawn", async ({
   page,
   browser,
 }, testInfo) => {
@@ -654,37 +620,7 @@ test("aligns article, link, audio and video cards at every supported width", asy
   }
 });
 
-test("keeps owner search questions out of URLs and reports unavailable retrieval", async ({
-  page,
-}, testInfo) => {
-  const question = "synthetic search privacy probe";
-  const urls: string[] = [];
-  page.on("request", (request) => urls.push(request.url()));
-  await page.goto("/explore");
-  await page.getByRole("searchbox").fill(question);
-  await page.getByRole("button", { name: "搜索", exact: true }).click();
-  await expect(page.locator(".search-articles [role=alert]")).toHaveText(
-    "搜索暂时不可用，请重试。",
-  );
-  expect(new URL(page.url()).search).toBe("");
-  expect(urls.some((url) => decodeURIComponent(url).includes(question))).toBe(false);
-  await expect(page.getByRole("button", { name: "搜索", exact: true })).toBeEnabled();
-  await page.getByRole("searchbox").focus();
-  await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "搜索", exact: true })).toBeFocused();
-  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath("owner-search-light.png"), fullPage: true });
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.getByRole("button", { name: "切换主题", exact: true }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-  await page.screenshot({ path: testInfo.outputPath("owner-search-dark.png"), fullPage: true });
-});
-
-test("serializes state changes and prevents publication after failed deletion", async ({
-  page,
-}) => {
+test("serializes concurrent state changes and completes deletion", async ({ page }) => {
   const created = await page.request.post("/api/articles", {
     data: {
       title: "Concurrency fixture",
@@ -712,14 +648,7 @@ test("serializes state changes and prevents publication after failed deletion", 
     expectedHash: current.contentHash,
     expectedUpdatedAt: current.updatedAt,
   };
-  // The local Worker has no remote AI Search. Cleanup fails, but deletion remains exclusive.
-  expect((await page.request.delete(endpoint, { data: currentVersion })).status()).toBe(500);
-  expect(
-    (
-      await page.request.patch(endpoint, { data: { ...currentVersion, visibility: "public" } })
-    ).status(),
-  ).toBe(409);
-  expect((await page.request.delete(endpoint, { data: currentVersion })).status()).toBe(500);
+  expect((await page.request.delete(endpoint, { data: currentVersion })).status()).toBe(204);
 });
 
 test("keeps the account popover accessible in both themes", async ({ page }, testInfo) => {

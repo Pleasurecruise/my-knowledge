@@ -3,11 +3,11 @@ import { and, desc, eq, lt, or, sql, type SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { z } from "zod";
 
-import type { ArticleGraphRecord, ArticleListQuery, ArticlePage, TagCount } from "../types";
+import type { ArticleListQuery, ArticlePage, TagCount } from "../types";
 import type { Principal } from "@/auth/types";
 import { articles } from "@/db/schema";
 
-import { articleLinks, articleSummary, type ArticleRow } from "./record";
+import { articleSummary, type ArticleRow } from "./record";
 
 const cursorSchema = z.object({ updatedAt: z.string(), id: z.string() });
 
@@ -104,20 +104,6 @@ export async function searchArticles(
     .orderBy(desc(articles.updatedAt), desc(articles.id))
     .limit(limit);
   return rows.map((row) => articleSummary(row));
-}
-
-export async function listGraphArticles(
-  env: CloudflareEnv,
-  principal: Principal,
-  limit: number,
-): Promise<ArticleGraphRecord[]> {
-  const rows = await drizzle(env.DB)
-    .select()
-    .from(articles)
-    .where(and(authorizedCondition(principal), discoverableCondition))
-    .orderBy(desc(articles.updatedAt), desc(articles.id))
-    .limit(limit);
-  return rows.map((row) => ({ article: articleSummary(row), links: articleLinks(row) }));
 }
 
 export const tagCountQuery = `

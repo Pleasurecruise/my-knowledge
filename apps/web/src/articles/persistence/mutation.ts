@@ -3,7 +3,6 @@ import type { CreateArticleStorage, DeleteArticleStorage, UpdateArticleStorage }
 export async function createStoredArticle<Row>(storage: CreateArticleStorage<Row>): Promise<Row> {
   try {
     await storage.writeDocuments();
-    await storage.writeIndex();
     return await storage.insertRow();
   } catch (error) {
     try {
@@ -21,7 +20,6 @@ export async function updateStoredArticle<Row>(
   let row: Row | undefined;
   try {
     await storage.writeDocuments();
-    await storage.writeIndex();
     row = await storage.switchRow();
   } catch (error) {
     try {

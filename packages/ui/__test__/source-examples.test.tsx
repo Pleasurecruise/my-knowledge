@@ -63,7 +63,6 @@ it("separates all nested source examples from the following live dialects", asyn
     expect(codes[index * 2]).toMatchObject({ lang: "markdown", value: source });
     expect(codes[index * 2 + 1]?.lang).toBe(`embed:${dialects[index]?.[0]}`);
   }
-  expect(document.links).toEqual(["https://knowledge.you-find.me/articles/example"]);
   const resolve = vi.fn(async () => ({
     type: "element" as const,
     tagName: "div",

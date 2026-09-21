@@ -31,10 +31,6 @@ export type InterfaceMessages = {
     signInFailed: string;
     signOutFailed: string;
   };
-  home: {
-    title: string;
-    introduction: string;
-  };
   articles: {
     title: string;
     description: string;
@@ -42,12 +38,12 @@ export type InterfaceMessages = {
     newArticle: string;
   };
   search: {
+    title: string;
     articleLabel: string;
     submit: string;
     articlePlaceholder: string;
     results: string;
     noResults: string;
-    failed: string;
   };
   article: {
     previousPage: string;
@@ -93,21 +89,6 @@ export type InterfaceMessages = {
     sourceRequired: string;
     formatting: string;
     slashCommands: string;
-  };
-  graph: {
-    all: string;
-    title: string;
-    description: string;
-    links: string;
-    sharedTags: string;
-    canvas: string;
-    inspect: string;
-    selected: string;
-    readArticle: string;
-    relationships: string;
-    tags: string;
-    empty: string;
-    noRelationships: string;
   };
   notFound: {
     code: string;

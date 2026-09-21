@@ -9,7 +9,6 @@ overrides:
   react-dom: "19.3.0"
 
 allowBuilds:
-  "@google/genai": true
   esbuild: true
   protobufjs: true
   workerd: true

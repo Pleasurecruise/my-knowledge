@@ -1,14 +1,13 @@
 # my-knowledge
 
-A personal blog and knowledge library built around content. Publish finished Markdown, read a quiet
-chronological archive, and explore connections through search and a knowledge graph.
+A personal blog built around content. Publish finished Markdown and read a quiet chronological archive
+with keyword search.
 
 - **Focused reading:** narrow pages, responsive diagrams, shareable UUID links, and light/dark themes.
 - **Expressive Markdown:** math, footnotes, repository cards, media, quotes, diffs, annotations, and
   architecture diagrams. Rich-text and source editing preserve supported content.
 - **Owner controls:** browser authoring and visibility changes; anonymous readers see public articles.
 - **Multilingual content:** canonical Chinese with optional English and Japanese editions.
-- **Private AI search:** owner-only retrieval without storing questions, context, or generated answers.
 
 ## How it works
 
@@ -20,10 +19,7 @@ flowchart LR
   Writing[Local writing or browser] --> API[Authenticated REST / MCP]
   API --> Writer[Per-article writer]
   Writer --> R2[Canonical Chinese in R2]
-  R2 --> Eligible{Non-daily?}
-  Eligible -->|Yes| Search[Wait for completed AI Search item]
-  Eligible -->|No| D1[Publish D1 metadata]
-  Search --> D1
+  R2 --> D1[Publish D1 metadata]
 ```
 
 ## Run locally

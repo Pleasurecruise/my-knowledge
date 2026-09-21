@@ -1,6 +1,5 @@
 import { markdownParser } from "./markdown";
-import { SKIP, visit } from "unist-util-visit";
-import { parseMarkdownEmbed } from "./embed";
+import { visit } from "unist-util-visit";
 
 export function createSlug(title: string): string {
   const slug = title
@@ -11,45 +10,6 @@ export function createSlug(title: string): string {
 
   if (!slug) throw new Error("The title cannot produce a slug");
   return slug;
-}
-
-export function extractWikiLinks(markdown: string): string[] {
-  const links = new Set<string>();
-  const pattern = /\[\[([^\]|\n]+)(?:\|[^\]\n]+)?\]\]/gu;
-
-  const tree = markdownParser.parse(markdown);
-  visit(tree, (node) => {
-    if (node.type === "link" || node.type === "linkReference") return SKIP;
-    if (node.type !== "text") return;
-    for (const match of node.value.matchAll(pattern)) {
-      const target = match[1]?.trim();
-      if (target) links.add(target);
-    }
-  });
-
-  return [...links];
-}
-
-export function extractArticleReferences(markdown: string): string[] {
-  const references = new Set<string>();
-  const tree = markdownParser.parse(markdown);
-  visit(tree, "code", (node) => {
-    if (node.lang?.toLowerCase() !== "embed:article") return;
-    const embed = parseMarkdownEmbed(node.lang, node.value);
-    if (embed?.kind !== "articleList") return;
-    for (const value of embed.urls) {
-      const url = new URL(value);
-      url.hash = "";
-      url.search = "";
-      url.pathname = url.pathname
-        .split("/")
-        .map((segment) => encodeURIComponent(decodeURIComponent(segment)))
-        .join("/")
-        .replace(/\/$/u, "");
-      references.add(url.href);
-    }
-  });
-  return [...references];
 }
 
 export type ArticleHeading = { depth: number; title: string; id: string };

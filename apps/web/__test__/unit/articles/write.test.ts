@@ -10,8 +10,6 @@ const writes = vi.hoisted(() => ({
   set: vi.fn(),
   result: vi.fn(),
   object: vi.fn(),
-  index: vi.fn(),
-  removeIndex: vi.fn(),
   put: vi.fn(),
   head: vi.fn(),
   removeObject: vi.fn(),
@@ -37,10 +35,6 @@ vi.mock("@/articles/persistence/document", () => ({
   getArticleRow: writes.row,
   readArticle: writes.read,
 }));
-vi.mock("@/articles/persistence/ai-search", () => ({
-  indexChineseArticle: writes.index,
-  deleteSearchItem: writes.removeIndex,
-}));
 vi.mock("drizzle-orm/d1", () => ({
   drizzle: () => ({
     update: () => ({ set: writes.set }),
@@ -54,17 +48,16 @@ beforeEach(() => {
 });
 
 it.each([undefined, "private"])(
-  "refreshes derived links on an unchanged save with visibility %s",
+  "advances updatedAt on an unchanged save with visibility %s",
   async (visibility) => {
     const document = await parseArticleDocuments({
-      zh: "---\ntitle: Source\nsummary: Summary\ntags: []\n---\n```embed:article\nhttps://knowledge.you-find.me/articles/target\n```",
+      zh: "---\ntitle: Source\nsummary: Summary\ntags: []\n---\nBody",
     });
     const previous: ArticleRow = {
       id: "source",
       title: "Source",
       summary: "Summary",
       tagsJson: "[]",
-      linksJson: "[]",
       contentHash: document.contentHash,
       visibility: "public",
       createdAt: "2026-09-01",
@@ -73,7 +66,6 @@ it.each([undefined, "private"])(
     writes.row.mockResolvedValue(previous);
     const updated = {
       ...previous,
-      linksJson: JSON.stringify(document.links),
       updatedAt: expect.any(String),
       ...(visibility === undefined ? {} : { visibility }),
     };
@@ -87,13 +79,12 @@ it.each([undefined, "private"])(
       visibility === "private" ? "private" : undefined,
     );
     expect(writes.set).toHaveBeenCalledWith({
-      linksJson: JSON.stringify(document.links),
       updatedAt: expect.any(String),
       ...(visibility === undefined ? {} : { visibility }),
     });
     expect(writes.read).toHaveBeenCalledWith(env, updated);
     expect(writes.object).not.toHaveBeenCalled();
-    expect(writes.index).not.toHaveBeenCalled();
+    expect(writes.removeCache).not.toHaveBeenCalled();
   },
 );
 
@@ -102,7 +93,6 @@ const previous: ArticleRow = {
   title: "Source",
   summary: "Summary",
   tagsJson: "[]",
-  linksJson: "[]",
   contentHash: "a".repeat(64),
   visibility: "public",
   createdAt: "2026-09-01",
@@ -110,7 +100,7 @@ const previous: ArticleRow = {
 };
 const markdown = "---\ntitle: Source\nsummary: Summary\ntags: []\n---\nOld body";
 
-it("does not clean another writer's index after a conditional write loses", async () => {
+it("does not clean caches after a conditional document write loses", async () => {
   writes.row.mockResolvedValue(previous);
   writes.object.mockResolvedValue({
     text: async () => markdown,
@@ -123,9 +113,7 @@ it("does not clean another writer's index after a conditional write loses", asyn
   await expect(updateArticle(env, previous.id, previous.contentHash, document)).rejects.toThrow(
     "Markdown changed while writing",
   );
-  expect(writes.removeIndex).not.toHaveBeenCalled();
   expect(writes.removeCache).not.toHaveBeenCalled();
-  expect(writes.index).not.toHaveBeenCalled();
 });
 
 it("rejects a canonical object from a different in-flight version before writing", async () => {
@@ -141,10 +129,10 @@ it("rejects a canonical object from a different in-flight version before writing
     "Article version changed",
   );
   expect(writes.put).not.toHaveBeenCalled();
-  expect(writes.removeIndex).not.toHaveBeenCalled();
+  expect(writes.removeCache).not.toHaveBeenCalled();
 });
 
-it("does not clean the index when a rollback no longer owns the canonical object", async () => {
+it("reports rollback failure when another writer replaces the canonical object", async () => {
   writes.row.mockResolvedValue(previous);
   writes.object.mockResolvedValue({
     text: async () => markdown,
@@ -152,18 +140,17 @@ it("does not clean the index when a rollback no longer owns the canonical object
     customMetadata: { contentHash: previous.contentHash },
   });
   writes.put.mockResolvedValue({ etag: "written" });
-  writes.index.mockRejectedValue(new Error("Index unavailable"));
+  writes.result.mockRejectedValue(new Error("concurrent write"));
   writes.head.mockResolvedValue({ etag: "other-writer" });
   const document = await parseArticleDocuments({ zh: markdown.replace("Old body", "New body") });
   const { env } = await getCloudflareContext({ async: true });
   await expect(updateArticle(env, previous.id, previous.contentHash, document)).rejects.toThrow(
     "Article update and cleanup both failed",
   );
-  expect(writes.removeIndex).not.toHaveBeenCalled();
   expect(writes.removeCache).not.toHaveBeenCalled();
 });
 
-it("retries deletion after canonical objects were deleted but search cleanup failed", async () => {
+it("retries deletion after canonical objects were removed but cache cleanup failed", async () => {
   writes.row.mockResolvedValue(previous);
   writes.result.mockResolvedValue({ id: previous.id });
   writes.translations.mockResolvedValue([{ locale: "en", sourceHash: previous.contentHash }]);
@@ -175,13 +162,13 @@ it("retries deletion after canonical objects were deleted but search cleanup fai
     })
     .mockResolvedValue(null);
   writes.head.mockResolvedValue({ etag: "old" });
-  writes.removeIndex
-    .mockRejectedValueOnce(new Error("Search unavailable"))
+  writes.removeCache
+    .mockRejectedValueOnce(new Error("Cache unavailable"))
     .mockResolvedValue(undefined);
   writes.removeRow.mockResolvedValue({ id: previous.id });
   const { env } = await getCloudflareContext({ async: true });
   await expect(deleteArticle(env, previous.id, previous.contentHash)).rejects.toThrow(
-    "Article version cleanup failed",
+    "Cache unavailable",
   );
   expect(writes.set).toHaveBeenCalledWith({ visibility: "private" });
   expect(writes.removeRow).not.toHaveBeenCalled();

@@ -15,7 +15,6 @@ export const articles = sqliteTable(
     summary: text("summary").notNull(),
     contentHash: text("contentHash").notNull(),
     tagsJson: text("tagsJson").notNull(),
-    linksJson: text("linksJson").notNull(),
     visibility: text("visibility", { enum: ["private", "public"] })
       .notNull()
       .default("public"),

@@ -1,21 +1,107 @@
 import { DurableObject } from "cloudflare:workers";
-import type { Visibility } from "@my-knowledge/content";
 import {
-  createArticleFromDraft,
-  createArticleFromDocuments,
-  updateArticleFromDraft,
-  updateArticleFromDocuments,
-  type ArticleDraft,
-  type ArticleDocuments,
-  type ArticleUpdateResult,
-  InvalidArticleInputError,
-} from "./operations";
-import { getArticleRow } from "./persistence/document";
+  parseArticleDocuments,
+  serializeArticleDocument,
+  translationLocaleSchema,
+  type Visibility,
+} from "@my-knowledge/content";
+
+import { InvalidArticleInputError } from "./input-error";
+import type { ArticleDocuments, ArticleDraft, ArticleUpdateResult } from "./operations";
+import { getArticleById, getArticleRow } from "./persistence/document";
+import { createArticle, saveArticleTranslation, updateArticle } from "./persistence/write";
 import { deleteArticle, setArticleVisibility } from "./persistence/write";
 
 export type ArticleWriteResult<Value> = { status: "ok"; value: Value } | { status: "invalidInput" };
 
-// One actor per article serializes the complete R2/search/D1 operation, including rollback.
+async function parseSubmittedDocuments(input: ArticleDocuments) {
+  const documents: Record<string, string> = { zh: input.zh };
+  if (input.en !== undefined) documents.en = input.en;
+  if (input.ja !== undefined) documents.ja = input.ja;
+  try {
+    return await parseArticleDocuments(documents);
+  } catch {
+    throw new InvalidArticleInputError();
+  }
+}
+
+async function parseDraftDocument(draft: ArticleDraft) {
+  try {
+    const source = serializeArticleDocument({
+      title: draft.title,
+      summary: draft.summary,
+      tags: draft.tags,
+      body: draft.body,
+    });
+    return await parseArticleDocuments({ zh: source });
+  } catch {
+    throw new InvalidArticleInputError();
+  }
+}
+
+async function saveSuppliedTranslations(
+  env: CloudflareEnv,
+  id: string,
+  sourceHash: string,
+  editions: Awaited<ReturnType<typeof parseArticleDocuments>>["editions"],
+) {
+  for (const locale of translationLocaleSchema.options) {
+    const edition = editions[locale];
+    if (edition) await saveArticleTranslation(env, id, locale, sourceHash, edition);
+  }
+}
+
+async function createArticleFromDraft(env: CloudflareEnv, draft: ArticleDraft, id: string) {
+  const document = await parseDraftDocument(draft);
+  return createArticle(env, id, document);
+}
+
+async function createArticleFromDocuments(env: CloudflareEnv, input: ArticleDocuments, id: string) {
+  const documents = await parseSubmittedDocuments(input);
+  const article = await createArticle(env, id, documents);
+  await saveSuppliedTranslations(env, article.id, article.contentHash, documents.editions);
+  const stored = await getArticleById(env, "owner", article.id);
+  if (!stored) throw new Error(`Created article ${article.id} is not readable`);
+  return stored;
+}
+
+async function updateArticleFromDraft(
+  env: CloudflareEnv,
+  id: string,
+  expectedHash: string,
+  expectedUpdatedAt: string,
+  draft: ArticleDraft & { visibility?: Visibility | undefined },
+): Promise<ArticleUpdateResult> {
+  const current = await getArticleRow(env, "owner", id);
+  if (!current) return { status: "notFound" };
+  if (current.contentHash !== expectedHash || current.updatedAt !== expectedUpdatedAt)
+    return { status: "stale" };
+  const document = await parseDraftDocument(draft);
+  const updated = await updateArticle(env, id, expectedHash, document, draft.visibility);
+  return updated ? { status: "updated", article: updated } : { status: "stale" };
+}
+
+async function updateArticleFromDocuments(
+  env: CloudflareEnv,
+  id: string,
+  expectedHash: string,
+  expectedUpdatedAt: string,
+  input: ArticleDocuments,
+): Promise<ArticleUpdateResult> {
+  const current = await getArticleRow(env, "owner", id);
+  if (!current) return { status: "notFound" };
+  if (current.contentHash !== expectedHash || current.updatedAt !== expectedUpdatedAt)
+    return { status: "stale" };
+  const documents = await parseSubmittedDocuments(input);
+  const article = await updateArticle(env, id, expectedHash, documents);
+  if (!article) return { status: "stale" };
+  await saveSuppliedTranslations(env, id, article.contentHash, documents.editions);
+  const stored = await getArticleById(env, "owner", id);
+  if (!stored) throw new Error(`Updated article ${id} is not readable`);
+  return { status: "updated", article: stored };
+}
+
+// One actor per article serializes the complete R2/D1 operation, including rollback.
 export class ArticleWriter extends DurableObject<CloudflareEnv> {
   private writes: Promise<unknown> = Promise.resolve();
 

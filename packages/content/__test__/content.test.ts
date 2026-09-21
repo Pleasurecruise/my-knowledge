@@ -4,7 +4,6 @@ import {
   canonicalizeTags,
   createSlug,
   extractHeadings,
-  extractWikiLinks,
   hashArticle,
   parseArticleDocument,
   parseArticleDocuments,
@@ -51,7 +50,6 @@ describe("article documents", () => {
     expect(parsed.markdown.endsWith("\n")).toBe(true);
     expect(parsed.body).toBe("连接到 [[已有文章|上下文]]。");
     expect(parsed.markdown).not.toContain("# 确定性系统");
-    expect(parsed.links).toEqual(["已有文章"]);
     expect(parsed.tags).toEqual(["technology/AI-Agents", "engineering"]);
   });
 
@@ -116,12 +114,6 @@ describe("article documents", () => {
     ).toThrow("json-canvas");
   });
 
-  it("rejects translated editions with different link targets", async () => {
-    await expect(
-      parseArticleDocuments({ zh, en: en.replace("[[已有文章|context]]", "[[另一篇|context]]") }),
-    ).rejects.toThrow("link targets");
-  });
-
   it("produces the canonical Chinese hash", async () => {
     const article = await parseArticleDocuments({ zh });
     expect(article.contentHash).toHaveLength(64);
@@ -184,10 +176,6 @@ describe("portable knowledge rules", () => {
     expect(createSlug("  知识，与 AI Agents！ ")).toBe("知识-与-ai-agents");
   });
 
-  it("deduplicates wiki-link targets without changing order", () => {
-    expect(extractWikiLinks("[[one]] [[two|二]] [[one|一]]")).toEqual(["one", "two"]);
-  });
-
   it("creates stable, unique heading anchors", () => {
     expect(extractHeadings("# Overview\n## Scope\n### Detail\n###### Edge\n## Scope")).toEqual([
       { depth: 1, title: "Overview", id: "overview" },
@@ -198,10 +186,9 @@ describe("portable knowledge rules", () => {
     ]);
   });
 
-  it("ignores code examples when extracting article links and headings", () => {
+  it("ignores code examples when extracting headings", () => {
     const source =
-      "~~~md\n# Example\n[[example]]\n~~~\n\n`[[inline]]`\n\n## Real [label](https://example.com)\n\n[[target|Target]]\n\nSetext title\n------------";
-    expect(extractWikiLinks(source)).toEqual(["target"]);
+      "~~~md\n# Example\n[[example]]\n~~~\n\n`[[inline]]`\n\n## Real [label](https://example.com)\n\nSetext title\n------------";
     expect(extractHeadings(source)).toEqual([
       { depth: 2, title: "Real label", id: "real-label" },
       { depth: 2, title: "Setext title", id: "setext-title" },

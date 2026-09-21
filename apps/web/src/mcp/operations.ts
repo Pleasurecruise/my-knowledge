@@ -1,12 +1,12 @@
 import { z } from "zod";
 
+import { searchArticles } from "@/articles";
 import {
   createArticleFromDocuments,
   deleteArticle,
   getOwnerArticle,
   listOwnerArticles,
   listOwnerTags,
-  searchOwnerArticles,
   setArticleVisibility,
   updateArticleFromDocuments,
 } from "@/articles/service";
@@ -125,9 +125,8 @@ export async function deleteArticleOperation(
       } satisfies McpError);
 }
 
-export const searchArticlesInput = z.object({
+export const searchArticlesInput = z.strictObject({
   query: z.string().trim().min(1).max(2_000),
-  tags: z.array(z.string().min(1)).max(5).optional(),
   limit: z.number().int().min(1).max(50).default(10),
 });
 
@@ -135,9 +134,7 @@ export async function searchArticlesOperation(
   env: CloudflareEnv,
   input: z.infer<typeof searchArticlesInput>,
 ) {
-  return result({
-    articles: await searchOwnerArticles(env, input.query, input.tags, input.limit),
-  });
+  return result({ articles: await searchArticles(env, "owner", input.query, input.limit) });
 }
 
 export const listTagsInput = z.object({ parent: z.string().min(1).optional() });

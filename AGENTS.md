@@ -35,11 +35,10 @@ facts and split a document only when its scope becomes hard to navigate.
 
 Read and follow the matching specification before implementation:
 
-| Change type        | Specification                           | Required evidence                         |
-| :----------------- | :-------------------------------------- | :---------------------------------------- |
-| Frontend or visual | `.agents/specs/frontend.md`             | Real browser, screenshots, clean console  |
-| Performance        | `.agents/specs/performance.md`          | Comparable before/after measurements      |
-| Retrieval          | `.agents/specs/retrieval-evaluation.md` | Frozen corpus and baseline/candidate data |
+| Change type        | Specification                  | Required evidence                        |
+| :----------------- | :----------------------------- | :--------------------------------------- |
+| Frontend or visual | `.agents/specs/frontend.md`    | Real browser, screenshots, clean console |
+| Performance        | `.agents/specs/performance.md` | Comparable before/after measurements     |
 
 Add a specification only when another repeatable feedback loop genuinely needs distinct evidence.
 
@@ -63,13 +62,11 @@ regressed.
 ## Product invariants
 
 - This is one personal application, not a distributed platform.
-- R2 owns Markdown; D1 indexes metadata and visibility; KV and Vectorize are derived.
-- AI search questions, retrieved context, and generated answers are not stored.
+- R2 owns Markdown; D1 indexes metadata and visibility; KV is derived.
 - Every submitted article starts public. Visibility changes require the shared API credential or the
   allowed-email browser session.
-- The web has Home (article chronology), Explore (search and Graph), and Article only. Removed Articles and Graph routes return not found. The allowed-email owner may create, edit,
+- The web has Home (article chronology), Explore (keyword search), and Article only. Removed Articles and Graph routes return not found. The allowed-email owner may create, edit,
   publish, withdraw, and delete Articles from those existing surfaces; there is no owner dashboard.
-- Anonymous users receive keyword/tag search only. AI search requires the allowed-email session.
 - Article metadata, social images, robots, and sitemap use anonymous authorization and never expose
   private titles, tags, timestamps, or bodies.
 - Local tools submit semantic Markdown; the Next.js frontend owns presentation.

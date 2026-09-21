@@ -89,13 +89,11 @@ export type ParsedArticleDocument = {
   summary: string;
   tags: string[];
   body: string;
-  links: string[];
   markdown: string;
 };
 
 export type ArticleDocumentSet = {
   editions: { zh: ParsedArticleDocument } & Record<string, ParsedArticleDocument>;
   tags: string[];
-  links: string[];
   contentHash: string;
 };

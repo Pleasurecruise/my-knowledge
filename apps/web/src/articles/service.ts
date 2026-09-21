@@ -1,13 +1,13 @@
-import { InvalidArticleInputError } from "./application/input-error";
-import type { ArticleWriteResult } from "./writer";
 import type { Visibility } from "@my-knowledge/content";
+
+import { InvalidArticleInputError } from "./input-error";
 import type { ArticleDocuments, ArticleDraft } from "./operations";
+import type { ArticleWriteResult } from "./writer";
 
 export {
   getOwnerArticle,
   listOwnerArticles,
   listOwnerTags,
-  searchOwnerArticles,
   InvalidArticleInputError,
 } from "./operations";
 export type { ArticleDocuments, ArticleDraft, ArticleUpdateResult } from "./operations";

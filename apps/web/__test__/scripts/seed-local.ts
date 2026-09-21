@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { generateRandomString, makeSignature } from "better-auth/crypto";
 
 import { getPlatformProxy } from "wrangler";
@@ -24,6 +24,20 @@ function wrangler(args: string[]) {
   if (result.status === null) throw new Error("Wrangler exited without a status code");
   if (result.status !== 0) process.exit(result.status);
 }
+
+// This directory belongs exclusively to disposable browser fixtures.
+await rm(new URL(".wrangler/test-state", appDirectory), { recursive: true, force: true });
+wrangler([
+  "d1",
+  "migrations",
+  "apply",
+  "DB",
+  "--local",
+  "--persist-to",
+  ".wrangler/test-state",
+  "--config",
+  "wrangler.test.json",
+]);
 
 const sessionId = generateRandomString(32, "a-z", "A-Z", "0-9");
 const sessionToken = generateRandomString(32, "a-z", "A-Z", "0-9");

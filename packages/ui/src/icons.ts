@@ -23,7 +23,6 @@ export {
   LogOut,
   Minus,
   Moon,
-  Network,
   Pencil,
   Plus,
   Printer,

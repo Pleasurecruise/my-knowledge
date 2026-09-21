@@ -1,6 +1,6 @@
 import { defineConfig } from "vite-plus";
 
-const generated = [".next/**", ".open-next/**", "apps/web/.wrangler/**"];
+const generated = [".next/**", ".open-next/**", "apps/web/.wrangler/**", ".agents/**"];
 
 export default defineConfig({
   resolve: {

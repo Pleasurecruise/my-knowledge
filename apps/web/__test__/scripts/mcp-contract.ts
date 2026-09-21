@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
 import { z } from "zod";
 
 const endpointArgument = process.argv[2];
@@ -8,27 +9,35 @@ const origin = new URL(endpoint).origin;
 const apiKey = process.env.MY_KNOWLEDGE_API_KEY;
 if (!apiKey) throw new Error("MY_KNOWLEDGE_API_KEY is required");
 
-const editionSchema = z.object({ title: z.string(), markdown: z.string() });
-const articleSchema = z.object({ id: z.string(), visibility: z.enum(["private", "public"]) });
+const editionSummarySchema = z.strictObject({ title: z.string(), summary: z.string() });
+const editionSchema = editionSummarySchema.extend({ markdown: z.string() });
+const articleSchema = z.strictObject({
+  id: z.uuid(),
+  editions: z.strictObject({ zh: editionSummarySchema }),
+  tags: z.array(z.string()),
+  visibility: z.enum(["private", "public"]),
+  contentHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+const detailSchema = articleSchema.extend({
+  editions: z.strictObject({
+    zh: editionSchema,
+    en: editionSchema.optional(),
+    ja: editionSchema.optional(),
+  }),
+});
+const pageSchema = z.strictObject({
+  articles: z.array(articleSchema),
+  cursor: z.string().optional(),
+});
 const toolResultSchema = z.object({ isError: z.boolean().optional() });
-const articleListResultSchema = toolResultSchema.extend({
-  structuredContent: z.object({ articles: z.array(articleSchema) }),
-});
-const articleResultSchema = toolResultSchema.extend({
-  structuredContent: z.object({
-    updatedAt: z.string(),
-    contentHash: z.string(),
-    editions: z.record(z.string(), editionSchema),
-  }),
-});
+const articleListResultSchema = toolResultSchema.extend({ structuredContent: pageSchema });
+const articleResultSchema = toolResultSchema.extend({ structuredContent: detailSchema });
 const tagListResultSchema = toolResultSchema.extend({
-  structuredContent: z.object({
-    tags: z.array(z.object({ path: z.string(), count: z.number() })),
-  }),
+  structuredContent: z.object({ tags: z.array(z.object({ path: z.string(), count: z.number() })) }),
 });
-const visibilityResultSchema = toolResultSchema.extend({
-  structuredContent: z.object({ updatedAt: z.string(), visibility: z.enum(["private", "public"]) }),
-});
+const visibilityResultSchema = toolResultSchema.extend({ structuredContent: articleSchema });
 
 const unauthorized = await fetch(endpoint, {
   method: "POST",
@@ -80,8 +89,19 @@ async function callTool<Output>(
   const response = await modernRequest(id, "tools/call", { name, arguments: args });
   const text = await response.text();
   assert.equal(response.status, 200, text);
-  const body = z.object({ error: z.never().optional(), result: schema }).parse(JSON.parse(text));
+  const body = z
+    .object({ error: z.never().optional(), result: z.unknown() })
+    .parse(JSON.parse(text));
   assert.equal(body.error, undefined);
+  const envelope = z
+    .object({
+      content: z.tuple([z.object({ type: z.literal("text"), text: z.string() })]),
+      structuredContent: z.unknown().optional(),
+    })
+    .parse(body.result);
+  if (envelope.structuredContent !== undefined) {
+    assert.deepEqual(JSON.parse(envelope.content[0].text), envelope.structuredContent);
+  }
   return schema.parse(body.result);
 }
 
@@ -102,7 +122,10 @@ const toolsBody = z
           description: z.string(),
           name: z.string(),
           annotations: z.object({ destructiveHint: z.boolean().optional() }),
-          inputSchema: z.object({ required: z.array(z.string()).optional() }),
+          inputSchema: z.object({
+            required: z.array(z.string()).optional(),
+            properties: z.record(z.string(), z.unknown()),
+          }),
         }),
       ),
     }),
@@ -121,6 +144,10 @@ assert.deepEqual(
     "setVisibility",
   ],
 );
+const searchTool = toolsBody.result.tools.find((tool) => tool.name === "searchArticles");
+if (!searchTool) throw new Error("searchArticles was not discovered");
+assert.deepEqual(Object.keys(searchTool.inputSchema.properties).sort(), ["limit", "query"]);
+assert.match(searchTool.description, /keyword/u);
 const deleteTool = toolsBody.result.tools.find((tool) => tool.name === "deleteArticle");
 if (!deleteTool) throw new Error("deleteArticle was not discovered");
 assert.equal(deleteTool.annotations.destructiveHint, true);
@@ -146,7 +173,7 @@ const restList = await fetch(`${restEndpoint}?tag=engineering&limit=10`, {
   headers: { authorization: `Bearer ${apiKey}` },
 });
 assert.equal(restList.status, 200, await restList.clone().text());
-const restListBody = z.object({ articles: z.array(articleSchema) }).parse(await restList.json());
+const restListBody = pageSchema.parse(await restList.json());
 assert.deepEqual(
   restListBody.articles.map((article) => article.id),
   [fixtureId, "22222222-2222-4222-8222-222222222222"],
@@ -176,7 +203,9 @@ if (!japaneseEdition) throw new Error("The Japanese fixture edition is missing")
 assert.equal(japaneseEdition.title, "拡張可能な知識の境界");
 const tags = await callTool(6, "listTags", {}, tagListResultSchema);
 // Other browser journeys create daily articles; isolate the frozen fixture tags.
-const fixtureTags = tags.structuredContent.tags.filter((tag) => tag.path !== "daily");
+const fixtureTags = tags.structuredContent.tags.filter(
+  (tag) => tag.path !== "daily" && !tag.path.startsWith("daily/"),
+);
 assert.deepEqual(
   fixtureTags.map((tag) => tag.path),
   [
@@ -196,6 +225,109 @@ assert.deepEqual(Object.fromEntries(fixtureTags.map((tag) => [tag.path, tag.coun
   testing: 1,
   "testing/privacy": 1,
 });
+
+const searched = await callTool(
+  20,
+  "searchArticles",
+  { query: "testing/privacy" },
+  toolResultSchema.extend({
+    structuredContent: z.strictObject({ articles: z.array(articleSchema) }),
+  }),
+);
+assert.deepEqual(
+  searched.structuredContent.articles.map(({ id }) => id),
+  ["33333333-3333-4333-8333-333333333333"],
+);
+assert.equal(searched.structuredContent.articles[0]?.visibility, "private");
+const emptySearch = await callTool(
+  21,
+  "searchArticles",
+  { query: "no-such-contract-article" },
+  articleListResultSchema,
+);
+assert.deepEqual(emptySearch.structuredContent.articles, []);
+
+// Exercise actual REST writes and MCP reads against the same article and version fields.
+const headers = { authorization: `Bearer ${apiKey}`, "content-type": "application/json" };
+const createdResponse = await fetch(restEndpoint, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({
+    documents: {
+      zh: "---\ntitle: Contract article\nsummary: REST and MCP parity\ntags: [daily/contract]\n---\nHello :suzume5_01:.\n",
+      en: "---\ntitle: Contract translation\nsummary: Current English edition\ntags: [daily/contract]\n---\nHello.\n",
+    },
+  }),
+});
+assert.equal(createdResponse.status, 201, await createdResponse.clone().text());
+const created = z.strictObject({ article: detailSchema }).parse(await createdResponse.json());
+assert.equal(created.article.visibility, "public");
+const reread = await callTool(22, "getArticle", { id: created.article.id }, articleResultSchema);
+assert.deepEqual(reread.structuredContent, created.article);
+const changed = await callTool(
+  23,
+  "updateArticle",
+  {
+    id: created.article.id,
+    expectedHash: created.article.contentHash,
+    expectedUpdatedAt: created.article.updatedAt,
+    document: created.article.editions.zh.markdown.replace(
+      "Hello :suzume5_01:.",
+      "Updated :suzume5_01:.",
+    ),
+  },
+  articleResultSchema,
+);
+assert.deepEqual(Object.keys(changed.structuredContent.editions), ["zh"]);
+const detailResponse = await fetch(`${restEndpoint}/${created.article.id}`, { headers });
+assert.equal(detailResponse.status, 200);
+const detail = z.strictObject({ article: detailSchema }).parse(await detailResponse.json());
+assert.deepEqual(detail.article, changed.structuredContent);
+const visibilityResponse = await fetch(`${restEndpoint}/${created.article.id}`, {
+  method: "PATCH",
+  headers,
+  body: JSON.stringify({
+    expectedHash: detail.article.contentHash,
+    expectedUpdatedAt: detail.article.updatedAt,
+    visibility: "private",
+  }),
+});
+assert.equal(visibilityResponse.status, 200);
+const visibility = z
+  .strictObject({ article: articleSchema })
+  .parse(await visibilityResponse.json());
+assert.equal(visibility.article.visibility, "private");
+assert.notEqual(visibility.article.updatedAt, detail.article.updatedAt);
+const pageResponse = await fetch(`${restEndpoint}?tag=daily/contract&limit=1`, { headers });
+assert.equal(pageResponse.status, 200);
+const page = pageSchema.parse(await pageResponse.json());
+assert.deepEqual(page.articles, [visibility.article]);
+const staleResponse = await fetch(`${restEndpoint}/${created.article.id}`, {
+  method: "PATCH",
+  headers,
+  body: JSON.stringify({
+    expectedHash: detail.article.contentHash,
+    expectedUpdatedAt: detail.article.updatedAt,
+    visibility: "public",
+  }),
+});
+assert.equal(staleResponse.status, 409);
+const deletedResponse = await fetch(`${restEndpoint}/${created.article.id}`, {
+  method: "DELETE",
+  headers,
+  body: JSON.stringify({
+    expectedHash: visibility.article.contentHash,
+    expectedUpdatedAt: visibility.article.updatedAt,
+  }),
+});
+assert.equal(deletedResponse.status, 204);
+assert.equal((await fetch(`${restEndpoint}/${created.article.id}`, { headers })).status, 404);
+const output = process.env.KNOWLEDGE_CONTRACT_OUTPUT;
+if (output)
+  await writeFile(
+    output,
+    `${JSON.stringify({ list: page, created, detail, visibility, search: searched.structuredContent }, null, 2)}\n`,
+  );
 
 const staleUpdate = await callTool(
   7,
@@ -272,5 +404,5 @@ const unsupported = await fetch(endpoint, {
 assert.equal(unsupported.status, 400);
 
 console.log(
-  "API contract passed: shared auth, REST reads, MCP discovery, tags, stale writes, visibility, and rejected obsolete initialization",
+  "API contract passed: shared auth, REST writes/reads, MCP response parity and keyword search, tags, stale writes, visibility, and rejected obsolete initialization",
 );

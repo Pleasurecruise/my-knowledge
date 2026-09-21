@@ -12,17 +12,6 @@ export type ArticlePage = {
   cursor: string | undefined;
 };
 
-export type RankedArticle = {
-  article: ArticleSummary;
-  markdown: string;
-  score: number;
-};
-
-export type ArticleGraphRecord = {
-  article: ArticleSummary;
-  links: string[];
-};
-
 export type TagCount = {
   count: number;
   path: string;

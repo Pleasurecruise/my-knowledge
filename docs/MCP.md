@@ -1,18 +1,20 @@
 # MCP contract
 
-`POST /api/mcp` uses the REST Bearer key. Browser sessions cannot authenticate MCP. Use stateless `2026-07-28`; reject older initialization protocols. Reject supplied session IDs; GET and DELETE return `405`. Discovery exposes schemas and annotations.
+`POST /api/mcp` requires the REST Bearer key; sessions cannot authenticate. Use stateless `2026-07-28`. Reject older protocols and session IDs; GET and DELETE return `405`.
 
-| Tool             | Core input and behavior                                          |
-| ---------------- | ---------------------------------------------------------------- |
-| `createArticle`  | Complete Chinese `document`; creates public article              |
-| `getArticle`     | `id`; returns Chinese and current editions                       |
-| `listArticles`   | Optional visibility, tags, cursor, limit; Chinese summaries      |
-| `updateArticle`  | `id`, `expectedHash`, `expectedUpdatedAt`, Chinese `document`    |
-| `deleteArticle`  | `id`, `expectedHash`, `expectedUpdatedAt`; private-first cleanup |
-| `searchArticles` | Query, optional tags/limit; authorized AI Search results         |
-| `listTags`       | Optional parent; canonical paths and counts                      |
-| `setVisibility`  | ID, visibility, expected hash and updatedAt                      |
+| Tool           | Input and behavior                                  |
+| -------------- | --------------------------------------------------- |
+| createArticle  | Complete Chinese document; creates public article   |
+| getArticle     | UUID; Chinese and current editions                  |
+| listArticles   | Visibility, tags, cursor, limit; Chinese summaries  |
+| updateArticle  | UUID, expectedHash, expectedUpdatedAt, document     |
+| deleteArticle  | UUID and both version fields; private-first cleanup |
+| searchArticles | Query and limit; authorized keyword results         |
+| listTags       | Optional parent; paths and counts                   |
+| setVisibility  | UUID, visibility and both version fields            |
 
-Lists default to 20, cap at 100; tag intersections include descendants. D1 authorizes search candidates. Create and update documents cap at 500,000 characters. Existing-article mutations require both version fields; stale state reports a conflict. Search deduplicates up to 50 chunks; tag recall remains bounded by this pool. Updates stale translations; generation remains local.
+Lists default to 20, maximum 100; tag intersections include descendants. Documents cap at 500,000 characters. Stale mutations report conflicts; updates invalidate translations.
 
-Contracts verify current protocol, obsolete-request rejection, authentication, schemas, conflicts and privacy. Remote retrieval and cleanup require live verification.
+Search matches Chinese titles, summaries and tags, newest first, excluding daily. It returns `{ articles }` with REST summaries; no score, excerpt or tag filter. Search defaults to 10, maximum 50.
+
+Successful text and structuredContent contain identical values. Article reads/writes return detail directly; visibility returns a summary. Lists use `{ articles, cursor? }`, tags `{ tags }`, deletion `{ deleted: true }`. Tool failures set isError.

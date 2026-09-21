@@ -38,8 +38,3 @@ export function articleSummary(
     updatedAt: row.updatedAt,
   };
 }
-
-export function articleLinks(row: ArticleRow): string[] {
-  const parsed: unknown = JSON.parse(row.linksJson);
-  return stringArraySchema.parse(parsed);
-}

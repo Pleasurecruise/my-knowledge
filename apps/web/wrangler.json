@@ -66,13 +66,6 @@
       "storage": "sqlite"
     }
   },
-  "ai_search_namespaces": [
-    {
-      "binding": "AI_SEARCH",
-      "namespace": "default",
-      "remote": true
-    }
-  ],
   "observability": {
     "redact_query_string": true,
     "logs": {

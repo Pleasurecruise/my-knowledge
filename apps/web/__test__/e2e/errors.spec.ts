@@ -21,8 +21,8 @@ function fixtureRow(id: string) {
       "--persist-to",
       ".wrangler/test-state",
       "--command",
-      `INSERT INTO articles (id, title, summary, contentHash, tagsJson, linksJson, visibility, createdAt, updatedAt)
-     VALUES ('${id}', 'Reading recovery', 'Recovery fixture', '${"a".repeat(64)}', '["daily"]', '[]', 'private', '2026-09-01', '2026-09-01')`,
+      `INSERT INTO articles (id, title, summary, contentHash, tagsJson, visibility, createdAt, updatedAt)
+     VALUES ('${id}', 'Reading recovery', 'Recovery fixture', '${"a".repeat(64)}', '["daily"]', 'private', '2026-09-01', '2026-09-01')`,
     ],
     { cwd: appDirectory, stdio: "pipe" },
   );

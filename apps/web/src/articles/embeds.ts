@@ -1,7 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getPrincipal } from "../auth/owner";
 import { getArticleRow } from "./persistence/document";
-import { articleOrigin } from "./links";
+import { articleOrigin } from "./origin";
 import { fromHtml } from "hast-util-from-html";
 import { cache } from "react";
 import { z } from "zod";

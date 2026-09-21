@@ -217,10 +217,6 @@ test("keeps the two public tabs searchable, localized, and keyboard reachable", 
   await expect(page.getByRole("navigation", { name: "Primary navigation" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Search" })).toBeVisible();
 
-  const aiResponse = await page.request.post("/api/search/ai", {
-    data: { query: "private knowledge" },
-  });
-  expect(aiResponse.status()).toBe(404);
   for (const removed of ["/articles", "/graph"]) {
     const response = await page.request.get(removed, { maxRedirects: 0 });
     expect(response.status()).toBe(404);
@@ -250,54 +246,6 @@ test("keeps the two public tabs searchable, localized, and keyboard reachable", 
   await expect(page).toHaveURL(/\/articles\/11111111-1111-4111-8111-111111111111$/u);
   await page.getByRole("link", { name: "Back", exact: true }).click();
   await expect(page).toHaveURL(/\/$/u);
-  await page.goto("/explore?view=graph");
-  await expect(page.locator(".graph-node")).toHaveCount(2);
-  const [graphTitleBox, headerBox] = await Promise.all([
-    page.locator("main header").boundingBox(),
-    page.locator(".page-content").boundingBox(),
-  ]);
-  if (!graphTitleBox || !headerBox) throw new Error("Narrow title layout was not measurable");
-  expect(graphTitleBox.x).toBeCloseTo(headerBox.x, 0);
-  expect(graphTitleBox.x + graphTitleBox.width).toBeCloseTo(headerBox.x + headerBox.width, 0);
-  await expect(
-    page.locator('.graph-sidebar [aria-live="polite"]').getByText("可扩展的知识边界", {
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("region", { name: "Relationships" }).getByRole("listitem"),
-  ).toHaveCount(2);
-  await expect(page.getByRole("group", { name: "Knowledge graph canvas" })).toBeVisible();
-  await expect(page.getByRole("combobox")).toHaveCount(0);
-  const cardBounds = await page.locator('.graph-sidebar [aria-live="polite"]').boundingBox();
-  const graphBounds = await page.locator(".graph-stage").boundingBox();
-  const graphGridBounds = await page.locator(".graph-workspace-body").boundingBox();
-  const relationshipBounds = await page
-    .getByRole("region", { name: "Relationships" })
-    .boundingBox();
-  if (!cardBounds || !graphBounds || !graphGridBounds || !relationshipBounds)
-    throw new Error("Graph column bounds are unavailable");
-  expect(graphBounds.x).toBeGreaterThanOrEqual(graphGridBounds.x);
-  expect(graphBounds.x + graphBounds.width).toBeLessThanOrEqual(
-    graphGridBounds.x + graphGridBounds.width,
-  );
-  expect(cardBounds.y).toBeGreaterThanOrEqual(graphBounds.y + graphBounds.height);
-  expect(relationshipBounds.y).toBeGreaterThanOrEqual(cardBounds.y + cardBounds.height);
-  expect(
-    await page
-      .locator(".graph-sidebar [aria-live=polite] .overflow-y-auto")
-      .evaluate((element) => getComputedStyle(element).scrollbarWidth),
-  ).toBe("none");
-  expect(
-    await page
-      .getByRole("region", { name: "Relationships" })
-      .getByRole("list")
-      .evaluate((element) => getComputedStyle(element).scrollbarWidth),
-  ).toBe("none");
-  await page.keyboard.press("Tab");
-  await expect(page.locator(":focus-visible")).toBeVisible();
-  await page.screenshot({ fullPage: true, path: testInfo.outputPath("graph.png") });
-
   await page.goto("/missing-page");
   await expect(
     page.getByRole("heading", { name: "This page has not been written down." }),
@@ -311,7 +259,7 @@ test("keeps the two public tabs searchable, localized, and keyboard reachable", 
   errors.length = 0;
 });
 
-test("searches public articles without AI Search", async ({ page }, testInfo) => {
+test("searches public articles by keyword", async ({ page }, testInfo) => {
   test.skip(
     testInfo.project.name !== "desktop-light",
     "One deterministic search journey is enough",
@@ -377,31 +325,6 @@ test("cycles every registered interface locale", async ({ page }, testInfo) => {
   await expect(page.getByRole("heading", { name: "検索" })).toBeVisible();
   await page.getByRole("button", { name: "言語を変更: 简体中文" }).click();
   await expect(page.getByRole("heading", { name: "搜索" })).toBeVisible();
-});
-
-test("updates the selected graph article and follows its reading action", async ({
-  page,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-light", "One deterministic graph journey is enough");
-
-  await page.goto("/explore?view=graph");
-  await page.getByRole("button", { name: "明确链接", exact: true }).click();
-  await expect(page.locator(".graph-edge--link")).toHaveCount(1);
-  await expect(page.locator(".graph-edge--tag")).toHaveCount(0);
-  await page.getByRole("button", { name: "共享标签", exact: true }).click();
-  await expect(page.locator(".graph-edge--tag")).toHaveCount(1);
-  await expect(page.locator(".graph-edge--link")).toHaveCount(0);
-  await page.getByRole("button", { name: "全部关系" }).click();
-  await page.getByRole("button", { name: "查看 相关实践" }).click();
-  await expect(
-    page.locator('.graph-sidebar [aria-live="polite"]').getByText("相关实践", { exact: true }),
-  ).toBeVisible();
-  await page
-    .locator('.graph-sidebar [aria-live="polite"]')
-    .getByRole("link", { name: "阅读文章" })
-    .click();
-  await expect(page).toHaveURL(/\/articles\/22222222-2222-4222-8222-222222222222\?from=/u);
-  await expect(page.locator(".article-return")).toHaveAttribute("href", "/explore?view=graph");
 });
 
 test("plays embedded audio and video on click and previews the opening frame", async ({
@@ -500,7 +423,6 @@ test("keeps the shared layout, type and shapes consistent across main pages", as
   for (const { name, path } of [
     { name: "home", path: "/" },
     { name: "explore", path: "/explore" },
-    { name: "graph", path: "/explore?view=graph" },
   ]) {
     await page.goto(path);
     await page.evaluate(() => document.fonts.ready);
@@ -521,8 +443,6 @@ test("keeps the shared layout, type and shapes consistent across main pages", as
     ).toBe(true);
     await expect(page.locator(".site-controls")).toHaveCSS("position", "relative");
     if (path === "/explore") {
-      await expect(page.locator(".exploration-toggle a").first()).toHaveCSS("width", "32px");
-      await expect(page.locator(".exploration-toggle")).toHaveCSS("border-width", "0px");
       await expect(page.locator('form[role="search"]')).toHaveCSS("border-radius", "7px");
       await expect(page.locator('form[role="search"] button')).toHaveCSS("border-radius", "9999px");
     }
@@ -531,10 +451,6 @@ test("keeps the shared layout, type and shapes consistent across main pages", as
       "max-width",
       testInfo.project.name.startsWith("phone") ? "690px" : "778px",
     );
-    if (path === "/explore?view=graph") {
-      const label = await page.locator(".graph-node text").first().boundingBox();
-      expect(label?.height).toBeGreaterThanOrEqual(12);
-    }
     const accessibility = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
       .analyze();
@@ -542,64 +458,7 @@ test("keeps the shared layout, type and shapes consistent across main pages", as
       accessibility.violations.filter((v) => v.impact === "serious" || v.impact === "critical"),
     ).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`${name}.png`), fullPage: true });
-    if (path === "/explore?view=graph") {
-      const canvas = await page.locator(".graph-stage").boundingBox();
-      const response = await page.request.get("/explore?view=graph");
-      const html = await response.text();
-      // Inspect the actual loading markup emitted by the Worker, before its streamed content replaces it.
-      await page.evaluate((source) => {
-        const initialDocument = new DOMParser().parseFromString(source, "text/html");
-        const loading = initialDocument.querySelector(".graph-loading")?.closest(".page-shell");
-        const main = document.querySelector("main");
-        if (!loading || !main) throw new Error("Graph loading markup is missing");
-        main.replaceChildren(loading);
-      }, html);
-      await expect(page.locator(".exploration-toggle a")).toHaveCount(2);
-      await expect(page.locator(".exploration-toggle")).toBeVisible();
-      const loadingCanvas = await page.locator(".graph-loading .graph-stage").boundingBox();
-      expect(loadingCanvas?.x).toBe(canvas?.x);
-      expect(loadingCanvas?.width).toBe(canvas?.width);
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-        ),
-      ).toBe(true);
-      await page.screenshot({ path: testInfo.outputPath("graph-loading.png"), fullPage: true });
-    }
   }
-});
-
-test("switches exploration views without repeating One Tap and preserves the query", async ({
-  page,
-}) => {
-  await page.goto("/explore");
-  await expect(page.locator("html")).toHaveAttribute("data-google-prompt-count", "1");
-  const documents: string[] = [];
-  page.on("request", (request) => {
-    if (request.isNavigationRequest() && request.resourceType() === "document")
-      documents.push(request.url());
-  });
-  await page.getByRole("searchbox").fill("knowledge");
-  await page.locator('form[role="search"]').getByRole("button").click();
-  await expect(page).toHaveURL(/query=knowledge/u);
-  for (let index = 0; index < 3; index++) {
-    await page.locator(".exploration-toggle").getByRole("link", { name: "知识图谱" }).click();
-    await expect(page).toHaveURL(/query=knowledge&view=graph/u);
-    await expect(page.locator(".graph-workspace")).toBeVisible();
-    await page
-      .locator(".exploration-toggle")
-      .getByRole("link", { name: "搜索", exact: true })
-      .click();
-    await expect(page.getByRole("searchbox")).toHaveValue("knowledge");
-  }
-  await page.goBack();
-  await expect(page.locator(".graph-workspace")).toBeVisible();
-  await page.goForward();
-  await expect(page.getByRole("searchbox")).toHaveValue("knowledge");
-  expect(documents).toEqual([]);
-  await expect(page.locator("html")).toHaveAttribute("data-google-prompt-count", "1");
-  await page.goto("/explore?view=graph");
-  await expect(page).toHaveURL(/\/explore\?view=graph$/u);
 });
 
 test("retains search context and inherits Home settings without reading controls", async ({
@@ -607,6 +466,7 @@ test("retains search context and inherits Home settings without reading controls
 }, testInfo) => {
   await page.goto("/");
   await page.getByRole("button", { name: "切换语言: English" }).click();
+  await expect(page.getByRole("heading", { name: "Articles", exact: true })).toBeVisible();
   await page.goto("/explore?query=边界");
   await expect(page).toHaveURL(/\/explore\?query=/u);
   await expect(page.locator(".article-preview").first()).toContainText(

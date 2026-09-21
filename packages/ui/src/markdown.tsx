@@ -1,3 +1,4 @@
+import { markdownEmoji } from "./markdown-emoji";
 import { MarkdownBody } from "./markdown-body";
 import type { Element, ElementContent, Root } from "hast";
 import type { Root as MarkdownRoot } from "mdast";
@@ -298,6 +299,7 @@ export async function Markdown({ labels, markdown, structuredBlock, embeds, link
     .use(rehypeSanitize, { ...mathSchema, clobberPrefix: "" })
     .use(articleSemantics)
     .use(rehypeKatex)
+    .use(markdownEmoji)
     .use(structuredBlocks, labels, embeds ? deferredEmbeds : undefined)
     .use(tableWrappers);
 

@@ -85,7 +85,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `apps/web/node_modules/.bin/wrangler d1 migrations apply DB --local --persist-to apps/web/.wrangler/test-state --config apps/web/wrangler.test.json && node apps/web/__test__/scripts/seed-local.ts && ${workerCommand}`,
+    command: `node apps/web/__test__/scripts/seed-local.ts && ${workerCommand}`,
     reuseExistingServer: false,
     timeout: 180_000,
     url: baseURL,

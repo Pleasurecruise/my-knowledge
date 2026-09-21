@@ -4,7 +4,6 @@ CREATE TABLE `articles` (
   `summary` text NOT NULL,
   `contentHash` text NOT NULL,
   `tagsJson` text NOT NULL,
-  `linksJson` text NOT NULL,
   `visibility` text DEFAULT 'public' NOT NULL CHECK (`visibility` IN ('private', 'public')),
   `createdAt` text NOT NULL,
   `updatedAt` text NOT NULL

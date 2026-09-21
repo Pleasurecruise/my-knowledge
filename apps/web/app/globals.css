@@ -1,6 +1,5 @@
 @import "katex/dist/katex.min.css";
 @import "@my-knowledge/ui/styles.css";
-@import "./styles/graph.css";
 @import "./styles/layout.css";
 
 @layer components {
