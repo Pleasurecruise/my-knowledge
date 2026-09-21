@@ -62,6 +62,10 @@ test("renders selected stickers inline and preserves shortcode examples", async 
     expect(box?.width).toBeGreaterThan(0);
     expect(box?.width).toBeLessThanOrEqual(96);
     expect(box?.height).toBeLessThanOrEqual(96);
+    if ((await sticker.getAttribute("src"))?.startsWith("https://cdn.combot.online/")) {
+      expect(box?.width).toBeLessThanOrEqual(64);
+      expect(box?.height).toBeLessThanOrEqual(64);
+    }
   }
   await expect(page.locator("code").first()).toHaveText("示例 :suzume5_01:");
   await expect(page.locator(".markdown-body")).toContainText(":missing_01:");

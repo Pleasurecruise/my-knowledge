@@ -71,7 +71,7 @@ step: 发布 | 上传产物
     expect(html).toContain('class="node c-red"');
     expect(html).toContain('class="scribble"');
     expect(html).toContain('class="leader"');
-    expect(html).toContain("浏览器</text>");
+    expect(html).toContain("浏览器</tspan>");
     expect(html).toContain("发布流程</title>");
     expect(html).toContain('class="sketch-shadow"');
     expect(html).not.toContain("Rendering diagram");

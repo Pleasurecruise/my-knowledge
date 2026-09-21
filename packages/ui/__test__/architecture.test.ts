@@ -68,3 +68,35 @@ it.each(["A --> B\nB --> A", "A --> A\nA --> B", "A --> B\nC --> D", "A --> B\nB
     expect(result.edges.every((edge) => !/NaN|undefined/.test(edge.path))).toBe(true);
   },
 );
+
+it.each([false, true])(
+  "keeps multilingual long labels complete inside taller non-overlapping nodes: compact=%s",
+  (compact) => {
+    const labels = [
+      "测试体系：Unit / 接口与存储 / Playwright E2E",
+      "Content services: permissions / versions / saving",
+      "ローカルエディター：原稿と素材 👩‍💻",
+      "SupercalifragilisticexpialidociousLongUnbrokenIdentifier",
+    ];
+    const result = layout(
+      labels.map((label, index) => `root --> n${index}[${label}]`).join("\n"),
+      compact,
+    );
+    for (const node of result.nodes) {
+      expect(node.lines.join("").replace(/\s/gu, "")).toBe(node.label.replace(/\s/gu, ""));
+      expect(node.lines.length * 20 + 24).toBeLessThanOrEqual(node.height);
+      expect(node.y + node.height).toBeLessThanOrEqual(result.height);
+      for (const other of result.nodes) {
+        if (node.id === other.id) continue;
+        expect(
+          node.x + 160 <= other.x ||
+            other.x + 160 <= node.x ||
+            node.y + node.height <= other.y ||
+            other.y + other.height <= node.y,
+        ).toBe(true);
+      }
+    }
+    expect(result.nodes.some((node) => node.height > 80)).toBe(true);
+    expect(result.nodes.find((node) => node.id === "n2")?.lines.join("")).toContain("👩‍💻");
+  },
+);

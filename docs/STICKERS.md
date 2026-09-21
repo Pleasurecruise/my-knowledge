@@ -10,7 +10,7 @@ The owner selected four Telegram packs. Public mirror snapshots provide:
 | `daimao2`    | 呆猫八条集合包 #2 | 20     | [Combot](https://combot.org/stickers/daimaoextended2)         |
 
 Combot snapshots date to July 2024 and July 2026 respectively; they may omit newer Telegram
-stickers. The catalog references remote WebP images. No artwork files were copied or license grant
+stickers. The catalog references remote WebP images. Combot provides compressed 128px previews, displayed at up to 64 CSS pixels; full-size originals are not available from these catalog URLs. No artwork files were copied or license grant
 verified; rights and availability remain with authors/providers. Never renumber published names.
 
 Write `:denghuoju8_01:` or `:daimao2_01:`. Unknown shortcodes remain literal.

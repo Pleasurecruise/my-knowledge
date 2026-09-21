@@ -391,15 +391,21 @@ export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): Elem
                 x: String(node.x),
                 y: String(node.y),
                 width: 160,
-                height: 80,
+                height: node.height,
                 rx: String(12),
               }),
-              element("text", [{ type: "text", value: node.label }], {
-                x: String(node.x + 80),
-                y: String(node.y + 45),
-                textAnchor: "middle",
-                className: ["th"],
-              }),
+              element(
+                "text",
+                node.lines.map((line, index) =>
+                  element("tspan", [{ type: "text", value: line }], {
+                    x: String(node.x + 80),
+                    y: String(
+                      node.y + (node.height - node.lines.length * 20) / 2 + 15 + index * 20,
+                    ),
+                  }),
+                ),
+                { textAnchor: "middle", className: ["th"] },
+              ),
             ],
             {
               className: [

@@ -23,6 +23,7 @@ test("reads quote and Git diff dialects without losing source or executing HTML"
   });
   const body = [
     "## Sources and changes",
+    "```embed:architecture\nalign: narrow\nflowchart LR\nsource[测试体系：Unit / 接口与存储 / Playwright E2E] --> process[Content services: permissions / versions / saving]\nprocess --> reader[ローカルエディター：原稿と素材 👩‍💻]\n```",
     "```embed:annotation\nmark: 内容优先\nnote: 让文字成为主角，也让很长的批注在手机上自然换行\ncolor: red\nurl: https://example.com/note\n---\n我的博客坚持内容优先。\n```",
     "```embed:quote\nauthor: 项目笔记\ntitle: 知识的保存\nurl: https://example.com/source\n---\n保留知识，也保留它的上下文。\n\n<script>只是原文，不执行。</script>\n```",
     '```embed:diff\ntitle: Publication change\n---\ndiff --git a/config.ts b/config.ts\n--- a/config.ts\n+++ b/config.ts\n@@ -1,2 +1,2 @@\n-const visibility = "private";\n+const visibility = "public";\n export { visibility };\n```',
@@ -44,6 +45,25 @@ test("reads quote and Git diff dialects without losing source or executing HTML"
     await owner.dispose();
   }
   await page.goto(`/articles/${id}`);
+  await page.evaluate(() => document.fonts.ready);
+  const diagram = page.locator(".architecture-flow svg:visible");
+  await expect(diagram).toHaveCount(1);
+  await expect(diagram).toHaveClass(/architecture-compact/u);
+  for (const node of await diagram.locator(".node").all()) {
+    const bounds = await node.evaluate((element) => {
+      const rect = element.querySelector("rect")?.getBoundingClientRect();
+      const text = element.querySelector("text")?.getBoundingClientRect();
+      if (!rect || !text) throw new Error("Missing diagram node geometry");
+      return {
+        left: text.left - rect.left,
+        right: rect.right - text.right,
+        top: text.top - rect.top,
+        bottom: rect.bottom - text.bottom,
+      };
+    });
+    for (const inset of Object.values(bounds)) expect(inset).toBeGreaterThanOrEqual(0);
+  }
+  await diagram.screenshot({ path: testInfo.outputPath("architecture-wrapped.png") });
   const annotation = page.locator(".markdown-embed-annotation");
   await expect(annotation.locator(".annotation-mark")).toHaveText("内容优先");
   await expect(annotation.locator(".annotation-note a")).toHaveAttribute(
