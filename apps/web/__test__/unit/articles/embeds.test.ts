@@ -2,8 +2,10 @@ import { afterEach, expect, it, vi } from "vite-plus/test";
 import { readEmbed } from "../../../src/articles/embeds";
 
 const repositoryCache = vi.hoisted(() => ({
-  get: vi.fn<() => Promise<string | null>>(async () => null),
-  put: vi.fn(async () => {}),
+  get: vi.fn<(key: string) => Promise<string | null>>(async () => null),
+  put: vi.fn<(key: string, value: string, options: { expirationTtl: number }) => Promise<void>>(
+    async () => {},
+  ),
 }));
 
 const articleRow = vi.hoisted(() => vi.fn());
@@ -77,6 +79,7 @@ it("shows provider failures instead of fabricating metadata or prices", async ()
   expect(html).toContain("Stock prices are unavailable");
   expect(html).toContain("https://finance.yahoo.com/quote/AAPL/");
   expect(html).not.toContain('"tagName":"polyline"');
+  expect(repositoryCache.put).not.toHaveBeenCalled();
 });
 
 it("does not disguise unexpected implementation failures as unavailable data", async () => {
@@ -315,4 +318,57 @@ it("reuses public repository metadata and identifies GitHub rate limits without 
     JSON.stringify(await readEmbed({ kind: "github", repo: "owner/repo", align: "wide" })),
   ).toContain("GitHub API rate limit reached");
   expect(repositoryCache.put).not.toHaveBeenCalled();
+});
+
+it("reuses validated link and stock responses across calls without caching failures", async () => {
+  const stored = new Map<string, string>();
+  repositoryCache.get.mockImplementation(async (key) => stored.get(key) ?? null);
+  repositoryCache.put.mockImplementation(async (key, value) => {
+    stored.set(key, value);
+  });
+  const fetcher = vi.fn().mockImplementation(
+    async (url: string) =>
+      new Response(
+        url.includes("yahoo")
+          ? JSON.stringify({
+              chart: {
+                error: null,
+                result: [
+                  {
+                    meta: { shortName: "Apple", currency: "USD" },
+                    timestamp: [1, 2],
+                    indicators: { quote: [{ close: [10, 11] }] },
+                  },
+                ],
+              },
+            })
+          : "<head><title>Cached link</title></head>",
+        { headers: { "content-type": "text/html" } },
+      ),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  for (let index = 0; index < 2; index++) {
+    expect(
+      JSON.stringify(
+        await readEmbed({
+          kind: "link",
+          url: "https://example.com/cached?secret=not-in-key",
+          align: "wide",
+        }),
+      ),
+    ).toContain("Cached link");
+    expect(
+      JSON.stringify(await readEmbed({ kind: "stock", code: "CACHE", align: "wide" })),
+    ).toContain("Apple");
+  }
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect([...stored.keys()].some((key) => key.includes("secret"))).toBe(false);
+  expect(repositoryCache.put).toHaveBeenCalledWith(
+    expect.stringMatching(/^embed:link:[a-f0-9]{64}$/u),
+    expect.any(String),
+    { expirationTtl: 3600 },
+  );
+  expect(repositoryCache.put).toHaveBeenCalledWith("embed:stock:CACHE", expect.any(String), {
+    expirationTtl: 300,
+  });
 });

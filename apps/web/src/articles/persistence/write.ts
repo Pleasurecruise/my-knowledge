@@ -1,5 +1,4 @@
 import type {
-  Article,
   ArticleDocumentSet,
   ArticleSummary,
   ParsedArticleDocument,
@@ -10,9 +9,9 @@ import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
 import { deleteArticleCache } from "./cache";
-import { getArticleRow, readArticle } from "./document";
+import { getArticleRow } from "./document";
 import { createStoredArticle, deleteStoredArticle, updateStoredArticle } from "./mutation";
-import { articleObjectKey, articleSummary } from "./record";
+import { articleObjectKey, articleSummary, type ArticleRow } from "./record";
 import type { StoredArticleDocument, WrittenArticleDocument } from "./types";
 import { articles, articleTranslations } from "@/db/schema";
 
@@ -97,9 +96,9 @@ export async function createArticle(
   env: CloudflareEnv,
   id: string,
   document: ArticleDocumentSet,
-): Promise<Article> {
+): Promise<ArticleRow> {
   const existing = await getArticleRow(env, "owner", id);
-  if (existing) return readArticle(env, existing);
+  if (existing) return existing;
   const chinese = document.editions.zh;
   const timestamp = new Date().toISOString();
   let written: WrittenArticleDocument | null = null;
@@ -136,7 +135,7 @@ export async function createArticle(
   });
   const stored = await getArticleRow(env, "owner", id);
   if (!stored) throw new Error(`Created article ${id} is not readable`);
-  return readArticle(env, stored);
+  return stored;
 }
 
 export async function updateArticle(
@@ -145,7 +144,7 @@ export async function updateArticle(
   expectedHash: string,
   document: ArticleDocumentSet,
   visibility?: Visibility,
-): Promise<Article | undefined> {
+): Promise<ArticleRow | undefined> {
   const previous = await getArticleRow(env, "owner", id);
   if (!previous || previous.contentHash !== expectedHash) return undefined;
   if (document.contentHash === expectedHash) {
@@ -164,7 +163,7 @@ export async function updateArticle(
       )
       .returning()
       .get();
-    return updated ? readArticle(env, updated) : undefined;
+    return updated;
   }
   const chinese = document.editions.zh;
   const previousDocument = await readStoredDocument(
@@ -214,7 +213,7 @@ export async function updateArticle(
       deleteArticleCache(env.KNOWLEDGE_CACHE, id, expectedHash, articleLocales),
   });
   if (!updated) return undefined;
-  return readArticle(env, updated);
+  return updated;
 }
 
 export async function saveArticleTranslation(

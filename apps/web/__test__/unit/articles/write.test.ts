@@ -82,7 +82,7 @@ it.each([undefined, "private"])(
       updatedAt: expect.any(String),
       ...(visibility === undefined ? {} : { visibility }),
     });
-    expect(writes.read).toHaveBeenCalledWith(env, updated);
+    expect(writes.read).not.toHaveBeenCalled();
     expect(writes.object).not.toHaveBeenCalled();
     expect(writes.removeCache).not.toHaveBeenCalled();
   },

@@ -68,7 +68,19 @@ function publicLink(url: URL) {
   );
 }
 
-function parseLink(html: string, url: URL): CardData {
+const linkCard = z.object({
+  kind: z.literal("link"),
+  url: z.url().refine((value) => publicLink(new URL(value))),
+  title: z.string(),
+  description: z.string(),
+  site: z.string(),
+  image: z
+    .url()
+    .refine((value) => publicLink(new URL(value)))
+    .nullable(),
+});
+
+function parseLink(html: string, url: URL): Extract<CardData, { kind: "link" }> {
   const tree = fromHtml(html);
   const root = tree.children.find((node) => node.type === "element" && node.tagName === "html");
   if (root?.type !== "element") throw new ProviderError("Link HTML has no document");
@@ -107,12 +119,42 @@ function parseLink(html: string, url: URL): CardData {
   };
 }
 
+function stockCard(data: unknown, id: string): CardData {
+  const item = chart.parse(data).chart.result[0];
+  const quote = item?.indicators.quote[0];
+  if (!item || !quote) throw new ProviderError("Stock chart is missing");
+  const points = item.timestamp
+    .flatMap((time, index) => {
+      const price = quote.close[index];
+      return price === null || price === undefined ? [] : [{ time, price }];
+    })
+    .sort((a, b) => a.time - b.time);
+  if (points.length < 2) throw new ProviderError("Stock chart has fewer than two prices");
+  return {
+    kind: "stock",
+    name: item.meta.shortName === undefined ? id : item.meta.shortName,
+    currency: item.meta.currency,
+    points,
+  };
+}
+
 const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Promise<CardData> => {
-  const repositoryCache =
-    kind === "github" ? (await getCloudflareContext({ async: true })).env.KNOWLEDGE_CACHE : null;
-  const cacheKey = `embed:github:${id.toLowerCase()}`;
-  const cached = repositoryCache === null ? null : await repositoryCache.get(cacheKey);
-  if (cached !== null) return repositoryCard(repository.parse(JSON.parse(cached)));
+  const { env } = await getCloudflareContext({ async: true });
+  const digest =
+    kind === "link"
+      ? Array.from(
+          new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(id))),
+          (byte) => byte.toString(16).padStart(2, "0"),
+        ).join("")
+      : kind === "github"
+        ? id.toLowerCase()
+        : id;
+  const cacheKey = `embed:${kind}:${digest}`;
+  const cached = await env.KNOWLEDGE_CACHE.get(cacheKey);
+  if (cached !== null && kind === "github")
+    return repositoryCard(repository.parse(JSON.parse(cached)));
+  if (cached !== null && kind === "link") return linkCard.parse(JSON.parse(cached));
+  if (cached !== null && kind === "stock") return stockCard(JSON.parse(cached), id);
   const url =
     kind === "github"
       ? `https://api.github.com/repos/${id}`
@@ -187,7 +229,11 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
       offset += chunk.length;
     }
     const text = new TextDecoder().decode(bytes);
-    if (kind === "link") return parseLink(text, address);
+    if (kind === "link") {
+      const card = parseLink(text, address);
+      await env.KNOWLEDGE_CACHE.put(cacheKey, JSON.stringify(card), { expirationTtl: 3600 });
+      return card;
+    }
     let data: unknown;
     try {
       data = JSON.parse(text);
@@ -198,26 +244,12 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
     }
     if (kind === "github") {
       const item = repository.parse(data);
-      if (repositoryCache !== null)
-        await repositoryCache.put(cacheKey, JSON.stringify(item), { expirationTtl: 3600 });
+      await env.KNOWLEDGE_CACHE.put(cacheKey, JSON.stringify(item), { expirationTtl: 3600 });
       return repositoryCard(item);
     }
-    const item = chart.parse(data).chart.result[0];
-    const quote = item?.indicators.quote[0];
-    if (!item || !quote) throw new ProviderError("Stock chart is missing");
-    const points = item.timestamp
-      .flatMap((time, index) => {
-        const price = quote.close[index];
-        return price === null || price === undefined ? [] : [{ time, price }];
-      })
-      .sort((a, b) => a.time - b.time);
-    if (points.length < 2) throw new ProviderError("Stock chart has fewer than two prices");
-    return {
-      kind,
-      name: item.meta.shortName === undefined ? id : item.meta.shortName,
-      currency: item.meta.currency,
-      points,
-    };
+    const card = stockCard(data, id);
+    await env.KNOWLEDGE_CACHE.put(cacheKey, JSON.stringify(data), { expirationTtl: 300 });
+    return card;
   } catch (error) {
     if (!(error instanceof ProviderError) && !(error instanceof z.ZodError)) throw error;
     return {
@@ -234,6 +266,11 @@ const readCard = cache(async (kind: "github" | "stock" | "link", id: string): Pr
   }
 });
 
+const readArticleMetadata = cache(async (identity: string) => {
+  const { env } = await getCloudflareContext({ async: true });
+  return getArticleRow(env, await getPrincipal(), identity);
+});
+
 const readArticleCard = cache(async (value: string): Promise<ArticleCard | null> => {
   const url = new URL(value);
   const { env } = await getCloudflareContext({ async: true });
@@ -242,8 +279,7 @@ const readArticleCard = cache(async (value: string): Promise<ArticleCard | null>
   const match = /^\/articles\/([^/]+)\/?$/u.exec(url.pathname);
   if (!match?.[1]) return null;
   const identity = decodeURIComponent(match[1]);
-  const principal = await getPrincipal();
-  const row = await getArticleRow(env, principal, identity);
+  const row = await readArticleMetadata(identity);
   return row
     ? {
         href: `/articles/${encodeURIComponent(row.id)}${url.hash}`,

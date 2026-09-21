@@ -407,6 +407,11 @@ test("keeps article references one-way when the referring article is withdrawn",
       },
     });
     expect(hidden.status()).toBe(200);
+    const withdrawn = await anonymous.request.get(`/articles/${article.id}`);
+    const withdrawnHtml = await withdrawn.text();
+    expect(withdrawnHtml).not.toContain(title);
+    expect(withdrawnHtml).not.toContain(`data-article-id="${article.id}"`);
+    expect(withdrawnHtml).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
     expect(await (await anonymous.request.get(target)).text()).not.toContain(title);
     await page.goto(target);
     await expect(page.getByRole("link", { name: title, exact: true })).toHaveCount(0);
@@ -472,6 +477,7 @@ test("renders article-list metadata cards and stages visibility until Save", asy
   await expect(page).toHaveURL(new RegExp(`/articles/${article.id}$`));
   await expect(cards.locator("strong").first()).toHaveText(target.editions.zh.title);
   await cards.locator("a").first().click();
+  await expect(page).toHaveURL(new RegExp(`/articles/${target.id}$`));
   await page.goto(`/articles/${article.id}#reference=${target.id}`);
   await expect(cards.locator("a").first()).toBeFocused();
   await expect(cards.locator("a").first()).toBeInViewport();

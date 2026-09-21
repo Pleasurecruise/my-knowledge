@@ -1,3 +1,10 @@
+import {
+  compiledMarkdownSchema,
+  markdownArtifactVersion,
+  type CompiledMarkdown,
+  type DeferredEmbed,
+  type MarkdownCache,
+} from "./markdown-artifact";
 import { markdownEmoji } from "./markdown-emoji";
 import { MarkdownBody } from "./markdown-body";
 import type { Element, ElementContent, Root } from "hast";
@@ -23,12 +30,11 @@ import {
   markdownParser,
   MarkdownEmbedError,
   parseMarkdownEmbed,
-  type ArticleHeading,
   type MarkdownEmbed,
 } from "@my-knowledge/content";
 
 import { renderMarkdownEmbed } from "./markdown-embeds";
-import { markdownHighlighter } from "./markdown-highlighter";
+import type { HighlighterCore } from "@shikijs/core";
 import type { StructuredBlockLabels, StructuredBlockProps } from "./structured-block.types";
 
 declare module "unified" {
@@ -101,16 +107,14 @@ const articleSemantics: Plugin<[], Root> = () => (tree: Root) => {
 
 type EmbedRenderer = (embed: MarkdownEmbed) => Promise<Element>;
 
-const structuredBlocks: Plugin<[StructuredBlockLabels, MarkdownEmbed[]?], Root> =
+const structuredBlocks: Plugin<[StructuredBlockLabels, DeferredEmbed[]?], Root> =
   (labels, embeds) => (tree: Root) => {
     visit(tree, "element", (node, index, parent) => {
       if (!parent || index === undefined || node.tagName !== "pre") return;
       const code = node.children.at(0);
       if (code?.type !== "element" || code.tagName !== "code") return;
       const classes = Array.isArray(code.properties.className)
-        ? code.properties.className.filter(
-            (value: unknown): value is string => typeof value === "string",
-          )
+        ? code.properties.className.map(String)
         : [];
       const languageClass = classes.find((value) => value.startsWith("language-"));
       const language = languageClass?.slice("language-".length).toLowerCase();
@@ -201,18 +205,14 @@ const structuredBlocks: Plugin<[StructuredBlockLabels, MarkdownEmbed[]?], Root> 
     });
   };
 
-type MarkdownHighlighter = Awaited<typeof markdownHighlighter>;
-
-const highlightCodeBlocks: Plugin<[MarkdownHighlighter], Root> = (highlighter) => (tree: Root) => {
+const highlightCodeBlocks: Plugin<[HighlighterCore], Root> = (highlighter) => (tree: Root) => {
   const languages = highlighter.getLoadedLanguages();
   visit(tree, "element", (node, index, parent) => {
     if (!parent || index === undefined || node.tagName !== "pre") return;
     const code = node.children.at(0);
     if (code?.type !== "element" || code.tagName !== "code") return;
     const classes = Array.isArray(code.properties.className)
-      ? code.properties.className.filter(
-          (value: unknown): value is string => typeof value === "string",
-        )
+      ? code.properties.className.map(String)
       : [];
     const language = classes
       .find((value) => value.startsWith("language-"))
@@ -241,15 +241,15 @@ const highlightCodeBlocks: Plugin<[MarkdownHighlighter], Root> = (highlighter) =
   });
 };
 
-const headingAnchors: Plugin<[ArticleHeading[]], MarkdownRoot> =
-  (headings) => (tree: MarkdownRoot) => {
-    let index = 0;
-    visit(tree, "heading", (node) => {
-      const heading = headings[index++];
-      if (!heading) throw new Error("Heading anchor is missing");
-      node.data = { ...node.data, hProperties: { ...node.data?.hProperties, id: heading.id } };
-    });
-  };
+const headingAnchors: Plugin<[], MarkdownRoot> = () => (tree: MarkdownRoot) => {
+  const headings = extractHeadings(tree);
+  let index = 0;
+  visit(tree, "heading", (node) => {
+    const heading = headings[index++];
+    if (!heading) throw new Error("Heading anchor is missing");
+    node.data = { ...node.data, hProperties: { ...node.data?.hProperties, id: heading.id } };
+  });
+};
 
 const tableWrappers: Plugin<[], Root> = () => (tree: Root) => {
   visit(tree, "element", (node, index, parent) => {
@@ -267,6 +267,7 @@ const tableWrappers: Plugin<[], Root> = () => (tree: Root) => {
 type MarkdownProps = {
   labels: StructuredBlockLabels;
   markdown: string;
+  cache?: MarkdownCache | null;
   structuredBlock: ComponentType<StructuredBlockProps>;
   embeds?: EmbedRenderer;
   link?: ComponentType<AnchorHTMLAttributes<HTMLAnchorElement>>;
@@ -290,22 +291,101 @@ async function EnrichedEmbed({
   return embedNode(await read(embed), link);
 }
 
-export async function Markdown({ labels, markdown, structuredBlock, embeds, link }: MarkdownProps) {
-  const deferredEmbeds: MarkdownEmbed[] = [];
+async function compileMarkdown(
+  labels: StructuredBlockLabels,
+  markdown: string,
+  enrich: boolean,
+): Promise<CompiledMarkdown> {
+  const deferredEmbeds: DeferredEmbed[] = [];
   const processor = markdownParser()
-    .use(headingAnchors, extractHeadings(markdown))
+    .use(headingAnchors)
     .use(remarkRehype)
     // IDs come from the heading compiler and remark's prefixed footnotes, not source HTML.
     .use(rehypeSanitize, { ...mathSchema, clobberPrefix: "" })
     .use(articleSemantics)
     .use(rehypeKatex)
     .use(markdownEmoji)
-    .use(structuredBlocks, labels, embeds ? deferredEmbeds : undefined)
+    .use(structuredBlocks, labels, enrich ? deferredEmbeds : undefined)
     .use(tableWrappers);
 
+  const { markdownHighlighter } = await import("./markdown-highlighter");
   processor.use(highlightCodeBlocks, await markdownHighlighter);
 
-  const file = await processor
+  const tree = await processor.run(processor.parse(markdown));
+  return { tree, deferredEmbeds };
+}
+
+const compilations = new Map<
+  string,
+  {
+    expires: number;
+    result: Promise<CompiledMarkdown>;
+  }
+>();
+const compilationTtl = 30_000;
+const compilationLimit = 16;
+
+async function readCompilation(labels: StructuredBlockLabels, markdown: string, enrich: boolean) {
+  if (markdown.length > 131_072) return compileMarkdown(labels, markdown, enrich);
+  const key = JSON.stringify([markdown, labels, enrich]);
+  const now = Date.now();
+  for (const [key, entry] of compilations) {
+    if (entry.expires <= now) compilations.delete(key);
+  }
+  const existing = compilations.get(key);
+  if (existing) {
+    compilations.delete(key);
+    compilations.set(key, existing);
+    return existing.result;
+  }
+  const entry = {
+    expires: now + compilationTtl,
+    result: compileMarkdown(labels, markdown, enrich),
+  };
+  compilations.set(key, entry);
+  for (const oldest of compilations.keys()) {
+    if (compilations.size <= compilationLimit) break;
+    compilations.delete(oldest);
+  }
+  try {
+    const result = await entry.result;
+    if (JSON.stringify(result).length > 524_288) {
+      if (compilations.get(key) === entry) compilations.delete(key);
+    } else entry.expires = Date.now() + compilationTtl;
+    return result;
+  } catch (error) {
+    if (compilations.get(key) === entry) compilations.delete(key);
+    throw error;
+  }
+}
+
+export async function Markdown({
+  labels,
+  markdown,
+  structuredBlock,
+  embeds,
+  link,
+  cache,
+}: MarkdownProps) {
+  let compiled: CompiledMarkdown;
+  if (cache) {
+    const input = JSON.stringify([markdown, labels, Boolean(embeds)]);
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+    const hash = Array.from(new Uint8Array(digest), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    const key = `compiled/${markdownArtifactVersion}/${hash}.json`;
+    const stored = await cache.get(key);
+    if (stored !== null) compiled = compiledMarkdownSchema.parse(JSON.parse(stored));
+    else {
+      compiled = await readCompilation(labels, markdown, Boolean(embeds));
+      const artifact = JSON.stringify(compiledMarkdownSchema.parse(compiled));
+      if (new TextEncoder().encode(artifact).byteLength <= 20 * 1024 * 1024)
+        await cache.put(key, artifact, { expirationTtl: 86_400 });
+    }
+  } else compiled = await readCompilation(labels, markdown, Boolean(embeds));
+  const { tree, deferredEmbeds } = compiled;
+  const result = unified()
     .use(rehypeReact, {
       Fragment,
       jsx,
@@ -328,7 +408,7 @@ export async function Markdown({ labels, markdown, structuredBlock, embeds, link
         },
       },
     })
-    .process(markdown);
+    .stringify(tree);
 
-  return <MarkdownBody>{file.result}</MarkdownBody>;
+  return <MarkdownBody>{result}</MarkdownBody>;
 }

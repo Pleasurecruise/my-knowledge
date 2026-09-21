@@ -1,6 +1,6 @@
 # Content workflows
 
-Local tools submit completed semantic Markdown. REST accepts Chinese with optional English/Japanese documents; MCP and browser authoring accept Chinese. Validate frontmatter, safety, tags and edition structure before persistence. Submissions create new identities without hosted generation.
+Local tools submit completed semantic Markdown. REST accepts Chinese with optional English/Japanese documents; MCP and browser authoring accept Chinese. Validate frontmatter, safety, tags and edition structure before persistence. Draft serialization validates Markdown once. Persistence returns committed metadata; response bodies are read once after supplied translations finish, without intermediate body reads. Submissions create new identities without hosted generation.
 
 The owner editor writes Chinese in every interface language. Create/edit share metadata and body. Unsaved drafts require confirmation before leaving; failed saves retain them. Save shares operations with external ingestion. Missing or stale translations display Chinese. Supplied translation failure does not withdraw already committed Chinese; retry against its current version.
 

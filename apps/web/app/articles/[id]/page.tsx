@@ -124,6 +124,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
           </ArticleHeader>
         </div>
         <Markdown
+          cache={article.visibility === "public" ? env.KNOWLEDGE_CACHE : null}
           embeds={readEmbed}
           link={ArticleLink}
           labels={{

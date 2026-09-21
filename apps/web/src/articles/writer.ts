@@ -1,6 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 import {
   parseArticleDocuments,
+  hashArticle,
+  readArticleDocument,
   serializeArticleDocument,
   translationLocaleSchema,
   type Visibility,
@@ -8,7 +10,7 @@ import {
 
 import { InvalidArticleInputError } from "./input-error";
 import type { ArticleDocuments, ArticleDraft, ArticleUpdateResult } from "./operations";
-import { getArticleById, getArticleRow } from "./persistence/document";
+import { readArticle, getArticleRow } from "./persistence/document";
 import { createArticle, saveArticleTranslation, updateArticle } from "./persistence/write";
 import { deleteArticle, setArticleVisibility } from "./persistence/write";
 
@@ -33,7 +35,8 @@ async function parseDraftDocument(draft: ArticleDraft) {
       tags: draft.tags,
       body: draft.body,
     });
-    return await parseArticleDocuments({ zh: source });
+    const zh = readArticleDocument(source);
+    return { editions: { zh }, tags: zh.tags, contentHash: await hashArticle({ zh: source }) };
   } catch {
     throw new InvalidArticleInputError();
   }
@@ -53,16 +56,14 @@ async function saveSuppliedTranslations(
 
 async function createArticleFromDraft(env: CloudflareEnv, draft: ArticleDraft, id: string) {
   const document = await parseDraftDocument(draft);
-  return createArticle(env, id, document);
+  return readArticle(env, await createArticle(env, id, document));
 }
 
 async function createArticleFromDocuments(env: CloudflareEnv, input: ArticleDocuments, id: string) {
   const documents = await parseSubmittedDocuments(input);
   const article = await createArticle(env, id, documents);
   await saveSuppliedTranslations(env, article.id, article.contentHash, documents.editions);
-  const stored = await getArticleById(env, "owner", article.id);
-  if (!stored) throw new Error(`Created article ${article.id} is not readable`);
-  return stored;
+  return readArticle(env, article);
 }
 
 async function updateArticleFromDraft(
@@ -78,7 +79,9 @@ async function updateArticleFromDraft(
     return { status: "stale" };
   const document = await parseDraftDocument(draft);
   const updated = await updateArticle(env, id, expectedHash, document, draft.visibility);
-  return updated ? { status: "updated", article: updated } : { status: "stale" };
+  return updated
+    ? { status: "updated", article: await readArticle(env, updated) }
+    : { status: "stale" };
 }
 
 async function updateArticleFromDocuments(
@@ -96,9 +99,7 @@ async function updateArticleFromDocuments(
   const article = await updateArticle(env, id, expectedHash, documents);
   if (!article) return { status: "stale" };
   await saveSuppliedTranslations(env, id, article.contentHash, documents.editions);
-  const stored = await getArticleById(env, "owner", id);
-  if (!stored) throw new Error(`Updated article ${id} is not readable`);
-  return { status: "updated", article: stored };
+  return { status: "updated", article: await readArticle(env, article) };
 }
 
 // One actor per article serializes the complete R2/D1 operation, including rollback.
