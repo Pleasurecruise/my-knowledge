@@ -1,5 +1,76 @@
 [
   {
+    "key": "suzume",
+    "name": "撕梓咩 · 绿猫",
+    "display": "sticker",
+    "items": [
+      {
+        "name": "摸摸",
+        "value": "https://szm.de5.net/_astro/Suzume_%E6%91%B8%E6%91%B8.C_a1EnPT_1HntKD.webp"
+      },
+      {
+        "name": "昏迷",
+        "value": "https://szm.de5.net/_astro/Suzume_%E6%98%8F%E8%BF%B7.D6n7WEZA_15KA3b.webp"
+      },
+      {
+        "name": "害怕",
+        "value": "https://szm.de5.net/_astro/Suzume_%E5%AE%B3%E6%80%95.D6XUZdeC_mv9Be.webp"
+      },
+      {
+        "name": "期待",
+        "value": "https://szm.de5.net/_astro/Suzume_%E6%9C%9F%E5%BE%85.CRLV_v_R_gMFnJ.webp"
+      },
+      {
+        "name": "吸引注意",
+        "value": "https://szm.de5.net/_astro/Suzume_%E5%90%B8%E5%BC%95%E6%B3%A8%E6%84%8F.tXgkCRAZ_1NmhCD.webp"
+      },
+      {
+        "name": "烫手",
+        "value": "https://szm.de5.net/_astro/Suzume_%E7%83%AB%E6%89%8B.UMH6UA_Y_MCsc4.webp"
+      },
+      {
+        "name": "出现",
+        "value": "https://szm.de5.net/_astro/Suzume_%E5%87%BA%E7%8E%B0.BOeMlsBs_Z1vLUrP.webp"
+      },
+      {
+        "name": "评价",
+        "value": "https://szm.de5.net/_astro/Suzume_%E8%AF%84%E4%BB%B7.7yYzzlcL_ZBBpeM.webp"
+      },
+      {
+        "name": "呜哇",
+        "value": "https://szm.de5.net/_astro/Suzume_%E5%91%9C%E5%93%87.BHBxR7_n_z7u72.webp"
+      },
+      {
+        "name": "摆",
+        "value": "https://szm.de5.net/_astro/Suzume_%E6%91%86.D4XRhjwo_Z1b66g8.webp"
+      },
+      {
+        "name": "画不完了",
+        "value": "https://szm.de5.net/_astro/Suzume_%E7%94%BB%E4%B8%8D%E5%AE%8C%E4%BA%86.DLV-OwWi_1CMUdl.webp"
+      },
+      {
+        "name": "冬的花",
+        "value": "https://szm.de5.net/_astro/Suzume_%E5%86%AC%E7%9A%84%E8%8A%B1.C-mc0ien_Z2o5754.webp"
+      },
+      {
+        "name": "智慧",
+        "value": "https://szm.de5.net/_astro/Suzume_%E6%99%BA%E6%85%A7.CTuVKYz4_t7iQj.webp"
+      },
+      {
+        "name": "思考",
+        "value": "https://szm.de5.net/_astro/Suzume_%E6%80%9D%E8%80%83.C5bkUq5S_Z1jRy2k.webp"
+      },
+      {
+        "name": "酸",
+        "value": "https://szm.de5.net/_astro/Suzume_%E9%85%B8.C97v-g-v_2vb8Nl.webp"
+      },
+      {
+        "name": "敲",
+        "value": "https://szm.de5.net/_astro/Suzume_%E6%95%B2.B2xceFY7_Z1bwGxv.webp"
+      }
+    ]
+  },
+  {
     "key": "suzume5",
     "name": "撕梓咩 S5",
     "display": "sticker",
@@ -598,164 +669,6 @@
       {
         "name": "117",
         "value": "https://assets.stickers.wiki/img/121f7b3f1bb5e1a6625cb38fa6b66e67.webp"
-      }
-    ]
-  },
-  {
-    "key": "denghuoju8",
-    "name": "灯火橘8 @zhaxia_cn",
-    "display": "sticker",
-    "items": [
-      {
-        "name": "01",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/0xf09fa7a0.webp"
-      },
-      {
-        "name": "02",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/1xf09f9884.webp"
-      },
-      {
-        "name": "03",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/2xf09f8d94.webp"
-      },
-      {
-        "name": "04",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/3xf09f94a5.webp"
-      },
-      {
-        "name": "05",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/4xf09f95b8efb88f.webp"
-      },
-      {
-        "name": "06",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/5xf09fa497.webp"
-      },
-      {
-        "name": "07",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/6xf09f9aab.webp"
-      },
-      {
-        "name": "08",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/7xf09f9aab.webp"
-      },
-      {
-        "name": "09",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/8xe29da4efb88f.webp"
-      },
-      {
-        "name": "10",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/9xf09f94a8.webp"
-      },
-      {
-        "name": "11",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/10xe29da4efb88f.webp"
-      },
-      {
-        "name": "12",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/11xf09fa497.webp"
-      },
-      {
-        "name": "13",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/12xf09f9aab.webp"
-      },
-      {
-        "name": "14",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/13xf09f9aab.webp"
-      },
-      {
-        "name": "15",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/14xf09f98ad.webp"
-      },
-      {
-        "name": "16",
-        "value": "https://cdn.combot.online/in_ajejdc_by_naidrawbot/webp/15xf09fa4ae.webp"
-      }
-    ]
-  },
-  {
-    "key": "daimao2",
-    "name": "呆猫八条集合包 #2",
-    "display": "sticker",
-    "items": [
-      {
-        "name": "01",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/0xf09f92a4.webp"
-      },
-      {
-        "name": "02",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/1xf09fabb6.webp"
-      },
-      {
-        "name": "03",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/2xf09fa48f.webp"
-      },
-      {
-        "name": "04",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/3xf09f9180.webp"
-      },
-      {
-        "name": "05",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/4xf09f98a4.webp"
-      },
-      {
-        "name": "06",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/5xf09f9181efb88f.webp"
-      },
-      {
-        "name": "07",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/6xf09f989d.webp"
-      },
-      {
-        "name": "08",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/7xf09f98ad.webp"
-      },
-      {
-        "name": "09",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/8xf09f9888.webp"
-      },
-      {
-        "name": "10",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/9xf09f9189.webp"
-      },
-      {
-        "name": "11",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/10xf09fa5b0.webp"
-      },
-      {
-        "name": "12",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/11xf09f98a9.webp"
-      },
-      {
-        "name": "13",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/12xf09f98b6e2808df09f8cabefb88f.webp"
-      },
-      {
-        "name": "14",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/13xf09f98b1.webp"
-      },
-      {
-        "name": "15",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/14xe2988eefb88f.webp"
-      },
-      {
-        "name": "16",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/15xf09f98a2.webp"
-      },
-      {
-        "name": "17",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/16xf09fa5b0.webp"
-      },
-      {
-        "name": "18",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/17xe29da4.webp"
-      },
-      {
-        "name": "19",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/18xe29da4.webp"
-      },
-      {
-        "name": "20",
-        "value": "https://cdn.combot.online/daimaoextended2/webp/19xf09f9888.webp"
       }
     ]
   }

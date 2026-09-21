@@ -56,11 +56,11 @@ it("uses the selected catalog in the real article renderer", async () => {
       spatialView: "Spatial view",
     },
     markdown:
-      "Before :suzume5_01: after :baishengnv_117: :denghuoju8_16: :daimao2_20: `:suzume5_01:` $:suzume5_01:$ :missing_01:",
+      "Before :suzume5_01: after :baishengnv_117: :suzume_思考: :suzume_期待: `:suzume5_01:` $:suzume5_01:$ :missing_01:",
     structuredBlock: () => null,
   });
   const html = renderToStaticMarkup(view);
-  expect(imageEmojis.size).toBe(183);
+  expect(imageEmojis.size).toBe(163);
   expect(html.match(/class="markdown-emoji /gu)).toHaveLength(4);
   expect(html).toContain("<code>:suzume5_01:</code>");
   expect(html).toContain(":missing_01:");

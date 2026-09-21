@@ -8,6 +8,6 @@ Shared components own control styles, including search inputs and account popove
 
 Silver, slate blue, matcha and amber support 16px/1.8 reading and social images. Fonts bundle Geist, Geist Mono and Lora. Diagrams fit the column; architecture wraps labels, grows node heights, and uses columns or paired rows based on the diagram container width. Code wraps. Tables fit available width, keep first-column labels unbroken, and expose keyboard-accessible horizontal scrolling when needed. Annotation arrows follow highlighted text.
 
-Shortcode images align inline: emoji are 2rem squares; stickers preserve aspect ratio within 6rem; 128px Combot previews are capped at 4rem to avoid enlarging them beyond a 2x pixel budget. Images load lazily without referrers.
+Shortcode images align inline: emoji are 2rem squares; stickers preserve aspect ratio within 6rem. Images load lazily without referrers.
 
 Verify through the [frontend specification](../.agents/specs/frontend.md).

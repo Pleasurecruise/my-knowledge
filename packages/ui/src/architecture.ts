@@ -2,51 +2,48 @@ import type { MarkdownEmbed } from "@my-knowledge/content";
 
 type Architecture = Extract<MarkdownEmbed, { kind: "architecture" }>;
 
-// Use conservative glyph widths at the diagram's 14px font size. Break at words
-// where possible, and at grapheme boundaries for CJK or long unbroken labels.
-function labelLines(label: string) {
-  const lines: string[] = [];
-  let line = "";
-  let width = 0;
+export function layoutArchitecture(graph: Architecture, compact = false) {
+  // Budget 128px inside each 160px node at the diagram's 14px font size.
+  // Prefer words, splitting CJK and long identifiers only at grapheme boundaries.
   const segments = new Intl.Segmenter(undefined, { granularity: "grapheme" });
-  for (const word of label.split(/(\s+)/u)) {
-    const glyphs = [...segments.segment(word)].map(({ segment }) => segment);
-    const sizes = glyphs.map((glyph) =>
-      /\s/u.test(glyph)
-        ? 5
-        : /^[MW@%&#]$/u.test(glyph)
-          ? 14
-          : /^[\x20-\x7e]$/u.test(glyph)
-            ? 9
-            : /[\u{1f000}-\u{1faff}\u2600-\u27ff]/u.test(glyph)
-              ? 28
-              : 14,
-    );
-    const wordWidth = sizes.reduce((sum, size) => sum + size, 0);
-    if (line.trim() && wordWidth <= 128 && width + wordWidth > 128) {
-      lines.push(line.trimEnd());
-      line = "";
-      width = 0;
-    }
-    for (const [index, glyph] of glyphs.entries()) {
-      const size = sizes[index] ?? 14;
-      if (!line && /\s/u.test(glyph)) continue;
-      if (width + size > 128 && line) {
+  const labeled = graph.nodes.map((node) => {
+    const lines: string[] = [];
+    let line = "";
+    let width = 0;
+    for (const word of node.label.split(/(\s+)/u)) {
+      const glyphs = [...segments.segment(word)].map(({ segment: glyph }) => ({
+        glyph,
+        size: /\s/u.test(glyph)
+          ? 5
+          : /^[MW@%&#]$/u.test(glyph)
+            ? 14
+            : /^[\x20-\x7e]$/u.test(glyph)
+              ? 9
+              : /[\u{1f000}-\u{1faff}\u2600-\u27ff]/u.test(glyph)
+                ? 28
+                : 14,
+      }));
+      const wordWidth = glyphs.reduce((sum, { size }) => sum + size, 0);
+      if (line.trim() && wordWidth <= 128 && width + wordWidth > 128) {
         lines.push(line.trimEnd());
         line = "";
         width = 0;
-        if (/\s/u.test(glyph)) continue;
       }
-      line += glyph;
-      width += size;
+      for (const { glyph, size } of glyphs) {
+        if (!line && /\s/u.test(glyph)) continue;
+        if (width + size > 128 && line) {
+          lines.push(line.trimEnd());
+          line = "";
+          width = 0;
+          if (/\s/u.test(glyph)) continue;
+        }
+        line += glyph;
+        width += size;
+      }
     }
-  }
-  if (line) lines.push(line.trimEnd());
-  return lines;
-}
-
-export function layoutArchitecture(graph: Architecture, compact = false) {
-  const labeled = graph.nodes.map((node) => ({ ...node, lines: labelLines(node.label) }));
+    if (line) lines.push(line.trimEnd());
+    return { ...node, lines };
+  });
   const nodeHeight = Math.max(80, ...labeled.map((node) => node.lines.length * 20 + 24));
   const incoming = new Map(graph.nodes.map((node) => [node.id, 0]));
   const levels = new Map(graph.nodes.map((node) => [node.id, 0]));
