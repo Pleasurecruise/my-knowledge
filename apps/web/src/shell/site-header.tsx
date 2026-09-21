@@ -5,13 +5,14 @@ import { ChevronLeft } from "@my-knowledge/ui/icons";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useId, useRef, useState, type ReactNode } from "react";
 
+import { authClient } from "@/auth/client";
+
 export function SiteHeader({
   controls,
   preferences,
   discovery,
   identity,
   action,
-  owner,
   label,
 }: {
   controls: ReactNode;
@@ -19,9 +20,10 @@ export function SiteHeader({
   discovery: ReactNode;
   identity: ReactNode;
   action: ReactNode;
-  owner: boolean;
   label: string;
 }) {
+  const { data: session, isPending } = authClient.useSession();
+  const owner = !isPending && Boolean(session);
   const pathname = usePathname();
   const query = useSearchParams();
   const location = `${pathname}?${query}`;

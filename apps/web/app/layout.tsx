@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Plus } from "@my-knowledge/ui/icons";
 import { buttonVariants } from "@my-knowledge/ui/components/button";
-import { getPrincipal } from "@/auth/owner";
 import { ReadingTrail } from "@/articles/components/reading-trail";
 import { SiteHeader } from "@/shell/site-header";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
@@ -19,8 +18,6 @@ import { ThemeAction } from "@/theme/components/theme-action";
 
 import "./globals.css";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata(): Promise<Metadata> {
   const { env } = await getCloudflareContext({ async: true });
   return {
@@ -35,10 +32,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const [i18n, { env }, principal] = await Promise.all([
+  const [i18n, { env }] = await Promise.all([
     getInterfaceI18n(),
     getCloudflareContext({ async: true }),
-    getPrincipal(),
   ]);
 
   return (
@@ -55,7 +51,6 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <ReadingTrail>
           <SiteHeader
-            owner={principal === "owner"}
             label={i18n.messages.shell.moreActions}
             preferences={
               <div className="site-preferences">
@@ -63,9 +58,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 <ThemeAction messages={i18n.messages.shell} />
               </div>
             }
-            discovery={
-              principal === "owner" ? <PrimaryNavigation messages={i18n.messages.shell} /> : null
-            }
+            discovery={<PrimaryNavigation messages={i18n.messages.shell} />}
             identity={
               <div className="site-identity">
                 <Image alt="" src="/logo.png" width={44} height={44} priority />
@@ -73,16 +66,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               </div>
             }
             action={
-              principal === "owner" ? (
-                <Link
-                  href="/articles/new"
-                  aria-label={i18n.messages.articles.newArticle}
-
-                  className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
-                >
-                  <Plus aria-hidden="true" />
-                </Link>
-              ) : null
+              <Link
+                href="/articles/new"
+                aria-label={i18n.messages.articles.newArticle}
+                className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+              >
+                <Plus aria-hidden="true" />
+              </Link>
             }
             controls={
               <>
