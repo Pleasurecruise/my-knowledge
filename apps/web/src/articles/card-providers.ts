@@ -1,5 +1,4 @@
 import { fromHtml } from "hast-util-from-html";
-import { visit } from "unist-util-visit";
 import { z } from "zod";
 import type { CardData } from "@my-knowledge/ui";
 
@@ -15,30 +14,6 @@ const repository = z.object({
       .refine((value) => new URL(value).origin === "https://avatars.githubusercontent.com"),
   }),
 });
-const tweet = z.object({ author_name: z.string().min(1), html: z.string().min(1) });
-const twitterCard = z.object({ kind: z.literal("twitter"), author: z.string(), text: z.string() });
-
-function parseTweet(data: unknown): Extract<CardData, { kind: "twitter" }> {
-  const item = tweet.parse(data);
-  const tree = fromHtml(item.html, { fragment: true });
-  const quote = tree.children.find(
-    (node) => node.type === "element" && node.tagName === "blockquote",
-  );
-  const paragraph =
-    quote?.type === "element"
-      ? quote.children.find((node) => node.type === "element" && node.tagName === "p")
-      : undefined;
-  if (!paragraph) throw new ProviderError("Post body is missing");
-  let text = "";
-  visit(paragraph, (node) => {
-    if (node.type === "element" && ["script", "style"].includes(node.tagName)) return "skip";
-    if (node.type === "text") text += node.value;
-    if (node.type === "element" && node.tagName === "br") text += "\n";
-  });
-  if (!text.trim()) throw new ProviderError("Post body is empty");
-  return { kind: "twitter", author: item.author_name, text: text.trim() };
-}
-
 const chart = z.object({
   chart: z.object({
     error: z.null(),
@@ -214,18 +189,6 @@ export const cardProviders = {
     unavailable: "Link preview is unavailable. Open the source to read the page.",
     parse: parseLink,
     render: (data) => linkCard.parse(data),
-  },
-  twitter: {
-    cacheKey: urlKey,
-    address: (id) =>
-      `https://publish.x.com/oembed?${new URLSearchParams({ url: id, omit_script: "true", dnt: "true", hide_thread: "true" })}`,
-    accept: "application/json",
-    redirects: false,
-    contentTypes: [],
-    ttl: 3600,
-    unavailable: "Post preview is unavailable. Open X / Twitter to read the post.",
-    parse: (text) => parseTweet(JSON.parse(text)),
-    render: (data) => twitterCard.parse(data),
   },
 } satisfies Record<string, CardProvider>;
 

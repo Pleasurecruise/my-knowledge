@@ -1,3 +1,4 @@
+import tweet from "../fixtures/tweet.json" with { type: "json" };
 import { spawnSync } from "node:child_process";
 import { mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { generateRandomString, makeSignature } from "better-auth/crypto";
@@ -112,20 +113,9 @@ const { env, dispose } = await getPlatformProxy<CloudflareEnv>({
   persist: { path: fileURLToPath(new URL(".wrangler/test-state/v3", appDirectory)) },
 });
 try {
-  const postUrl = "https://x.com/example/status/12345";
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(postUrl));
-  const key = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join(
-    "",
-  );
-  await env.KNOWLEDGE_CACHE.put(
-    `embed:twitter:${key}`,
-    JSON.stringify({
-      kind: "twitter",
-      author: "Example 作者",
-      text: "A cached post for deterministic browser verification.\n推特链接与正文，在窄屏上也保持可读。",
-    }),
-    { expirationTtl: 3600 },
-  );
+  await env.KNOWLEDGE_CACHE.put("embed:twitter:12345", JSON.stringify(tweet), {
+    expirationTtl: 3600,
+  });
   for (const [fixture, objectPath] of objects) {
     const documents = Object.fromEntries(
       await Promise.all(

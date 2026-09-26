@@ -105,6 +105,14 @@ test("copies code and reads a native Twitter card", async ({
   });
   page.on("pageerror", (error) => errors.push(error.message));
   await serveGoogle(page);
+  await page.route("https://pbs.twimg.com/**", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: route.request().url().includes("profile_images")
+        ? '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="48" height="48" fill="#60796c"/><circle cx="24" cy="18" r="9" fill="#dce8e0"/><ellipse cx="24" cy="46" rx="18" ry="16" fill="#dce8e0"/></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720"><rect width="1280" height="720" fill="#dce8e0"/><circle cx="950" cy="180" r="70" fill="#e7bf72"/><path d="M0 720V460L340 180L700 570L940 330L1280 600V720Z" fill="#60796c"/></svg>',
+    }),
+  );
   if (testInfo.project.name.includes("reduced-motion"))
     await page.emulateMedia({ reducedMotion: "reduce" });
   if (!baseURL) throw new Error("Local Worker URL required");
@@ -134,8 +142,20 @@ test("copies code and reads a native Twitter card", async ({
   const card = page.locator(".markdown-embed-twitter");
   await expect(card).toContainText("Example 作者");
   await expect(card).toContainText("推特链接与正文");
-  await expect(card.locator("a")).toHaveAttribute("href", "https://x.com/example/status/12345");
+  await expect(card.getByRole("link", { name: "View on Twitter" })).toHaveAttribute(
+    "href",
+    "https://x.com/example/status/12345",
+  );
   await expect(page.locator('script[src*="twitter"], iframe[src*="twitter"]')).toHaveCount(0);
+  const media = card.getByRole("img", { name: "A landscape used to verify tweet media layout" });
+  await expect(media).toBeVisible();
+  expect(
+    await media.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
+  ).toBe(true);
+  expect((await media.boundingBox())?.height).toBeGreaterThan(140);
+  await card.screenshot({ path: testInfo.outputPath("tweet-card.png") });
+  await card.getByRole("link", { name: "View on Twitter" }).focus();
+  await expect(card.getByRole("link", { name: "View on Twitter" })).toBeFocused();
   const button = page.locator(".markdown-code-block button");
   await expect(button).toHaveAttribute("aria-label", "复制代码");
   await button.focus();

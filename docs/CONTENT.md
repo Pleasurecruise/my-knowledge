@@ -1,12 +1,10 @@
 # Content contract
 
-Chinese is canonical; translations require its hash. Frontmatter: `title`, `summary`, `tags`. `/articles/{uuid}`.
-
-Supports GFM, math, callouts, footnotes, anchors, Mermaid, Vega and Canvas. Invalid blocks show source.
+Chinese is canonical; translations require its hash. Frontmatter: `title`, `summary`, `tags`. Route: `/articles/{uuid}`. Supports GFM, math, callouts, footnotes, anchors, Mermaid, Vega and Canvas. Invalid blocks show source.
 
 ## Dialects
 
-`embed:<kind>` fences reject invalid fields.
+`embed:<kind>` validates fields. `align`: wide, narrow, left or right.
 
 | Kind         | Required content                           |
 | ------------ | ------------------------------------------ |
@@ -22,10 +20,8 @@ Supports GFM, math, callouts, footnotes, anchors, Mermaid, Vega and Canvas. Inva
 | diff         | `title`, `---`, unified diff               |
 | annotation   | `mark`, `note`, `---`, plain text          |
 
-Annotations require one mark; optional `color`/`url` style/link notes. `align`: wide, narrow, left or right within page width. GitHub/link/Twitter metadata cache hourly; stocks cache five minutes. Twitter normalizes HTTPS post URLs and renders oEmbed author/text without scripts. Failures never cache. Article references deduplicate authorized metadata per request/identity, preserving chapter anchors.
+Twitter normalizes HTTPS X/Twitter URLs. Server-fetched `react-tweet` data supplies authors, text, media and quoted posts without widgets. Requests explicitly send JSON Accept and User-Agent headers: Workers supply no default User-Agent, which X rejects. GitHub/link/Twitter data caches hourly; stocks cache five minutes. Failures never cache. Article references deduplicate authorized metadata, preserving chapter anchors. Annotations require one mark; optional `color`/`url` style/link notes.
 
 ## Source editing
 
-Examples use longer outer fences or closed triple-fence wrappers. Unsupported conversions retain source mode.
-
-Image shortcodes: [Stickers](STICKERS.md).
+Examples use outer fences or closed triple-fence wrappers. Unsupported conversions retain source mode. Shortcodes follow [Stickers](STICKERS.md).

@@ -51,7 +51,7 @@
   font-size: 0.875em;
 }
 
-.markdown-body p {
+.markdown-body p:not(:where(.not-prose *)) {
   margin: 1em 0;
 }
 
@@ -101,7 +101,7 @@
   border-top: 1px solid var(--border);
 }
 
-.markdown-body img {
+.markdown-body img:not(:where(.not-prose *)) {
   display: block;
   max-width: 100%;
   height: auto;
@@ -109,7 +109,7 @@
   border-radius: var(--radius-lg);
 }
 
-.markdown-body a {
+.markdown-body a:not(:where(.not-prose *)) {
   color: var(--primary);
   text-decoration: underline;
   text-underline-offset: 0.2em;
@@ -117,7 +117,7 @@
   transition: color 140ms ease;
 }
 
-.markdown-body a:hover {
+.markdown-body a:hover:not(:where(.not-prose *)) {
   color: color-mix(in srgb, var(--primary) 78%, var(--foreground));
 }
 
@@ -935,6 +935,41 @@
   padding-top: 2rem;
 }
 
-.markdown-embed-twitter .embed-link p {
-  white-space: pre-wrap;
+.markdown-body .tweet-card {
+  --tweet-font-family: var(--type-interface);
+  --tweet-font-color: var(--foreground);
+  --tweet-font-color-secondary: var(--muted-foreground);
+  --tweet-border: 1px solid var(--border);
+  --tweet-bg-color: var(--card);
+  --tweet-bg-color-hover: var(--card);
+  --tweet-color-blue-primary: var(--primary);
+  --tweet-color-blue-secondary: var(--primary);
+  --tweet-body-font-size: 1rem;
+  --tweet-body-line-height: 1.65;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+  border-radius: var(--radius-xl);
+}
+
+.markdown-body .tweet-card > article {
+  padding: 1.25rem;
+}
+
+.tweet-card-date {
+  margin-top: 0.875rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.tweet-card a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tweet-card,
+  .tweet-card * {
+    transition: none;
+  }
 }

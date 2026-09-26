@@ -3,9 +3,10 @@ import { getPrincipal } from "../auth/owner";
 import { getArticleRow } from "./persistence/document";
 import { articleOrigin } from "./origin";
 import { cache } from "react";
+import { fetchTweet, TwitterApiError, type Tweet } from "react-tweet/api";
 import { z } from "zod";
 import type { MarkdownEmbed } from "@my-knowledge/content";
-import { renderMarkdownEmbed, type ArticleCard, type CardData } from "@my-knowledge/ui";
+import { renderMarkdownEmbed, TweetCard, type ArticleCard, type CardData } from "@my-knowledge/ui";
 
 import {
   cardProviders,
@@ -61,31 +62,18 @@ const readCard = cache(async (kind: CardProviderKind, id: string): Promise<CardD
       return { kind: "error", message: provider.rateLimit.message };
     }
     if (!response.ok) throw new ProviderError("Provider request failed");
-    const reader = response.body?.getReader();
-    if (!reader) throw new ProviderError("Provider response is empty");
-    const chunks: Uint8Array[] = [];
+    if (!response.body) throw new ProviderError("Provider response is empty");
     let size = 0;
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        size += value.length;
-        if (size > 524288) {
-          await reader.cancel();
-          throw new ProviderError("Provider response is too large");
-        }
-        chunks.push(value);
-      }
-    } finally {
-      reader.releaseLock();
-    }
-    const bytes = new Uint8Array(size);
-    let offset = 0;
-    for (const chunk of chunks) {
-      bytes.set(chunk, offset);
-      offset += chunk.length;
-    }
-    const text = new TextDecoder().decode(bytes);
+    const body = response.body.pipeThrough(
+      new TransformStream<Uint8Array, Uint8Array>({
+        transform(chunk, controller) {
+          size += chunk.byteLength;
+          if (size > 524288) throw new ProviderError("Provider response is too large");
+          controller.enqueue(chunk);
+        },
+      }),
+    );
+    const text = await new Response(body).text();
     let data: unknown;
     try {
       data = provider.parse(text, address);
@@ -101,6 +89,31 @@ const readCard = cache(async (kind: CardProviderKind, id: string): Promise<CardD
     if (!(error instanceof ProviderError) && !(error instanceof z.ZodError)) throw error;
     return { kind: "error", message: provider.unavailable };
   }
+});
+
+const readTweet = cache(async (id: string): Promise<Tweet | undefined> => {
+  const { env } = await getCloudflareContext({ async: true });
+  const key = `embed:twitter:${id}`;
+  const cached = await env.KNOWLEDGE_CACHE.get<Tweet>(key, "json");
+  if (cached) return cached;
+  let data: Tweet | undefined;
+  try {
+    ({ data } = await fetchTweet(id, {
+      signal: AbortSignal.timeout(6000),
+      headers: { Accept: "application/json", "User-Agent": "my-knowledge" },
+    }));
+  } catch (error) {
+    if (
+      error instanceof TwitterApiError ||
+      error instanceof TypeError ||
+      error instanceof SyntaxError ||
+      error instanceof DOMException
+    )
+      return undefined;
+    throw error;
+  }
+  if (data) await env.KNOWLEDGE_CACHE.put(key, JSON.stringify(data), { expirationTtl: 3600 });
+  return data;
 });
 
 const readArticleCard = cache(async (value: string): Promise<ArticleCard | null> => {
@@ -133,8 +146,18 @@ export async function readEmbed(embed: MarkdownEmbed) {
     }
     return renderMarkdownEmbed(embed, { kind: "articleList", items });
   }
-  if (embed.kind === "twitter")
-    return renderMarkdownEmbed(embed, await readCard("twitter", embed.url));
+  if (embed.kind === "twitter") {
+    const id = new URL(embed.url).pathname.split("/")[3];
+    const tweet = id ? await readTweet(id) : undefined;
+    return tweet ? (
+      <TweetCard tweet={tweet} align={embed.align} />
+    ) : (
+      renderMarkdownEmbed(embed, {
+        kind: "error",
+        message: "Post preview is unavailable. Open X / Twitter to read the post.",
+      })
+    );
+  }
   if (embed.kind === "link") return renderMarkdownEmbed(embed, await readCard("link", embed.url));
   if (embed.kind === "github")
     return renderMarkdownEmbed(embed, await readCard("github", embed.repo));

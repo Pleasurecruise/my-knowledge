@@ -251,9 +251,9 @@ importers:
       react-dom:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
-      unist-util-visit:
-        specifier: 5.1.0
-        version: 5.1.0
+      react-tweet:
+        specifier: 3.3.1
+        version: 3.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -358,6 +358,9 @@ importers:
       react-dom:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
+      react-tweet:
+        specifier: 3.3.1
+        version: 3.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       rehype-katex:
         specifier: 7.0.1
         version: 7.0.1
@@ -5462,6 +5465,12 @@ packages:
   react-is@17.0.2:
     resolution: {integrity: sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==}
 
+  react-tweet@3.3.1:
+    resolution: {integrity: sha512-0Gj1YgBTe1K85NBMoWBlUc17Rdc67gIJLlacrVgj+3jWIoXpFfxPdZ1U5OnWkkF9zxhphqs2pY1i//JBfP3Qog==}
+    peerDependencies:
+      react: 19.3.0
+      react-dom: 19.3.0
+
   react@19.3.0:
     resolution: {integrity: sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog==}
     engines: {node: '>=0.10.0'}
@@ -5736,6 +5745,11 @@ packages:
   supports-color@10.2.2:
     resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
     engines: {node: '>=18'}
+
+  swr@2.5.1:
+    resolution: {integrity: sha512-BRw55e8r0B7SpDN20CAzoQAHl7y1yP7/Zt7oqUjMv0vSt2u2Xnkm88Ws+VypbV9BXHQVuSuyVq7zMjO16wSExw==}
+    peerDependencies:
+      react: 19.3.0
 
   systeminformation@5.33.11:
     resolution: {integrity: sha512-CNGk+882EQbsbPzaoxeBcYyx+nk0uTj5JzW8w0EXGSCazndNRAh9SE0V5tyMbdONGKilbIBJsyskF4WmZDk7uA==}
@@ -11458,6 +11472,14 @@ snapshots:
 
   react-is@17.0.2: {}
 
+  react-tweet@3.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      '@swc/helpers': 0.5.23
+      clsx: 2.1.1
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      swr: 2.5.1(react@19.3.0)
+
   react@19.3.0: {}
 
   recast@0.23.21:
@@ -11857,6 +11879,12 @@ snapshots:
   stylis@4.4.0: {}
 
   supports-color@10.2.2: {}
+
+  swr@2.5.1(react@19.3.0):
+    dependencies:
+      dequal: 2.0.3
+      react: 19.3.0
+      use-sync-external-store: 1.7.0(react@19.3.0)
 
   systeminformation@5.33.11: {}
 

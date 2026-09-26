@@ -14,6 +14,8 @@ import rehypeReact from "rehype-react";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkRehype from "remark-rehype";
 import {
+  isValidElement,
+  type ReactElement,
   Fragment,
   Suspense,
   type ComponentType,
@@ -107,7 +109,7 @@ const articleSemantics: Plugin<[], Root> = () => (tree: Root) => {
   });
 };
 
-type EmbedRenderer = (embed: MarkdownEmbed) => Promise<Element>;
+type EmbedRenderer = (embed: MarkdownEmbed) => Promise<Element | ReactElement>;
 
 const structuredBlocks: Plugin<[StructuredBlockLabels, DeferredEmbed[]?], Root> =
   (labels, embeds) => (tree: Root) => {
@@ -291,7 +293,8 @@ async function EnrichedEmbed({
   read: EmbedRenderer;
   link: MarkdownProps["link"];
 }) {
-  return embedNode(await read(embed), link);
+  const result = await read(embed);
+  return isValidElement(result) ? result : embedNode(result, link);
 }
 
 async function compileMarkdown(

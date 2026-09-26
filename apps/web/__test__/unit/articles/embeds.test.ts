@@ -1,3 +1,4 @@
+import tweet from "../../fixtures/tweet.json";
 import { afterEach, expect, it, vi } from "vite-plus/test";
 import { readEmbed } from "../../../src/articles/embeds";
 
@@ -377,20 +378,16 @@ it("reuses validated link and stock responses across calls without caching failu
   });
 });
 
-it("renders Twitter text without third-party HTML and reuses its cached card", async () => {
+it("fetches structured Twitter data once and reuses the server cache", async () => {
   const stored = new Map<string, string>();
-  repositoryCache.get.mockImplementation(async (key) => stored.get(key) ?? null);
+  repositoryCache.get.mockImplementation(async (key) => {
+    const value = stored.get(key);
+    return value ? JSON.parse(value) : null;
+  });
   repositoryCache.put.mockImplementation(async (key, value) => {
     stored.set(key, value);
   });
-  const fetcher = vi.fn().mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        author_name: "Example <author>",
-        html: '<blockquote><p>Hello &amp; world<br>Line two <a href="javascript:alert(1)">link</a><script>malicious()</script></p>— Example</blockquote><script src="https://platform.twitter.com/widgets.js"></script>',
-      }),
-    ),
-  );
+  const fetcher = vi.fn().mockImplementation(async () => Response.json(tweet));
   vi.stubGlobal("fetch", fetcher);
   const embed = {
     kind: "twitter",
@@ -399,28 +396,29 @@ it("renders Twitter text without third-party HTML and reuses its cached card", a
   } satisfies Parameters<typeof readEmbed>[0];
   for (let index = 0; index < 2; index++) {
     const card = JSON.stringify(await readEmbed(embed));
-    expect(card).toContain("Example <author>");
-    expect(card).toContain("Hello & world\\nLine two link");
-    expect(card).not.toContain("malicious");
+    expect(card).toContain("Example 作者");
+    expect(card).toContain("knowledge-test.jpg");
     expect(card).not.toContain("widgets.js");
-    expect(card).not.toContain("javascript:");
   }
   expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(String(fetcher.mock.calls[0]?.[0])).toContain(
+    "https://cdn.syndication.twimg.com/tweet-result?",
+  );
   expect(fetcher).toHaveBeenCalledWith(
-    expect.stringMatching(/^https:\/\/publish\.x\.com\/oembed\?/u),
-    expect.objectContaining({ redirect: "manual" }),
-  );
-  expect(repositoryCache.put).toHaveBeenCalledWith(
-    expect.stringMatching(/^embed:twitter:[a-f0-9]{64}$/u),
     expect.any(String),
-    { expirationTtl: 3600 },
+    expect.objectContaining({
+      headers: { Accept: "application/json", "User-Agent": "my-knowledge" },
+    }),
   );
+  expect(repositoryCache.put).toHaveBeenCalledWith("embed:twitter:12345", JSON.stringify(tweet), {
+    expirationTtl: 3600,
+  });
 });
 
 it.each([
   new Response("unavailable", { status: 404 }),
-  new Response("invalid json"),
-  new Response(JSON.stringify({ author_name: "Example", html: "<script>bad()</script>" })),
+  new Response("invalid json", { headers: { "content-type": "application/json" } }),
+  Response.json({ __typename: "TweetTombstone" }),
 ])("keeps unavailable Twitter posts linked without caching failures", async (response) => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
   const card = JSON.stringify(

@@ -13,7 +13,6 @@ function element(
 export type ArticleCard = { href: string; title: string; description: string };
 
 export type CardData =
-  | { kind: "twitter"; author: string; text: string }
   | { kind: "articleList"; items: (ArticleCard | null)[] }
   | {
       kind: "link";
@@ -134,12 +133,8 @@ export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): Elem
           [
             element("div", [
               element("small", [{ type: "text", value: "X / Twitter" }]),
-              element("strong", [
-                { type: "text", value: data?.kind === "twitter" ? data.author : `@${handle}` },
-              ]),
-              element("p", [
-                { type: "text", value: data?.kind === "twitter" ? data.text : embed.url },
-              ]),
+              element("strong", [{ type: "text", value: `@${handle}` }]),
+              element("p", [{ type: "text", value: embed.url }]),
             ]),
           ],
           {

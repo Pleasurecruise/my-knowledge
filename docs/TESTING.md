@@ -6,6 +6,6 @@ Required checks are `pnpm check`, `pnpm test`, `pnpm build`, and `pnpm dry-run`,
 
 Playwright runs the generated OpenNext Worker with local-only test bindings, freshly rebuilt disposable fixture storage, one worker and isolated anonymous/owner contexts. Owner sessions use real Better Auth signing and matching local D1 fixtures. Check phone/desktop, light/dark, reduced motion, languages, accessibility, overflow, screenshots, and unexpected console errors. Rich-block tests must verify usable geometry, not merely SVG existence.
 
-Successful remote cleanup and Google OAuth remain account-dependent release gates. Preserve failure traces and report configured skips honestly. CI checks and dry-runs do not deploy.
+Provider changes also require an uncached live request through the generated Worker. Keep synthetic IP headers off external requests. Successful remote cleanup and Google OAuth remain account-dependent release gates. Preserve failure traces and report configured skips honestly. CI checks and dry-runs do not deploy.
 
 The API contract journey verifies REST/MCP response parity, keyword search and versions. `KNOWLEDGE_CONTRACT_OUTPUT` optionally writes synthetic responses for Vesper consumer fixture verification; never capture credentials or production responses.
