@@ -10,6 +10,7 @@ export {
   Clock,
   Code2,
   Copy,
+  Eye,
   Heading1,
   Heading2,
   House,

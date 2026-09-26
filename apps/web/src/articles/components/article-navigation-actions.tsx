@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ArticleReturnContext } from "./reading-trail";
 import { Share2, Pencil } from "@my-knowledge/ui/icons";
 
@@ -17,6 +17,13 @@ export function ArticleNavigationActions({
 }: ArticleNavigationActionsProps) {
   const destination = useContext(ArticleReturnContext) ?? returnHref;
   const [copying, setCopying] = useState(false);
+  const [fragment, setFragment] = useState("");
+  useEffect(() => {
+    const updateFragment = () => setFragment(window.location.hash);
+    updateFragment();
+    window.addEventListener("hashchange", updateFragment);
+    return () => window.removeEventListener("hashchange", updateFragment);
+  }, []);
   async function copyLink() {
     setCopying(true);
     try {
@@ -52,7 +59,11 @@ export function ArticleNavigationActions({
         </button>
       </div>
       {edit.enabled ? (
-        <IntentLink className="article-edit" href={edit.href} aria-label={messages.edit}>
+        <IntentLink
+          className="article-edit"
+          href={`${edit.href}${fragment}`}
+          aria-label={messages.edit}
+        >
           <Pencil aria-hidden="true" />
         </IntentLink>
       ) : null}

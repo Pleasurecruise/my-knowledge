@@ -8,6 +8,7 @@ import {
   setArticleVisibility,
   updateArticleFromDocuments,
   updateArticleFromDraft,
+  updateArticleTranslationFromDraft,
 } from "@/articles/service";
 import { articleDeleteSchema, articlePatchSchema } from "@/api/articles";
 import { isOwnerRequest } from "@/auth/owner";
@@ -76,13 +77,16 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/art
   }
   let result: Awaited<ReturnType<typeof updateArticleFromDraft>>;
   try {
-    result = await updateArticleFromDraft(
-      env,
-      id,
-      input.expectedHash,
-      input.expectedUpdatedAt,
-      input,
-    );
+    result =
+      "locale" in input
+        ? await updateArticleTranslationFromDraft(
+            env,
+            id,
+            input.expectedHash,
+            input.expectedUpdatedAt,
+            input,
+          )
+        : await updateArticleFromDraft(env, id, input.expectedHash, input.expectedUpdatedAt, input);
   } catch (error) {
     if (error instanceof InvalidArticleInputError) {
       return Response.json({ error: error.message }, { status: 422 });

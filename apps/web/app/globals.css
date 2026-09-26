@@ -4,13 +4,13 @@
 
 @layer components {
   .article-writing-area,
-  .tiptap {
+  .markdown-preview .ProseMirror {
     min-height: max(28rem, 65svh);
     font-size: 1rem;
     line-height: 1.5;
   }
 
-  .tiptap {
+  .markdown-preview .ProseMirror {
     padding: 1rem;
     color: var(--foreground);
     font-family: var(--type-prose);
@@ -18,25 +18,25 @@
     overflow-wrap: break-word;
   }
 
-  .tiptap > :first-child {
+  .markdown-preview .ProseMirror > :first-child {
     margin-top: 0;
   }
 
-  .tiptap p,
-  .tiptap ul,
-  .tiptap ol,
-  .tiptap blockquote,
-  .tiptap pre,
-  .tiptap table {
+  .markdown-preview .ProseMirror p,
+  .markdown-preview .ProseMirror ul,
+  .markdown-preview .ProseMirror ol,
+  .markdown-preview .ProseMirror blockquote,
+  .markdown-preview .ProseMirror pre,
+  .markdown-preview .ProseMirror table {
     margin-block: 0.65em;
   }
 
-  .tiptap h1,
-  .tiptap h2,
-  .tiptap h3,
-  .tiptap h4,
-  .tiptap h5,
-  .tiptap h6 {
+  .markdown-preview .ProseMirror h1,
+  .markdown-preview .ProseMirror h2,
+  .markdown-preview .ProseMirror h3,
+  .markdown-preview .ProseMirror h4,
+  .markdown-preview .ProseMirror h5,
+  .markdown-preview .ProseMirror h6 {
     margin-top: 1.4em;
     margin-bottom: 0.4em;
     font-family: var(--type-prose);
@@ -44,90 +44,94 @@
     line-height: 1.4;
   }
 
-  .tiptap h1 {
+  .markdown-preview .ProseMirror h1 {
     font-size: 1.75em;
   }
-  .tiptap h2 {
+  .markdown-preview .ProseMirror h2 {
     border-bottom: 1px solid var(--border);
     padding-bottom: 0.3em;
     font-size: 1.375em;
   }
-  .tiptap h3 {
+  .markdown-preview .ProseMirror h3 {
     font-size: 1.2em;
   }
-  .tiptap ul,
-  .tiptap ol {
+  .markdown-preview .ProseMirror ul,
+  .markdown-preview .ProseMirror ol {
     padding-left: 1.6em;
   }
-  .tiptap li {
+  .markdown-preview .ProseMirror li {
     margin: 0.2em 0;
     line-height: inherit;
   }
-  .tiptap ul {
+  .markdown-preview .ProseMirror ul {
     list-style: disc;
   }
-  .tiptap ol {
+  .markdown-preview .ProseMirror ol {
     list-style: decimal;
   }
-  .tiptap blockquote {
+  .markdown-preview .ProseMirror blockquote {
     border-left: 2px solid var(--muted-foreground);
     padding-left: 1.25em;
     color: var(--muted-foreground);
   }
-  .tiptap pre {
+  .markdown-preview .ProseMirror pre {
     overflow-x: auto;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     background: var(--muted);
     padding: 1rem;
   }
-  .tiptap code {
+  .markdown-preview .ProseMirror code {
     font-family: var(--type-code);
     font-size: 0.875em;
   }
-  .tiptap :not(pre) > code {
+  .markdown-preview .ProseMirror :not(pre) > code {
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--muted);
     padding: 0.15em 0.4em;
   }
-  .tiptap table {
+  .markdown-preview .ProseMirror table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9em;
     margin: 1.5em 0;
   }
-  .tiptap th,
-  .tiptap td {
+  .markdown-preview .ProseMirror th,
+  .markdown-preview .ProseMirror td {
     border: 1px solid var(--border);
     padding: 0.5em 0.75em;
     text-align: left;
     vertical-align: top;
   }
-  .tiptap th {
+  .markdown-preview .ProseMirror th {
     background: var(--muted);
     font-weight: 600;
   }
-  .tiptap hr {
+  .markdown-preview .ProseMirror hr {
     margin: 2.5em 0;
     border: 0;
     border-top: 1px solid var(--border);
   }
-  .tiptap .is-editor-empty:first-child::before {
-    float: left;
-    height: 0;
-    color: var(--muted-foreground);
-    content: attr(data-placeholder);
-    pointer-events: none;
+  .markdown-preview {
+    overflow-x: auto;
+  }
+  .markdown-preview img {
+    max-width: 100%;
+    height: auto;
+  }
+  .markdown-preview .ProseMirror:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
   }
 
   @media (min-width: 640px) {
     .article-writing-area,
-    .tiptap {
+    .markdown-preview .ProseMirror {
       font-size: 0.875rem;
     }
 
-    .tiptap {
+    .markdown-preview .ProseMirror {
       padding: 1.25rem;
     }
   }

@@ -74,7 +74,7 @@ export const en = {
     tagsLabel: "Tags",
     tagsHint: "Comma separated, up to 5 hierarchical tags",
     summaryLabel: "One-sentence summary",
-    summaryHint: "Write a concise one-sentence Chinese summary",
+    summaryHint: "Write a concise one-sentence summary",
     writePlaceholder: "Write this article…",
     save: "Save",
     saving: "Saving…",
@@ -86,12 +86,9 @@ export const en = {
     deleteFailed: "The article could not be deleted. Please try again.",
     stale: "This article changed elsewhere. Reopen it before editing.",
     editorMode: "Editor mode",
-    richText: "Rich text",
+    preview: "Preview",
     markdownSource: "Markdown source",
-    sourceRequired:
-      "This content cannot be preserved in rich text. Continue editing Markdown source.",
-    formatting: "Formatting tools",
-    slashCommands: "Slash commands",
+    previewFailed: "Preview could not load. You can continue editing the source.",
   },
   notFound: {
     code: "404 · Not found",

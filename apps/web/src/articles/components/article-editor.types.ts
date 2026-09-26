@@ -1,11 +1,9 @@
-import type { Editor } from "@tiptap/core";
-import type { LucideIcon } from "@my-knowledge/ui/icons";
-
-import type { Visibility } from "@my-knowledge/content";
+import type { TranslationLocale, Visibility } from "@my-knowledge/content";
 
 import type { InterfaceMessages } from "@/i18n/registry";
 
 export type ExistingArticleEditor = {
+  locale: "zh" | TranslationLocale;
   body: string;
   contentHash: string;
   updatedAt: string;
@@ -19,18 +17,3 @@ export type ExistingArticleEditor = {
 export type ArticleEditorProps = {
   messages: InterfaceMessages["article"];
 } & ({ mode: "create" } | { mode: "edit"; article: ExistingArticleEditor });
-
-export type EditorCommand = {
-  icon: LucideIcon;
-  run: (editor: Editor) => void;
-  separatorBefore: boolean;
-  title: string;
-} & ({ kind: "toggle"; active: (editor: Editor) => boolean } | { kind: "action" }) &
-  ({ slash: false } | { slash: true; hint: string; keywords: string });
-
-export type SlashMenuPosition = {
-  left: number;
-  maxHeight: number;
-  top: number;
-  width: number;
-};

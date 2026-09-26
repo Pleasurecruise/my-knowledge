@@ -9,7 +9,13 @@ import {
 } from "@my-knowledge/content";
 
 import { InvalidArticleInputError } from "./input-error";
-import type { ArticleDocuments, ArticleDraft, ArticleUpdateResult } from "./operations";
+import type {
+  ArticleDocuments,
+  ArticleDraft,
+  ArticleTranslationDraft,
+  ArticleUpdateResult,
+} from "./operations";
+import { articleSummary } from "./persistence/record";
 import { readArticle, getArticleRow } from "./persistence/document";
 import { createArticle, saveArticleTranslation, updateArticle } from "./persistence/write";
 import { deleteArticle, setArticleVisibility } from "./persistence/write";
@@ -148,6 +154,36 @@ export class ArticleWriter extends DurableObject<CloudflareEnv> {
     return this.run(async () => {
       if (await this.ctx.storage.get("deleting")) return { status: "stale" };
       return updateArticleFromDocuments(this.env, id, hash, updatedAt, documents);
+    });
+  }
+
+  updateTranslation(
+    id: string,
+    hash: string,
+    updatedAt: string,
+    draft: ArticleTranslationDraft,
+  ): Promise<ArticleWriteResult<ArticleUpdateResult>> {
+    return this.run(async () => {
+      if (await this.ctx.storage.get("deleting")) return { status: "stale" };
+      const current = await getArticleRow(this.env, "owner", id);
+      if (!current) return { status: "notFound" };
+      if (current.contentHash !== hash || current.updatedAt !== updatedAt)
+        return { status: "stale" };
+      const document = await parseDraftDocument({ ...draft, tags: articleSummary(current).tags });
+      const updated = await saveArticleTranslation(
+        this.env,
+        id,
+        draft.locale,
+        hash,
+        document.editions.zh,
+        {
+          expectedUpdatedAt: updatedAt,
+          visibility: draft.visibility,
+        },
+      );
+      return updated
+        ? { status: "updated", article: await readArticle(this.env, updated) }
+        : { status: "stale" };
     });
   }
 

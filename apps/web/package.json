@@ -16,17 +16,10 @@
     "types": "wrangler types node_modules/.wrangler-types.d.ts --env-interface CloudflareEnv && next typegen"
   },
   "dependencies": {
+    "@milkdown/kit": "7.22.2",
     "@modelcontextprotocol/server": "2.1.0",
     "@my-knowledge/content": "workspace:*",
     "@my-knowledge/ui": "workspace:*",
-    "@tiptap/core": "3.31.3",
-    "@tiptap/extension-code-block": "3.31.3",
-    "@tiptap/extension-placeholder": "3.31.3",
-    "@tiptap/extension-table": "3.31.3",
-    "@tiptap/markdown": "3.31.3",
-    "@tiptap/pm": "3.31.3",
-    "@tiptap/react": "3.31.3",
-    "@tiptap/starter-kit": "3.31.3",
     "better-auth": "1.7.6",
     "drizzle-orm": "0.45.3",
     "hast-util-from-html": "2.0.3",
@@ -42,6 +35,6 @@
     "@tailwindcss/postcss": "4.3.3",
     "postcss": "8.5.28",
     "tailwindcss": "4.3.3",
-    "wrangler": "4.139.0"
+    "wrangler": "4.140.0"
   }
 }

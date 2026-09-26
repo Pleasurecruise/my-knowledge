@@ -31,10 +31,9 @@ export function SiteHeader({
   const expanded = openedAt === location;
   const controlsId = useId();
   const toggle = useRef<HTMLButtonElement>(null);
-  const reading =
-    pathname.startsWith("/articles/") && pathname !== "/articles/new" && query.get("edit") !== "1";
+  const articlePage = pathname.startsWith("/articles/") && pathname !== "/articles/new";
   return (
-    <header className="site-shell" hidden={reading}>
+    <header className="site-shell" hidden={articlePage}>
       {pathname === "/" ? identity : null}
       <div
         className="site-actions"

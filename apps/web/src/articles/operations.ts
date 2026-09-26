@@ -1,4 +1,9 @@
-import { canonicalizeTags, type Article } from "@my-knowledge/content";
+import {
+  canonicalizeTags,
+  type Article,
+  type TranslationLocale,
+  type Visibility,
+} from "@my-knowledge/content";
 
 import { InvalidArticleInputError } from "./input-error";
 import { getArticleById } from "./persistence/document";
@@ -10,6 +15,11 @@ export type ArticleDraft = {
   summary: string;
   tags: string[];
   title: string;
+};
+
+export type ArticleTranslationDraft = Omit<ArticleDraft, "tags"> & {
+  locale: TranslationLocale;
+  visibility?: Visibility | undefined;
 };
 
 export type ArticleDocuments = {

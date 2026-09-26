@@ -1,12 +1,89 @@
 import { execFileSync } from "node:child_process";
+import { writeFile } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Request } from "@playwright/test";
 import { z } from "zod";
 
 import { serveGoogle } from "./google";
 import { serveMedia } from "./media";
 
 const errorsByPage = new WeakMap<Page, string[]>();
+
+test("title-only save request samples", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  const created = await page.request.post("/api/articles", {
+    data: {
+      title: "Save measurements",
+      summary: "Synthetic fixture",
+      tags: ["daily"],
+      body: "## Section\n\nBody unchanged.\n\n```typescript\nconst value = 1;\n```",
+    },
+  });
+  expect(created.status()).toBe(201);
+  const { article } = z
+    .object({ article: z.object({ id: z.string() }) })
+    .parse(await created.json());
+  const path = `/articles/${article.id}`;
+  const samples: { duration: number; requests: string[] }[] = [];
+  for (let index = -2; index < 7; index++) {
+    await page.goto(`${path}?edit=1`);
+    await page.locator("#article-title").fill(`Save measurements ${index}`);
+    const requests: string[] = [];
+    const record = (request: Request) => {
+      const url = new URL(request.url());
+      if (url.pathname === path || url.pathname === `/api/articles/${article.id}`)
+        requests.push(
+          `${request.method()} ${url.pathname}${url.searchParams.has("edit") ? "?edit=1" : ""}`,
+        );
+    };
+    page.on("request", record);
+    const start = performance.now();
+    await page.getByRole("button", { name: "保存", exact: true }).click();
+    await expect(page.locator("article h1")).toHaveText(`Save measurements ${index}`);
+    const duration = performance.now() - start;
+    await page.waitForTimeout(300);
+    page.off("request", record);
+    expect(requests).toEqual([`PATCH /api/articles/${article.id}`, `GET ${path}`]);
+    if (index >= 0) samples.push({ duration, requests });
+  }
+  await writeFile(testInfo.outputPath("save-samples.json"), JSON.stringify(samples, null, 2));
+  console.log(JSON.stringify({ saveSamples: samples }));
+});
+
+test("keeps failed drafts and rejects duplicate Save clicks", async ({ page }) => {
+  await page.goto("/articles/new");
+  await page.getByLabel("标题", { exact: true }).fill("Retry draft");
+  await page.getByLabel("一句话摘要").fill("Synthetic retry fixture");
+  await page.getByLabel("标签", { exact: true }).fill("daily");
+  const source = page.getByRole("textbox", { name: "源码", exact: true });
+  await source.fill("Draft must survive failed saves.");
+  let requests = 0;
+  await page.route("**/api/articles", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    requests += 1;
+    if (requests === 1) return route.fulfill({ status: 503, json: { error: "Unavailable" } });
+    return route.continue();
+  });
+  const save = page.getByRole("button", { name: "保存", exact: true });
+  await save.evaluate((button: HTMLButtonElement) => {
+    button.click();
+    button.click();
+  });
+  await expect(page.locator("#article").getByRole("alert")).toBeVisible();
+  await expect(source).toHaveValue("Draft must survive failed saves.");
+  await expect(save).toBeEnabled();
+  expect(requests).toBe(1);
+  await save.evaluate((button: HTMLButtonElement) => {
+    button.click();
+    button.click();
+  });
+  await expect(page.locator("article h1")).toHaveText("Retry draft");
+  expect(requests).toBe(2);
+  const errors = errorsByPage.get(page);
+  expect(errors).toHaveLength(1);
+  expect(errors?.[0]).toContain("503");
+  if (errors) errors.length = 0;
+});
 
 test.beforeEach(async ({ page }) => {
   await serveMedia(page);
@@ -240,51 +317,46 @@ test("shares the generated Bearer credential across REST and MCP", async ({
   );
 });
 
-test("opens the owner editor, uses a slash command, and discards the draft", async ({
-  page,
-}, testInfo) => {
-  test.skip(
-    testInfo.project.name !== "owner-desktop-light",
-    "One editor interaction run is enough",
-  );
-
+test("previews Markdown without changing the draft", async ({ page }, testInfo) => {
   await page.goto("/articles/new");
-  const toolbar = page.getByRole("toolbar", { name: "格式工具" });
-  await expect(toolbar).toBeVisible();
-  const [editorBox, headerBox, tagsBox, toolbarBox] = await Promise.all([
-    page.getByRole("region", { name: "正文" }).boundingBox(),
-    page.locator("#article > div").first().boundingBox(),
-    page.getByLabel("标签").boundingBox(),
-    toolbar.boundingBox(),
-  ]);
-  if (!editorBox || !headerBox || !tagsBox || !toolbarBox)
-    throw new Error("New article layout was not measurable");
-  expect(editorBox.x).toBeCloseTo(headerBox.x, 0);
-  expect(editorBox.x + editorBox.width).toBeCloseTo(headerBox.x + headerBox.width, 0);
-  expect(tagsBox.x + tagsBox.width).toBeGreaterThan(toolbarBox.x + toolbarBox.width - 2);
-  await page.getByLabel("标题").fill("编辑器流程草稿");
+  await page.getByLabel("标题", { exact: true }).fill("编辑器流程草稿");
   await page.getByLabel("一句话摘要").fill("这是编辑器流程草稿的测试摘要。");
-  await page.getByLabel("标签").fill("engineering/editor");
-  const editor = page.locator(".tiptap");
-  await editor.click();
-  await page.keyboard.type("/");
-  const slashMenu = page.getByRole("menu", { name: "斜杠命令" });
-  await expect(slashMenu).toBeVisible();
-  await slashMenu.getByRole("menuitem", { name: /Heading 1/u }).click();
-  await page.keyboard.type("编辑器标题");
-  await page.keyboard.press("Enter");
-  await page.keyboard.type("编辑器正文");
-  await expect(page.getByRole("button", { name: "保存" })).toBeEnabled();
-  await page.screenshot({ path: testInfo.outputPath("editor-desktop.png"), fullPage: true });
-  await page.setViewportSize({ width: 390, height: 844 });
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-    ),
-  ).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath("editor-phone.png"), fullPage: true });
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.getByRole("button", { name: "取消" }).click();
+  const source = page.getByRole("textbox", { name: "源码", exact: true });
+  const markdown =
+    "## 编辑器标题\n\n**编辑器正文**\n\n| A | B |\n| - | - |\n| 一 | 二 |\n\n```embed:article\nurl: https://knowledge.you-find.me/articles/example\n```";
+  await source.fill(markdown);
+  for (const theme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
+    await page.evaluate((value) => {
+      document.documentElement.dataset.theme = value;
+      document.documentElement.classList.toggle("dark", value === "dark");
+    }, theme);
+    await page.getByRole("button", { name: "预览", exact: true }).click();
+    const preview = page.locator(".milkdown .ProseMirror");
+    await expect(preview).toHaveAttribute("contenteditable", "false");
+    await expect(preview.locator("h2")).toHaveText("编辑器标题");
+    await expect(preview.locator("strong")).toHaveText("编辑器正文");
+    await expect(preview.locator("table")).toBeVisible();
+    await page.keyboard.press("Tab");
+    await preview.focus();
+    await expect(page.locator(":focus-visible")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page.screenshot({
+      path: testInfo.outputPath(`editor-preview-${theme}.png`),
+      fullPage: true,
+    });
+    await page.getByRole("button", { name: "源码", exact: true }).click();
+    await expect(source).toHaveValue(markdown);
+    await source.focus();
+    await page.screenshot({
+      path: testInfo.outputPath(`editor-source-${theme}.png`),
+      fullPage: true,
+    });
+  }
+  await page.getByRole("button", { name: "取消", exact: true }).click();
   const dialog = page.getByRole("alertdialog");
   await expect(dialog.getByRole("heading", { name: "放弃未保存的修改？" })).toBeVisible();
   await dialog.getByRole("button", { name: "放弃修改" }).click();
@@ -324,48 +396,60 @@ test("creates and edits Chinese content through an English interface and guards 
   await page.getByLabel("Title", { exact: true }).fill(`Authoring ${testInfo.project.name}`);
   await page.getByLabel("One-sentence summary").fill("An authoring integration fixture.");
   await page.getByLabel("Tags", { exact: true }).fill("daily");
-  await page.locator(".tiptap").fill("中文正文。保存以后继续编辑。");
+  await page
+    .getByRole("textbox", { name: "Markdown source", exact: true })
+    .fill("中文正文。保存以后继续编辑。");
   await page.getByRole("button", { name: "Markdown source", exact: true }).click();
   const source = page.getByRole("textbox", { name: "Markdown source", exact: true });
   await expect(source).toHaveValue("中文正文。保存以后继续编辑。");
   await source.fill("中文正文。**保存以后继续编辑。**");
-  await page.getByRole("button", { name: "Rich text", exact: true }).click();
-  await expect(page.locator(".tiptap strong")).toHaveText("保存以后继续编辑。");
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page.locator(".milkdown .ProseMirror strong")).toHaveText("保存以后继续编辑。");
   await page.getByRole("button", { name: "More actions", exact: true }).click();
   await page.getByRole("navigation").getByRole("link", { name: "Explore" }).click();
   await expect(page.getByRole("alertdialog")).toBeVisible();
   await page.getByRole("alertdialog").getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
   await page.getByRole("button", { name: "More actions", exact: true }).click();
-  await expect(page.locator(".tiptap")).toContainText("中文正文");
+  await expect(page.locator(".milkdown .ProseMirror")).toContainText("中文正文");
   await page.screenshot({ path: testInfo.outputPath("authoring-new.png"), fullPage: true });
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.locator("article")).toContainText("中文正文");
   const articleUrl = page.url();
   expect(new URL(articleUrl).pathname).toMatch(/^\/articles\/[0-9a-f-]{36}$/u);
   await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await expect(page.locator(".site-preferences")).toBeVisible();
-  await page.getByLabel("Title", { exact: true }).fill("Renamed article");
-  await page.getByLabel("One-sentence summary").fill("The edited summary.");
-  await page.locator(".tiptap").fill("更新后的中文正文。");
-  await page.getByRole("button", { name: "Markdown source", exact: true }).click();
-  await expect(source).toHaveValue("更新后的中文正文。");
-  await source.fill("更新后的中文正文。\n\n![A preserved image](/logo.png)");
-  await page.getByRole("button", { name: "Rich text", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("cannot be preserved");
-  await expect(source).toHaveValue(/!\[A preserved image\]/u);
+  await expect(page).toHaveURL((url) => url.searchParams.get("locale") === "zh");
+  const chineseSource = page.getByRole("textbox", { name: "源码", exact: true });
+  await expect(page.locator(".site-preferences")).toBeHidden();
+  await page.getByLabel("标题", { exact: true }).fill("Renamed article");
+  await page.getByLabel("一句话摘要").fill("The edited summary.");
+  await page.getByRole("textbox", { name: "源码", exact: true }).fill("更新后的中文正文。");
+  await page.getByRole("button", { name: "源码", exact: true }).click();
+  await expect(chineseSource).toHaveValue("更新后的中文正文。");
+  await chineseSource.fill("更新后的中文正文。\n\n![A preserved image](/logo.png)");
+  await page.getByRole("button", { name: "预览", exact: true }).click();
+  await expect(page.getByRole("img", { name: "A preserved image" })).toHaveAttribute(
+    "src",
+    "/logo.png",
+  );
+  await page.getByRole("button", { name: "源码", exact: true }).click();
+  await expect(chineseSource).toHaveValue(/!\[A preserved image\]/u);
   await page.screenshot({ path: testInfo.outputPath("authoring-edit.png"), fullPage: true });
-  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "保存", exact: true }).click();
   await expect(page.locator("article")).toContainText("更新后的中文正文");
   await expect(page).toHaveURL(articleUrl);
   await expect(page.getByRole("heading", { name: "Renamed article", exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("authoring-saved.png"), fullPage: true });
   await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await expect(source).toHaveValue("更新后的中文正文。\n\n![A preserved image](/logo.png)");
-  await page.getByRole("button", { name: "Switch theme", exact: true }).click();
+  await expect(chineseSource).toHaveValue("更新后的中文正文。\n\n![A preserved image](/logo.png)");
+  await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
+  await page.evaluate(() => {
+    document.documentElement.dataset.theme = "dark";
+    document.documentElement.classList.add("dark");
+  });
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await source.focus();
-  await expect(source).toBeFocused();
+  await chineseSource.focus();
+  await expect(chineseSource).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("authoring-source-dark.png"), fullPage: true });
 });
@@ -500,7 +584,7 @@ test("renders article-list metadata cards and stages visibility until Save", asy
   });
   await page.getByRole("option", { name: "私密", exact: true }).click();
   await expect(visibility).toBeFocused();
-  await expect(page).toHaveURL(/edit=1$/u);
+  await expect(page).toHaveURL((url) => url.searchParams.get("edit") === "1");
   expect(patches).toEqual([]);
   const before = await (await request.get(`/api/articles/${article.id}`)).json();
   expect(before.article.visibility).toBe("public");
@@ -678,4 +762,139 @@ test("keeps the account popover accessible in both themes", async ({ page }, tes
     await expect(popup).toBeHidden();
     await expect(trigger).toBeFocused();
   }
+});
+
+test("edits current translations and redirects missing or stale editions to Chinese", async ({
+  page,
+  context,
+  browser,
+}) => {
+  const editionSchema = z.object({
+    title: z.string(),
+    summary: z.string(),
+    markdown: z.string(),
+  });
+  const responseSchema = z.object({
+    article: z.object({
+      id: z.uuid(),
+      contentHash: z.string(),
+      updatedAt: z.iso.datetime(),
+      visibility: z.enum(["public", "private"]),
+      editions: z.object({ zh: editionSchema }).catchall(editionSchema),
+    }),
+  });
+  const document = (title: string, body: string) =>
+    `---\ntitle: "${title}"\nsummary: "Locale fixture"\ntags: [daily]\n---\n\n${body}`;
+  const created = await page.request.post("/api/articles", {
+    data: {
+      documents: {
+        zh: document("中文标题", "中文正文"),
+        en: document("English title", "English body"),
+        ja: document("日本語タイトル", "日本語本文"),
+      },
+    },
+  });
+  expect(created.status()).toBe(201);
+  const { article } = responseSchema.parse(await created.json());
+  const endpoint = `/api/articles/${article.id}`;
+  const path = `/articles/${article.id}`;
+  for (const locale of ["en", "ja"]) {
+    await context.addCookies([
+      { name: "my-knowledge:locale", value: locale, url: "http://127.0.0.1:8787" },
+    ]);
+    const before = responseSchema.parse(await (await page.request.get(endpoint)).json()).article;
+    await page.goto(`${path}?edit=1`);
+    await expect(page.locator(".site-masthead")).toBeHidden();
+    await expect(page.locator("#article")).toHaveAttribute("lang", locale);
+    const edition = before.editions[locale];
+    if (!edition) throw new Error(`Fixture translation is missing: ${locale}`);
+    await expect(page.locator("#article-title")).toHaveValue(edition.title);
+    await expect(page.locator("#article-tags")).toHaveAttribute("readonly", "");
+    await page.locator("#article-title").fill(`Edited ${locale}`);
+    await page.locator("#article-visibility").click();
+    await page
+      .getByRole("option", { name: locale === "en" ? "Private" : "公開", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: locale === "en" ? "Save" : "保存", exact: true })
+      .click();
+    await expect(page.locator("article h1")).toHaveText(`Edited ${locale}`);
+    const after = responseSchema.parse(await (await page.request.get(endpoint)).json()).article;
+    expect(after.visibility).toBe(locale === "en" ? "private" : "public");
+    const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    try {
+      expect((await anonymous.request.get(endpoint)).status()).toBe(401);
+      const html = await (await anonymous.request.get(path)).text();
+      if (locale === "en") {
+        expect(html).not.toContain("Edited en");
+        expect(html).not.toContain("中文标题");
+        expect(html).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+      } else expect(html).toContain("中文标题");
+    } finally {
+      await anonymous.close();
+    }
+    expect(after.contentHash).toBe(before.contentHash);
+    expect(after.updatedAt).not.toBe(before.updatedAt);
+    expect(after.editions.zh).toEqual(before.editions.zh);
+    expect(after.editions[locale === "en" ? "ja" : "en"]).toEqual(
+      before.editions[locale === "en" ? "ja" : "en"],
+    );
+    expect(after.editions[locale]?.title).toBe(`Edited ${locale}`);
+    expect(
+      (
+        await page.request.patch(endpoint, {
+          data: {
+            locale,
+            title: "Stale",
+            summary: "Stale",
+            body: "Stale",
+            expectedHash: before.contentHash,
+            expectedUpdatedAt: before.updatedAt,
+          },
+        })
+      ).status(),
+    ).toBe(409);
+  }
+  const current = responseSchema.parse(await (await page.request.get(endpoint)).json()).article;
+  expect(
+    (
+      await page.request.patch(endpoint, {
+        data: {
+          title: "更新中文",
+          summary: "更新",
+          tags: ["daily"],
+          body: "中文已更新",
+          expectedHash: current.contentHash,
+          expectedUpdatedAt: current.updatedAt,
+        },
+      })
+    ).status(),
+  ).toBe(200);
+  await page.goto(`${path}?edit=1&from=%2Fexplore%3Fquery%3Ddaily`);
+  await expect(page).toHaveURL(
+    (url) =>
+      url.searchParams.get("locale") === "zh" &&
+      url.searchParams.get("from") === "/explore?query=daily",
+  );
+  await expect(page.locator("#article")).toHaveAttribute("lang", "zh");
+  await expect(page.locator("#article-title")).toHaveValue("更新中文");
+  await expect(page.getByRole("button", { name: "保存", exact: true })).toBeVisible();
+  const stale = responseSchema.parse(await (await page.request.get(endpoint)).json()).article;
+  expect(
+    (
+      await page.request.patch(endpoint, {
+        data: {
+          locale: "ja",
+          title: "No recreation",
+          summary: "No recreation",
+          body: "No recreation",
+          expectedHash: stale.contentHash,
+          expectedUpdatedAt: stale.updatedAt,
+        },
+      })
+    ).status(),
+  ).toBe(409);
+  expect(
+    responseSchema.parse(await (await page.request.get(endpoint)).json()).article.editions.ja,
+  ).toBeUndefined();
 });

@@ -1,6 +1,6 @@
 # Content contract
 
-Chinese is canonical; translations require its hash. Frontmatter: `title`, `summary`, `tags`. Route: `/articles/{uuid}`. Supports GFM, math, callouts, footnotes, anchors, Mermaid, Vega and Canvas. Invalid blocks show source.
+Chinese is canonical; translations require its hash. Frontmatter: `title`, `summary`, `tags`. `/articles/{uuid}` supports GFM, math, callouts, footnotes, anchors, Mermaid, Vega and Canvas; invalid blocks show source.
 
 ## Dialects
 
@@ -20,8 +20,8 @@ Chinese is canonical; translations require its hash. Frontmatter: `title`, `summ
 | diff         | `title`, `---`, unified diff               |
 | annotation   | `mark`, `note`, `---`, plain text          |
 
-Twitter normalizes HTTPS X/Twitter URLs. Server-fetched `react-tweet` data supplies authors, text, media and quoted posts without widgets. Requests explicitly send JSON Accept and User-Agent headers: Workers supply no default User-Agent, which X rejects. GitHub/link/Twitter data caches hourly; stocks cache five minutes. Failures never cache. Article references deduplicate authorized metadata, preserving chapter anchors. Annotations require one mark; optional `color`/`url` style/link notes.
+Normalize HTTPS X/Twitter URLs. `react-tweet` supplies native tweet cards. Send JSON Accept/User-Agent: X rejects Workers’ missing User-Agent. GitHub/link/Twitter data caches hourly; stocks cache five minutes. Failures never cache. Article references deduplicate authorized metadata and preserve anchors. Annotations require one mark; optional `color`/`url` style/link notes.
 
 ## Source editing
 
-Examples use outer fences or closed triple-fence wrappers. Unsupported conversions retain source mode. Shortcodes follow [Stickers](STICKERS.md).
+Source is authoritative. Milkdown previews CommonMark/GFM unchanged; custom fences remain code. Examples use outer/closed triple fences. Shortcodes follow [Stickers](STICKERS.md).

@@ -1,7 +1,7 @@
 import type { Visibility } from "@my-knowledge/content";
 
 import { InvalidArticleInputError } from "./input-error";
-import type { ArticleDocuments, ArticleDraft } from "./operations";
+import type { ArticleDocuments, ArticleDraft, ArticleTranslationDraft } from "./operations";
 import type { ArticleWriteResult } from "./writer";
 
 export {
@@ -47,6 +47,24 @@ export async function updateArticleFromDocuments(
     ),
   );
 }
+
+export async function updateArticleTranslationFromDraft(
+  env: CloudflareEnv,
+  id: string,
+  expectedHash: string,
+  expectedUpdatedAt: string,
+  draft: ArticleTranslationDraft,
+) {
+  return unwrap(
+    await env.ARTICLE_WRITER.getByName(id).updateTranslation(
+      id,
+      expectedHash,
+      expectedUpdatedAt,
+      draft,
+    ),
+  );
+}
+
 export async function setArticleVisibility(
   env: CloudflareEnv,
   id: string,

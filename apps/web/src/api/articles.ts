@@ -31,6 +31,15 @@ export const articleListQuerySchema = z.object({
 
 export const articlePatchSchema = z.union([
   articleDraftSchema
+    .omit({ tags: true })
+    .extend({
+      locale: z.enum(["en", "ja"]),
+      expectedHash: expectedHashSchema,
+      expectedUpdatedAt: z.iso.datetime(),
+      visibility: z.enum(["private", "public"]).optional(),
+    })
+    .strict(),
+  articleDraftSchema
     .extend({
       expectedHash: expectedHashSchema,
       expectedUpdatedAt: z.iso.datetime(),

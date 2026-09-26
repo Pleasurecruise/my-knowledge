@@ -87,11 +87,9 @@ export type InterfaceMessages = {
     deleteFailed: string;
     stale: string;
     editorMode: string;
-    richText: string;
+    preview: string;
     markdownSource: string;
-    sourceRequired: string;
-    formatting: string;
-    slashCommands: string;
+    previewFailed: string;
   };
   notFound: {
     code: string;

@@ -222,7 +222,8 @@ export async function saveArticleTranslation(
   locale: TranslationLocale,
   sourceHash: string,
   translation: ParsedArticleDocument,
-): Promise<void> {
+  edit?: { expectedUpdatedAt: string; visibility?: Visibility | undefined },
+): Promise<ArticleRow | undefined> {
   const article = await getArticleRow(env, "owner", id);
   if (!article || article.contentHash !== sourceHash) return;
   const previousTranslation = await drizzle(env.DB)
@@ -230,6 +231,11 @@ export async function saveArticleTranslation(
     .from(articleTranslations)
     .where(and(eq(articleTranslations.articleId, id), eq(articleTranslations.locale, locale)))
     .get();
+  if (
+    edit &&
+    (article.updatedAt !== edit.expectedUpdatedAt || previousTranslation?.sourceHash !== sourceHash)
+  )
+    return undefined;
   const previous = previousTranslation
     ? await readStoredDocument(env.KNOWLEDGE_BUCKET, id, locale, previousTranslation.sourceHash)
     : null;
@@ -243,8 +249,10 @@ export async function saveArticleTranslation(
     sourceHash,
     previous,
   );
+  let updated = article;
   try {
-    await drizzle(env.DB)
+    const db = drizzle(env.DB);
+    const saveTranslation = db
       .insert(articleTranslations)
       .values({
         articleId: id,
@@ -261,6 +269,28 @@ export async function saveArticleTranslation(
           sourceHash,
         },
       });
+    if (edit) {
+      const [, rows] = await db.batch([
+        saveTranslation,
+        db
+          .update(articles)
+          .set({
+            updatedAt: nextUpdatedAt(article.updatedAt),
+            ...(edit.visibility === undefined ? {} : { visibility: edit.visibility }),
+          })
+          .where(
+            and(
+              eq(articles.id, id),
+              eq(articles.contentHash, sourceHash),
+              eq(articles.updatedAt, edit.expectedUpdatedAt),
+            ),
+          )
+          .returning(),
+      ]);
+      const committed = rows[0];
+      if (!committed) throw new Error("Article changed while saving its translation");
+      updated = committed;
+    } else await saveTranslation;
   } catch (error) {
     await rollbackDocument(env.KNOWLEDGE_BUCKET, previous, written);
     throw error;
@@ -268,8 +298,16 @@ export async function saveArticleTranslation(
   const hashes = new Set([sourceHash]);
   if (previous) hashes.add(previous.contentHash);
   await Promise.all(
-    [...hashes].map((hash) => deleteArticleCache(env.KNOWLEDGE_CACHE, id, hash, [locale])),
+    [...hashes].map((hash) =>
+      deleteArticleCache(
+        env.KNOWLEDGE_CACHE,
+        id,
+        hash,
+        edit?.visibility === "private" ? articleLocales : [locale],
+      ),
+    ),
   );
+  return updated;
 }
 
 export async function setArticleVisibility(

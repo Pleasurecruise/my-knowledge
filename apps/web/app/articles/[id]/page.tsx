@@ -2,7 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { readArticleDocument } from "@my-knowledge/content";
 import { Markdown } from "@my-knowledge/ui";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { getArticleEdition, getArticleMetadata, readEmbed } from "@/articles";
 import { articleReturnHref } from "@/articles/navigation";
@@ -16,6 +16,7 @@ import { ArticleEditorShell } from "@/articles/components/editor-shell";
 import { StructuredBlock } from "@/articles/components/structured-block";
 import { getPrincipal } from "@/auth/owner";
 import { getInterfaceI18n } from "@/i18n/server";
+import { interfaceLocales } from "@/i18n/registry";
 
 export async function generateMetadata({ params }: PageProps<"/articles/[id]">): Promise<Metadata> {
   const [{ id }, { env }] = await Promise.all([params, getCloudflareContext({ async: true })]);
@@ -67,34 +68,35 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
     getPrincipal(),
     getInterfaceI18n(),
   ]);
-  const edition = await getArticleEdition(
-    env,
-    principal,
-    id,
-    principal === "owner" && query.edit === "1" ? "zh" : i18n.code,
-  );
+  const editing = principal === "owner" && query.edit === "1";
+  const requestedLocale = editing && query.locale === "zh" ? "zh-CN" : i18n.code;
+  const edition = await getArticleEdition(env, principal, id, requestedLocale);
   if (!edition) notFound();
   const { article, locale, text } = edition;
+  const document = readArticleDocument(text.markdown);
   const returnHref = articleReturnHref(query.from);
   const context = returnHref === "/" ? "" : `&${new URLSearchParams({ from: returnHref })}`;
-  if (principal === "owner" && query.edit === "1") {
-    const zhEdition = text;
-    const document = readArticleDocument(zhEdition.markdown);
+  if (editing) {
+    if (locale === "zh" && requestedLocale !== "zh-CN")
+      redirect(`/articles/${article.id}?edit=1&locale=zh${context}`);
+    const editorI18n = interfaceLocales.find((entry) => entry.code === requestedLocale);
+    if (!editorI18n) throw new Error("Editor interface locale is not registered");
     return (
       <div className="page-shell" data-article-id={article.id}>
         <ArticleAddress id={article.id} />
         <ArticleEditorShell
           article={{
+            locale: locale === "en" || locale === "ja" ? locale : "zh",
             body: document.body,
             contentHash: article.contentHash,
             updatedAt: article.updatedAt,
             id: article.id,
-            summary: zhEdition.summary,
+            summary: text.summary,
             tags: article.tags,
-            title: zhEdition.title,
+            title: text.title,
             visibility: article.visibility,
           }}
-          messages={i18n.messages.article}
+          messages={editorI18n.messages.article}
           mode="edit"
         />
       </div>
@@ -140,7 +142,7 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
             spatialView: i18n.messages.article.spatialView,
           }}
           structuredBlock={StructuredBlock}
-          markdown={text.markdown}
+          markdown={document.body}
         />
         <ArticleAddress id={article.id} />
         <ReferencePosition key={`${article.id}:${locale}`} />
