@@ -20,6 +20,7 @@ export default defineConfig({
   workers: 1,
   use: {
     baseURL,
+    locale: "zh-CN",
     channel: "chrome",
     serviceWorkers: "allow",
     trace: "retain-on-failure",

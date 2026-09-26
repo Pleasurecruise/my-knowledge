@@ -73,9 +73,11 @@
     border-color var(--duration-base) ease-out,
     background var(--duration-base) ease-out;
 }
-.search-field:focus-within {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent);
+@media (width > 720px) {
+  .search-field:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent);
+  }
 }
 .search-field-icon {
   width: 1.125rem;
@@ -118,6 +120,9 @@
   scroll-margin-top: 2rem;
 }
 @media (max-width: 720px) {
+  iframe[src^="https://accounts.google.com/gsi/iframe/"] {
+    color-scheme: normal;
+  }
   .page-shell {
     padding-inline: 1.5rem;
   }
@@ -348,6 +353,13 @@
   }
   .search-field {
     padding: 0.375rem 0.375rem 0.375rem 0.75rem;
+  }
+  .search-field:has(input:focus-visible) {
+    background: var(--muted);
+  }
+  .search-field input:focus-visible {
+    outline: none;
+    box-shadow: none;
   }
   .article-title-row {
     gap: 0.75rem;

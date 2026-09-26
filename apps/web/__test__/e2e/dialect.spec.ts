@@ -30,7 +30,7 @@ test("renders footnotes, math and keyboard-scrollable tables", async ({
         title: `Markdown compiler ${testInfo.project.name}`,
         summary: "Footnote anchors and mathematical source stay consistent.",
         tags: ["daily/testing"],
-        body: "[^note]:\n    ## Footnote detail\n\n    Footnote text.\n\n## Main section\n\nA reference[^note].\n\nInline $[[math-only]]$.\n\n$$\n<x> + y\n$$\n\n| Label | Value |\n| --- | --- |\n| 短标签 | Short value |\n\n| Long label | Value |\n| --- | --- |\n| LongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabel | Readable content |",
+        body: "[^note]:\n    ## Footnote detail\n\n    Footnote text.\n\n## Main section\n\nA reference[^note].\n\nInline $[[math-only]]$.\n\n$$\n<x> + y\n$$\n\n| Label | Value |\n| --- | --- |\n| 短标签 | Short value |\n\n| Long label | 中文说明 | URL | Code | Status | Value |\n| --- | --- | --- | --- | --- | --- |\n| LongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabelLongLabel | 这是一段需要自然换行的中文说明，不能被挤成每行一个字。 | https://example.com/articles/abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz | `aVeryLongUnbrokenIdentifierThatMustWrapInsideItsCell` | Available | Readable content |",
       },
     });
     expect(response.status()).toBe(201);

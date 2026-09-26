@@ -27,6 +27,28 @@ test.afterEach(async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+for (const [browserLocale, language, nextLanguage, button] of [
+  ["en-US", "en", "ja", "Change language: 日本語"],
+  ["ja-JP", "ja", "zh-CN", "言語を変更: 简体中文"],
+] as const) {
+  test.describe(`browser language ${browserLocale}`, () => {
+    test.use({ locale: browserLocale });
+
+    test("uses browser language until a manual choice is saved", async ({ page }, testInfo) => {
+      await page.goto("/");
+      await expect(page.locator("html")).toHaveAttribute("lang", language);
+      await page.goto("/articles/11111111-1111-4111-8111-111111111111");
+      await expect(page.locator("article")).toHaveAttribute("lang", language);
+      await page.screenshot({ path: testInfo.outputPath("browser-language.png") });
+      await page.goto("/");
+      await page.getByRole("button", { name: button }).click();
+      await expect(page.locator("html")).toHaveAttribute("lang", nextLanguage);
+      await page.reload();
+      await expect(page.locator("html")).toHaveAttribute("lang", nextLanguage);
+    });
+  });
+}
+
 test("uses readable article typography without decorative icons", async ({ page }, testInfo) => {
   await page.goto("/articles/11111111-1111-4111-8111-111111111111?from=explore#content");
   await expect(page).toHaveURL(

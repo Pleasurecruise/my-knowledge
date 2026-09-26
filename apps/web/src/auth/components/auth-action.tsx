@@ -28,7 +28,19 @@ export function AuthAction({
   const oneTapAuth = useMemo(
     () =>
       createAuthClient({
-        plugins: [oneTapClient({ clientId: googleClientId, promptOptions: { maxAttempts: 0 } })],
+        plugins: [
+          oneTapClient({
+            clientId: googleClientId,
+            promptOptions: { maxAttempts: 0 },
+            additionalOptions: {
+              get color_scheme() {
+                return window.matchMedia("(max-width: 720px)").matches
+                  ? document.documentElement.dataset.theme
+                  : undefined;
+              },
+            },
+          }),
+        ],
       }),
     [googleClientId],
   );

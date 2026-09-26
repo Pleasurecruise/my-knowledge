@@ -6,6 +6,6 @@ Every submission starts public after canonical Chinese persistence succeeds. The
 
 RSS, llms.txt, sitemap and social metadata always use anonymous visibility, including requests from signed-in owners. Private articles are noindex; their titles, tags, timestamps and bodies never appear in anonymous outputs. Robots advertises the public sitemap.
 
-Chinese is canonical, with optional English and Japanese editions. Tags are case-insensitive hierarchical paths: at most five per article and one new leaf per submission. Prefer existing tags. The `daily` hierarchy is absent from default lists and search; explicit filters can include it without bypassing visibility.
+Chinese is canonical, with optional English and Japanese editions. Interface language follows the saved manual choice, then browser Accept-Language preferences, then Chinese. Regional variants map to Chinese, English or Japanese; missing translations use Chinese. Tags are case-insensitive hierarchical paths: at most five per article and one new leaf per submission. Prefer existing tags. The `daily` hierarchy is absent from default lists and search; explicit filters can include it without bypassing visibility.
 
 Multiple owners, comments, revisions and hosted generation are outside scope.

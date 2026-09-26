@@ -201,11 +201,24 @@
 .markdown-body td {
   padding: 0.6rem;
   border: 1px solid var(--border);
-  overflow-wrap: normal;
 }
 
-.markdown-body :is(th, td):first-child {
-  white-space: nowrap;
+@media (width > 720px) {
+  .markdown-body :is(th, td) {
+    overflow-wrap: normal;
+  }
+
+  .markdown-body :is(th, td):first-child {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 720px) {
+  .markdown-body :is(th, td) {
+    min-width: 8rem;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
 }
 
 .markdown-body .callout {
