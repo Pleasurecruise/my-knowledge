@@ -21,12 +21,12 @@
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.63.0",
-    "@shadcn/lint": "0.1.1",
+    "@shadcn/lint": "0.2.0",
     "@types/node": "26.6.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "typescript": "7.0.2",
-    "vite-plus": "0.3.3"
+    "vite-plus": "1.0.0-rc.0"
   },
   "packageManager": "pnpm@12.4.2"
 }

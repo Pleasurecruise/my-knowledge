@@ -1,4 +1,6 @@
-export type StructuredBlockLabels = {
+import type { CodeCopyLabels } from "./code-block";
+
+export type StructuredBlockLabels = CodeCopyLabels & {
   canvas: string;
   canvasRelationships: string;
   canvasViewport: string;

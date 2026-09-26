@@ -11,6 +11,7 @@ export type MarkdownEmbed = { align: Alignment } & (
   | { kind: "github"; repo: string }
   | { kind: "stock"; code: string }
   | { kind: "link"; url: string }
+  | { kind: "twitter"; url: string }
   | { kind: "articleList"; urls: string[] }
   | {
       kind: "annotation";
@@ -154,6 +155,7 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
   if (
     ![
       "embed:github",
+      "embed:twitter",
       "embed:stock",
       "embed:link",
       "embed:article",
@@ -322,16 +324,16 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
   }
   const fields = new Map<string, string>();
   const steps: { heading: string; body: string }[] = [];
-  const allowed =
-    kind === "embed:link"
-      ? ["url", "align"]
-      : kind === "embed:github"
-        ? ["repo", "align"]
-        : kind === "embed:stock"
-          ? ["code", "align"]
-          : kind === "embed:media"
-            ? ["type", "src", "poster", "title", "caption", "align"]
-            : ["title", "step", "align"];
+  const fieldContracts: Record<string, readonly string[]> = {
+    "embed:link": ["url", "align"],
+    "embed:twitter": ["url", "align"],
+    "embed:github": ["repo", "align"],
+    "embed:stock": ["code", "align"],
+    "embed:media": ["type", "src", "poster", "title", "caption", "align"],
+    "embed:storyboard": ["title", "step", "align"],
+  };
+  const allowed = fieldContracts[kind];
+  if (!allowed) throw new MarkdownEmbedError(`Unsupported field-based embed: ${language}`);
   for (const [field, value] of parseFields(source)) {
     if (!allowed.includes(field))
       throw new MarkdownEmbedError(`Unsupported ${kind} field: ${field}`);
@@ -369,6 +371,29 @@ export function parseMarkdownEmbed(language: string, source: string): MarkdownEm
       align,
       title: title === undefined ? (type === "audio" ? "Audio player" : "Video player") : title,
       caption: caption === undefined ? null : caption,
+    };
+  }
+  if (kind === "embed:twitter") {
+    const value = fields.get("url");
+    if (!value || !URL.canParse(value) || /[\s\p{Cc}\\]/u.test(value))
+      throw new MarkdownEmbedError("Twitter embeds require a post URL");
+    const url = new URL(value);
+    const match = /^\/([A-Za-z0-9_]{1,15})\/status\/([1-9][0-9]{0,19})\/?$/u.exec(url.pathname);
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.port ||
+      !["x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com"].includes(
+        url.hostname,
+      ) ||
+      !match
+    )
+      throw new MarkdownEmbedError("Twitter embeds require an HTTPS X/Twitter post URL");
+    return {
+      kind: "twitter",
+      align,
+      url: `https://x.com/${match[1]?.toLowerCase()}/status/${match[2]}`,
     };
   }
   if (kind === "embed:link") {

@@ -66,6 +66,9 @@ export type InterfaceMessages = {
     canvasRelationships: string;
     spatialView: string;
     renderingDiagram: string;
+    copyCode: string;
+    codeCopied: string;
+    codeCopyFailed: string;
     edit: string;
     titleLabel: string;
     bodyLabel: string;

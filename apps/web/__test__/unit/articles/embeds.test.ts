@@ -296,7 +296,11 @@ it("reuses public repository metadata and identifies GitHub rate limits without 
     open_issues_count: 0,
     owner: { avatar_url: "https://avatars.githubusercontent.com/u/1" },
   };
-  const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(item)));
+  const fetcher = vi
+    .fn()
+    .mockResolvedValue(
+      new Response(JSON.stringify({ ...item, unused: "Provider metadata not needed by the card" })),
+    );
   vi.stubGlobal("fetch", fetcher);
   await readEmbed({ kind: "github", repo: "owner/repo", align: "wide" });
   expect(repositoryCache.put).toHaveBeenCalledWith(
@@ -371,4 +375,58 @@ it("reuses validated link and stock responses across calls without caching failu
   expect(repositoryCache.put).toHaveBeenCalledWith("embed:stock:CACHE", expect.any(String), {
     expirationTtl: 300,
   });
+});
+
+it("renders Twitter text without third-party HTML and reuses its cached card", async () => {
+  const stored = new Map<string, string>();
+  repositoryCache.get.mockImplementation(async (key) => stored.get(key) ?? null);
+  repositoryCache.put.mockImplementation(async (key, value) => {
+    stored.set(key, value);
+  });
+  const fetcher = vi.fn().mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        author_name: "Example <author>",
+        html: '<blockquote><p>Hello &amp; world<br>Line two <a href="javascript:alert(1)">link</a><script>malicious()</script></p>— Example</blockquote><script src="https://platform.twitter.com/widgets.js"></script>',
+      }),
+    ),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const embed = {
+    kind: "twitter",
+    url: "https://x.com/example/status/12345",
+    align: "wide",
+  } satisfies Parameters<typeof readEmbed>[0];
+  for (let index = 0; index < 2; index++) {
+    const card = JSON.stringify(await readEmbed(embed));
+    expect(card).toContain("Example <author>");
+    expect(card).toContain("Hello & world\\nLine two link");
+    expect(card).not.toContain("malicious");
+    expect(card).not.toContain("widgets.js");
+    expect(card).not.toContain("javascript:");
+  }
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(fetcher).toHaveBeenCalledWith(
+    expect.stringMatching(/^https:\/\/publish\.x\.com\/oembed\?/u),
+    expect.objectContaining({ redirect: "manual" }),
+  );
+  expect(repositoryCache.put).toHaveBeenCalledWith(
+    expect.stringMatching(/^embed:twitter:[a-f0-9]{64}$/u),
+    expect.any(String),
+    { expirationTtl: 3600 },
+  );
+});
+
+it.each([
+  new Response("unavailable", { status: 404 }),
+  new Response("invalid json"),
+  new Response(JSON.stringify({ author_name: "Example", html: "<script>bad()</script>" })),
+])("keeps unavailable Twitter posts linked without caching failures", async (response) => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
+  const card = JSON.stringify(
+    await readEmbed({ kind: "twitter", url: "https://x.com/example/status/12345", align: "wide" }),
+  );
+  expect(card).toContain("Post preview is unavailable");
+  expect(card).toContain("https://x.com/example/status/12345");
+  expect(repositoryCache.put).not.toHaveBeenCalled();
 });

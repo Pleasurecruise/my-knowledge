@@ -128,6 +128,9 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
           embeds={readEmbed}
           link={ArticleLink}
           labels={{
+            copyCode: i18n.messages.article.copyCode,
+            codeCopied: i18n.messages.article.codeCopied,
+            codeCopyFailed: i18n.messages.article.codeCopyFailed,
             canvas: i18n.messages.article.canvas,
             canvasRelationships: i18n.messages.article.canvasRelationships,
             canvasViewport: i18n.messages.article.canvasViewport,

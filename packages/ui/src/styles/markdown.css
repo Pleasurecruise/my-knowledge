@@ -924,3 +924,17 @@
   max-height: 6rem;
   margin: 0 0.25rem;
 }
+
+.markdown-code-block {
+  position: relative;
+  margin: 1.75em 0;
+}
+
+.markdown-body .markdown-code-block > pre {
+  margin: 0;
+  padding-top: 2rem;
+}
+
+.markdown-embed-twitter .embed-link p {
+  white-space: pre-wrap;
+}

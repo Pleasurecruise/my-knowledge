@@ -230,3 +230,45 @@ it("rejects malformed percent encoding in article URLs at the embed boundary", (
     "encoding",
   );
 });
+
+it("normalizes Twitter post URLs and rejects non-post or unsafe embeds", () => {
+  for (const host of [
+    "x.com",
+    "www.x.com",
+    "twitter.com",
+    "www.twitter.com",
+    "mobile.twitter.com",
+  ]) {
+    expect(
+      parseMarkdownEmbed(
+        "embed:twitter",
+        `url: https://${host}/Example/status/12345?s=20#media\nalign: narrow`,
+      ),
+    ).toEqual({
+      kind: "twitter",
+      url: "https://x.com/example/status/12345",
+      align: "narrow",
+    });
+  }
+  for (const url of [
+    "https://x.com/example",
+    "https://x.com/example/status/nope",
+    "https://x.com.evil.com/example/status/1",
+    "http://x.com/example/status/1",
+    "https://user:pass@x.com/example/status/1",
+    "https://x.com:444/example/status/1",
+    "https://x.com/example/status/1/photo/1",
+    "javascript:alert(1)",
+  ]) {
+    expect(() => parseMarkdownEmbed("embed:twitter", `url: ${url}`)).toThrow();
+  }
+  expect(() =>
+    parseMarkdownEmbed("embed:twitter", "url: https://x.com/example/status/1\nscript: injected"),
+  ).toThrow("Unsupported");
+  expect(() =>
+    parseMarkdownEmbed(
+      "embed:twitter",
+      "url: https://x.com/example/status/1\nurl: https://x.com/example/status/2",
+    ),
+  ).toThrow("Duplicate");
+});

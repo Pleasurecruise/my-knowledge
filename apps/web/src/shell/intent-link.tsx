@@ -26,7 +26,7 @@ export function IntentLink({
     <Link
       {...props}
       href={href}
-      prefetch={props.href === "/" || intent}
+      prefetch={intent}
       onMouseEnter={() => setIntent(true)}
       onFocus={() => setIntent(true)}
       onTouchStart={() => setIntent(true)}

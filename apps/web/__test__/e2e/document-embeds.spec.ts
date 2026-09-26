@@ -92,3 +92,74 @@ test("reads quote and Git diff dialects without losing source or executing HTML"
   await page.screenshot({ path: testInfo.outputPath("document-embeds.png"), fullPage: true });
   expect(errors).toEqual([]);
 });
+
+test("copies code and reads a native Twitter card", async ({
+  page,
+  context,
+  playwright,
+  baseURL,
+}, testInfo) => {
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (["error", "warning"].includes(message.type())) errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await serveGoogle(page);
+  if (testInfo.project.name.includes("reduced-motion"))
+    await page.emulateMedia({ reducedMotion: "reduce" });
+  if (!baseURL) throw new Error("Local Worker URL required");
+  const owner = await playwright.request.newContext({
+    baseURL,
+    storageState: "apps/web/__test__/.auth/owner.json",
+  });
+  const source = 'const message = "你好 <world>";\n  console.log(message);';
+  let id: string;
+  try {
+    const response = await owner.post("/api/articles", {
+      data: {
+        title: `Code and Twitter ${testInfo.project.name}`,
+        summary: "Code copying and a native post card.",
+        tags: ["daily/testing"],
+        body: `## Code\n\n\`\`\`ts\n${source}\n\`\`\`\n\n\`\`\`embed:twitter\nurl: https://twitter.com/Example/status/12345?s=20\n\`\`\``,
+      },
+    });
+    expect(response.status()).toBe(201);
+    id = z.object({ article: z.object({ id: z.string() }) }).parse(await response.json())
+      .article.id;
+  } finally {
+    await owner.dispose();
+  }
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto(`/articles/${id}`);
+  const card = page.locator(".markdown-embed-twitter");
+  await expect(card).toContainText("Example 作者");
+  await expect(card).toContainText("推特链接与正文");
+  await expect(card.locator("a")).toHaveAttribute("href", "https://x.com/example/status/12345");
+  await expect(page.locator('script[src*="twitter"], iframe[src*="twitter"]')).toHaveCount(0);
+  const button = page.locator(".markdown-code-block button");
+  await expect(button).toHaveAttribute("aria-label", "复制代码");
+  await button.focus();
+  await expect(button).toBeFocused();
+  await button.press("Enter");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(source);
+  await expect(page.getByText("代码已复制", { exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(navigator.clipboard, "writeText", {
+      configurable: true,
+      value: async () => {
+        throw new DOMException("Denied", "NotAllowedError");
+      },
+    });
+  });
+  await button.click();
+  await expect(page.getByText("无法复制代码，请重试。", { exact: true })).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: testInfo.outputPath("code-twitter.png"), fullPage: true });
+  expect(errors).toEqual([]);
+});

@@ -1,16 +1,17 @@
 # Content contract
 
-Chinese is canonical; translations require its hash. Frontmatter: `title`, `summary`, `tags`. Address: `/articles/{uuid}`.
+Chinese is canonical; translations require its hash. Frontmatter: `title`, `summary`, `tags`. `/articles/{uuid}`.
 
-Markdown supports GFM, math, callouts, footnotes, anchors, Mermaid, Vega and Canvas. Invalid stored blocks display source.
+Supports GFM, math, callouts, footnotes, anchors, Mermaid, Vega and Canvas. Invalid blocks show source.
 
 ## Dialects
 
-Use `embed:<kind>` fences; reject invalid fields.
+`embed:<kind>` fences reject invalid fields.
 
 | Kind         | Required content                           |
 | ------------ | ------------------------------------------ |
 | github       | `repo: owner/name`                         |
+| twitter      | `url: https://x.com/handle/status/id`      |
 | stock        | `code: AAPL`                               |
 | link         | `url`                                      |
 | article      | 1–50 same-site URLs, optional `url:`       |
@@ -21,10 +22,10 @@ Use `embed:<kind>` fences; reject invalid fields.
 | diff         | `title`, `---`, unified diff               |
 | annotation   | `mark`, `note`, `---`, plain text          |
 
-Annotations require one mark occurrence; optional `color` and `url` style/link the note. `align` accepts wide, narrow, left or right within page width. GitHub/link metadata cache hourly; stock responses cache for five minutes. Failures are not cached. Article references share authorized metadata per request and identity; chapter anchors remain distinct.
+Annotations require one mark; optional `color`/`url` style/link notes. `align`: wide, narrow, left or right within page width. GitHub/link/Twitter metadata cache hourly; stocks cache five minutes. Twitter normalizes HTTPS post URLs and renders oEmbed author/text without scripts. Failures never cache. Article references deduplicate authorized metadata per request/identity, preserving chapter anchors.
 
 ## Source editing
 
-Examples use longer outer fences or consecutively closed triple-fence wrappers. Unsupported rich-text conversions retain source mode.
+Examples use longer outer fences or closed triple-fence wrappers. Unsupported conversions retain source mode.
 
 Image shortcodes: [Stickers](STICKERS.md).

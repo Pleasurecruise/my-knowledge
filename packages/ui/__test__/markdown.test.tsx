@@ -15,6 +15,9 @@ const labels = {
   canvasViewport: "Scrollable JSON Canvas",
   chart: "Vega-Lite chart",
   diagram: "Mermaid diagram",
+  copyCode: "Copy code",
+  codeCopied: "Code copied",
+  codeCopyFailed: "Copy failed",
   renderingDiagram: "Rendering diagram…",
   spatialView: "Spatial view",
 };

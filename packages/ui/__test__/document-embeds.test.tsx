@@ -9,6 +9,9 @@ const labels = {
   canvasViewport: "Canvas viewport",
   chart: "Chart",
   diagram: "Diagram",
+  copyCode: "Copy code",
+  codeCopied: "Code copied",
+  codeCopyFailed: "Copy failed",
   renderingDiagram: "Rendering",
   spatialView: "Spatial view",
 };

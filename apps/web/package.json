@@ -16,7 +16,7 @@
     "types": "wrangler types node_modules/.wrangler-types.d.ts --env-interface CloudflareEnv && next typegen"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "2.0.0",
+    "@modelcontextprotocol/server": "2.1.0",
     "@my-knowledge/content": "workspace:*",
     "@my-knowledge/ui": "workspace:*",
     "@tiptap/core": "3.31.3",
@@ -27,13 +27,14 @@
     "@tiptap/pm": "3.31.3",
     "@tiptap/react": "3.31.3",
     "@tiptap/starter-kit": "3.31.3",
-    "better-auth": "1.7.5",
-    "drizzle-orm": "0.45.2",
+    "better-auth": "1.7.6",
+    "drizzle-orm": "0.45.3",
     "hast-util-from-html": "2.0.3",
-    "katex": "0.18.7",
-    "next": "16.3.5",
+    "katex": "0.18.9",
+    "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "unist-util-visit": "5.1.0",
     "zod": "4.6.5"
   },
   "devDependencies": {
@@ -41,6 +42,6 @@
     "@tailwindcss/postcss": "4.3.3",
     "postcss": "8.5.28",
     "tailwindcss": "4.3.3",
-    "wrangler": "4.135.0"
+    "wrangler": "4.139.0"
   }
 }

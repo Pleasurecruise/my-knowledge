@@ -4,15 +4,13 @@ import { z } from "zod";
 
 export type DeferredEmbed = Extract<
   MarkdownEmbed,
-  { kind: "link" | "github" | "stock" | "articleList" }
+  { kind: "link" | "github" | "stock" | "twitter" | "articleList" }
 >;
 export type CompiledMarkdown = { tree: Root; deferredEmbeds: DeferredEmbed[] };
 export type MarkdownCache = {
   get(key: string): Promise<string | null>;
   put(key: string, value: string, options: { expirationTtl: number }): Promise<void>;
 };
-
-export const markdownArtifactVersion = "1";
 
 const text = z.object({ type: z.literal("text"), value: z.string() });
 const comment = z.object({ type: z.literal("comment"), value: z.string() });
@@ -45,6 +43,7 @@ export const compiledMarkdownSchema: z.ZodType<CompiledMarkdown> = z.object({
       z.object({ kind: z.literal("github"), repo: z.string(), align }),
       z.object({ kind: z.literal("stock"), code: z.string(), align }),
       z.object({ kind: z.literal("link"), url: z.string(), align }),
+      z.object({ kind: z.literal("twitter"), url: z.string(), align }),
       z.object({ kind: z.literal("articleList"), urls: z.array(z.string()), align }),
     ]),
   ),

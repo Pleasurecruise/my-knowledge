@@ -1,11 +1,11 @@
 import {
   compiledMarkdownSchema,
-  markdownArtifactVersion,
   type CompiledMarkdown,
   type DeferredEmbed,
   type MarkdownCache,
 } from "./markdown-artifact";
 import { markdownEmoji } from "./markdown-emoji";
+import { CodeBlock } from "./code-block";
 import { MarkdownBody } from "./markdown-body";
 import type { Element, ElementContent, Root } from "hast";
 import type { Root as MarkdownRoot } from "mdast";
@@ -17,6 +17,7 @@ import {
   Fragment,
   Suspense,
   type ComponentType,
+  type ComponentProps,
   type AnchorHTMLAttributes,
   type ReactNode,
 } from "react";
@@ -149,6 +150,7 @@ const structuredBlocks: Plugin<[StructuredBlockLabels, DeferredEmbed[]?], Root> 
             embeds &&
             (embed.kind === "link" ||
               embed.kind === "github" ||
+              embed.kind === "twitter" ||
               embed.kind === "stock" ||
               embed.kind === "articleList")
           ) {
@@ -353,7 +355,7 @@ export async function Markdown({
           const hash = Array.from(new Uint8Array(digest), (byte) =>
             byte.toString(16).padStart(2, "0"),
           ).join("");
-          key = `compiled/${markdownArtifactVersion}/${hash}.json`;
+          key = `compiled/${hash}.json`;
           const stored = await cache.get(key);
           if (stored !== null) return compiledMarkdownSchema.parse(JSON.parse(stored));
         }
@@ -380,6 +382,7 @@ export async function Markdown({
       jsxs,
       components: {
         ...(link ? { a: link } : {}),
+        pre: (props: ComponentProps<"pre">) => <CodeBlock {...props} labels={labels} />,
         "structured-block": structuredBlock,
         "deferred-embed": ({ embedIndex }: { embedIndex: number }) => {
           const embed = deferredEmbeds[embedIndex];

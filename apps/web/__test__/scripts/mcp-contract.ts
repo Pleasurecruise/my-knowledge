@@ -383,26 +383,70 @@ const restored = await callTool(
 );
 assert.equal(restored.structuredContent.visibility, "public");
 
-const unsupported = await fetch(endpoint, {
-  method: "POST",
-  headers: {
-    accept: "application/json, text/event-stream",
-    authorization: `Bearer ${apiKey}`,
-    "content-type": "application/json",
-  },
-  body: JSON.stringify({
-    jsonrpc: "2.0",
-    id: 11,
-    method: "initialize",
-    params: {
+async function legacyRequest(method: string, params: object, id?: number) {
+  return fetch(endpoint, {
+    method: "POST",
+    headers: {
+      accept: "application/json, text/event-stream",
+      authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json",
+      ...(method === "initialize" ? {} : { "mcp-protocol-version": "2025-11-25" }),
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", ...(id === undefined ? {} : { id }), method, params }),
+  });
+}
+
+async function legacyResult(response: Response): Promise<unknown> {
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("mcp-session-id"), null);
+  const text = await response.text();
+  const data = response.headers.get("content-type")?.startsWith("text/event-stream")
+    ? text
+        .split("\n")
+        .filter((line) => line.startsWith("data: "))
+        .map((line) => JSON.parse(line.slice(6)))
+    : [JSON.parse(text)];
+  assert.equal(data.length, 1);
+  return z.object({ result: z.unknown(), error: z.never().optional() }).parse(data[0]).result;
+}
+
+const initialized = await legacyResult(
+  await legacyRequest(
+    "initialize",
+    {
       protocolVersion: "2025-11-25",
       capabilities: {},
       clientInfo: { name: "my-knowledge-contract", version: "1.0.0" },
     },
-  }),
+    11,
+  ),
+);
+assert.equal(
+  z.object({ protocolVersion: z.string() }).parse(initialized).protocolVersion,
+  "2025-11-25",
+);
+assert.equal((await legacyRequest("notifications/initialized", {})).status, 202);
+const legacyTools = z
+  .object({ tools: z.array(z.object({ name: z.string() })) })
+  .parse(await legacyResult(await legacyRequest("tools/list", {}, 12)));
+assert.deepEqual(
+  legacyTools.tools.map((tool) => tool.name),
+  toolsBody.result.tools.map((tool) => tool.name),
+);
+const legacyArticle = articleResultSchema.parse(
+  await legacyResult(
+    await legacyRequest("tools/call", { name: "getArticle", arguments: { id: fixtureId } }, 13),
+  ),
+);
+assert.equal(legacyArticle.structuredContent.id, fixtureId);
+assert.equal(legacyArticle.isError, undefined);
+
+const session = await fetch(endpoint, {
+  method: "POST",
+  headers: { authorization: `Bearer ${apiKey}`, "mcp-session-id": "unsupported-session" },
 });
-assert.equal(unsupported.status, 400);
+assert.equal(session.status, 400);
 
 console.log(
-  "API contract passed: shared auth, REST writes/reads, MCP response parity and keyword search, tags, stale writes, visibility, and rejected obsolete initialization",
+  "API contract passed: shared auth, REST/MCP parity, keyword search, stale writes, visibility, modern discovery and 2025-11-25 initialization/list/call without sessions",
 );

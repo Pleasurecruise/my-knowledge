@@ -10,6 +10,9 @@ const labels = {
   canvasViewport: "Viewport",
   chart: "Chart",
   diagram: "Diagram",
+  copyCode: "Copy code",
+  codeCopied: "Code copied",
+  codeCopyFailed: "Copy failed",
   renderingDiagram: "Rendering",
   spatialView: "Spatial",
 };
@@ -116,14 +119,14 @@ it("reuses a serialized KV artifact after memory expiry and keeps dynamic cards 
   expect(cache.get).toHaveBeenCalledTimes(3);
   expect(cache.put).toHaveBeenCalledTimes(1);
   expect(cache.put).toHaveBeenCalledWith(
-    expect.stringMatching(/^compiled\/1\/[a-f0-9]{64}\.json$/u),
+    expect.stringMatching(/^compiled\/[a-f0-9]{64}\.json$/u),
     expect.any(String),
     { expirationTtl: 86_400 },
   );
   expect([...values.values()][0]).not.toContain("Owner title");
 });
 
-it("separates renderer versions, changed translations, labels and enrichment mode", async () => {
+it("separates changed translations, labels and enrichment mode", async () => {
   const values = new Map<string, string>();
   const cache = {
     get: async (key: string) => values.get(key) ?? null,
@@ -132,7 +135,7 @@ it("separates renderer versions, changed translations, labels and enrichment mod
     },
   };
   const highlight = vi.spyOn(await markdownHighlighter, "codeToHast");
-  const clock = vi.spyOn(Date, "now").mockReturnValue(3_000_000);
+  vi.spyOn(Date, "now").mockReturnValue(3_000_000);
   const input = {
     labels,
     structuredBlock,
@@ -140,18 +143,11 @@ it("separates renderer versions, changed translations, labels and enrichment mod
     markdown: "English\n\n```ts\nconst translated = true;\n```",
   };
   await Markdown(input);
-  for (const [key, value] of values) {
-    values.delete(key);
-    values.set(key.replace("compiled/1/", "compiled/0/"), value);
-    break;
-  }
-  clock.mockReturnValue(3_030_001);
-  await Markdown(input);
   await Markdown({ ...input, markdown: input.markdown.replace("English", "Japanese") });
   await Markdown({ ...input, labels: { ...labels, diagram: "图表" } });
   await Markdown({ ...input, embeds: async (embed) => renderMarkdownEmbed(embed) });
-  expect(highlight).toHaveBeenCalledTimes(5);
-  expect(values.size).toBe(5);
+  expect(highlight).toHaveBeenCalledTimes(4);
+  expect(values.size).toBe(4);
 });
 
 it("propagates malformed artifacts and KV failures without silently recompiling", async () => {
