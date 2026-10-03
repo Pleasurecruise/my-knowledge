@@ -11,8 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const articles = await listPublicArticleSummaries(env);
 
   return [
-    { url: origin.href },
-    { url: new URL("/explore", origin).href },
+    { url: origin.href, lastModified: articles.at(0)?.updatedAt },
     ...articles.map((article) => ({
       url: new URL(`/articles/${article.id}`, origin).href,
       lastModified: article.updatedAt,

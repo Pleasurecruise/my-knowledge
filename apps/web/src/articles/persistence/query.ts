@@ -77,7 +77,7 @@ export async function listPublicArticleSummaries(env: CloudflareEnv): Promise<Ar
   const rows = await drizzle(env.DB)
     .select()
     .from(articles)
-    .where(eq(articles.visibility, "public"))
+    .where(and(eq(articles.visibility, "public"), discoverableCondition))
     .orderBy(desc(articles.updatedAt), desc(articles.id));
   return rows.map((row) => articleSummary(row));
 }

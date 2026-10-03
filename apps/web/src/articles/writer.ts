@@ -14,7 +14,7 @@ import type {
   ArticleDraft,
   ArticleTranslationDraft,
   ArticleUpdateResult,
-} from "./operations";
+} from "./types";
 import { articleSummary } from "./persistence/record";
 import { readArticle, getArticleRow } from "./persistence/document";
 import { createArticle, saveArticleTranslation, updateArticle } from "./persistence/write";

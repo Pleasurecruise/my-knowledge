@@ -7,6 +7,16 @@ import { IntentLink } from "@/shell/intent-link";
 import { ArrowRight } from "@my-knowledge/ui/icons";
 import { SearchForm } from "@/search/components/search-form";
 import { PageLayout } from "@/shell/page-layout";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ searchParams }: PageProps<"/explore">): Promise<Metadata> {
+  const [params, i18n] = await Promise.all([searchParams, getInterfaceI18n()]);
+  return {
+    title: i18n.messages.search.title,
+    alternates: { canonical: "/explore" },
+    ...(params.query === undefined ? {} : { robots: { index: false, follow: true } }),
+  };
+}
 
 export default async function ExplorePage({ searchParams }: PageProps<"/explore">) {
   const [params, i18n] = await Promise.all([searchParams, getInterfaceI18n()]);

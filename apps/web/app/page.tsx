@@ -6,11 +6,19 @@ import { ArticleList } from "@/articles/components/article-list";
 import { getPrincipal } from "@/auth/owner";
 import { getInterfaceI18n } from "@/i18n/server";
 import { PageLayout } from "@/shell/page-layout";
+import { siteDescription, siteName } from "@/shell/site";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const i18n = await getInterfaceI18n();
-  return { title: i18n.messages.articles.title };
-}
+export const metadata: Metadata = {
+  title: { absolute: siteName },
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    title: siteName,
+    siteName,
+    description: siteDescription,
+  },
+};
 
 export default async function ArticlesPage() {
   const [{ env }, principal, i18n] = await Promise.all([

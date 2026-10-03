@@ -14,6 +14,7 @@ import { ApiKeyAction } from "@/auth/components/api-key-action";
 import { LanguageAction } from "@/i18n/components/language-action";
 import { getInterfaceI18n } from "@/i18n/server";
 import { PrimaryNavigation } from "@/shell/primary-navigation";
+import { siteAuthor, siteDescription, siteName } from "@/shell/site";
 import { ThemeAction } from "@/theme/components/theme-action";
 
 import "./globals.css";
@@ -23,10 +24,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(env.BETTER_AUTH_URL),
     title: {
-      default: "my knowledge",
-      template: "%s · my knowledge",
+      default: siteName,
+      template: `%s · ${siteName}`,
     },
-    description: "A private-first multilingual knowledge library.",
+    description: siteDescription,
     icons: { icon: "/logo.png?v=avatar", apple: "/logo.png?v=avatar" },
   };
 }
@@ -41,7 +42,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html data-scroll-behavior="smooth" lang={i18n.code} suppressHydrationWarning>
       <head>
         <link href="/fonts/fonts.css" rel="stylesheet" />
-        <link href="/rss.xml" rel="alternate" title="my knowledge RSS" type="application/rss+xml" />
+        <link
+          href="/rss.xml"
+          rel="alternate"
+          title={`${siteName} RSS`}
+          type="application/rss+xml"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `const storedTheme=localStorage.getItem(${JSON.stringify(themeStorageKey)});const theme=storedTheme==="light"||storedTheme==="dark"?storedTheme:matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.classList.toggle("dark",theme==="dark");document.documentElement.dataset.theme=theme;`,
@@ -62,7 +68,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             identity={
               <div className="site-identity">
                 <Image alt="" src="/logo.png" width={44} height={44} priority />
-                <span>Pleasure1234</span>
+                <span>{siteAuthor}</span>
               </div>
             }
             action={

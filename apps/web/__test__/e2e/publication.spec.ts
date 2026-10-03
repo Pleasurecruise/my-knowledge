@@ -218,10 +218,13 @@ test("keeps the two public tabs searchable, localized, and keyboard reachable", 
   expect(sitemapResponse.status()).toBe(200);
   const sitemap = await sitemapResponse.text();
   expect(sitemap).toContain("/articles/11111111-1111-4111-8111-111111111111");
-  expect(sitemap).toContain("/explore</loc>");
+  expect(sitemap).not.toContain("/explore</loc>");
   expect(sitemap).not.toContain("/graph</loc>");
   expect(sitemap).not.toContain("/articles</loc>");
   expect(sitemap).not.toContain("/articles/33333333-3333-4333-8333-333333333333");
+  expect((await page.request.get("/articles/33333333-3333-4333-8333-333333333333")).status()).toBe(
+    404,
+  );
   const rssResponse = await page.request.get("/rss.xml");
   expect(rssResponse.status()).toBe(200);
   expect(rssResponse.headers()["content-type"]).toContain("application/rss+xml");

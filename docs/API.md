@@ -14,6 +14,6 @@ Lists return `{ articles, cursor? }`, omitting terminal cursors. Summaries: `id`
 
 Translation draft PATCH requires locale (en/ja), title, summary, body and versions; no tags. Only current translations are editable; optional visibility is shared.
 
-Lists default to 20, maximum 100; tags intersect, including descendants. Missing reads: `404`; stale or unavailable mutations return `409` (draft updates distinguish missing articles with `404`); invalid input returns `422`.
+Lists default to 20, maximum 100; tags intersect, including descendants. Missing reads: `404`; stale or unavailable mutations return `409` (content updates distinguish missing articles with `404`); invalid input returns `422`.
 
 Owner-session-only `/api/settings/api-key`: status GET, creation POST, rotation PUT. Plaintext appears once; rotation invalidates previous keys. Responses are no-store; digests/timestamps persist.

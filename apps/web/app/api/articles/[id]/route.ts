@@ -55,38 +55,32 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/art
       ? Response.json({ article })
       : Response.json({ error: "Article changed or was not found" }, { status: 409 });
   }
-  if ("documents" in input) {
-    try {
-      const result = await updateArticleFromDocuments(
-        env,
-        id,
-        input.expectedHash,
-        input.expectedUpdatedAt,
-        input.documents,
-      );
-      if (result.status !== "updated") {
-        return Response.json({ error: "Article changed or was not found" }, { status: 409 });
-      }
-      return Response.json({ article: result.article });
-    } catch (error) {
-      if (error instanceof InvalidArticleInputError) {
-        return Response.json({ error: error.message }, { status: 422 });
-      }
-      throw error;
-    }
-  }
   let result: Awaited<ReturnType<typeof updateArticleFromDraft>>;
   try {
     result =
-      "locale" in input
-        ? await updateArticleTranslationFromDraft(
+      "documents" in input
+        ? await updateArticleFromDocuments(
             env,
             id,
             input.expectedHash,
             input.expectedUpdatedAt,
-            input,
+            input.documents,
           )
-        : await updateArticleFromDraft(env, id, input.expectedHash, input.expectedUpdatedAt, input);
+        : "locale" in input
+          ? await updateArticleTranslationFromDraft(
+              env,
+              id,
+              input.expectedHash,
+              input.expectedUpdatedAt,
+              input,
+            )
+          : await updateArticleFromDraft(
+              env,
+              id,
+              input.expectedHash,
+              input.expectedUpdatedAt,
+              input,
+            );
   } catch (error) {
     if (error instanceof InvalidArticleInputError) {
       return Response.json({ error: error.message }, { status: 422 });

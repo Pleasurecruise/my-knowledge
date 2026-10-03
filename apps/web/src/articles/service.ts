@@ -1,16 +1,34 @@
-import type { Visibility } from "@my-knowledge/content";
+import { canonicalizeTags, type Visibility } from "@my-knowledge/content";
 
 import { InvalidArticleInputError } from "./input-error";
-import type { ArticleDocuments, ArticleDraft, ArticleTranslationDraft } from "./operations";
+import { getArticleById } from "./persistence/document";
+import { listArticles, listTags } from "./persistence/query";
+import type {
+  ArticleDocuments,
+  ArticleDraft,
+  ArticleListQuery,
+  ArticleTranslationDraft,
+} from "./types";
 import type { ArticleWriteResult } from "./writer";
 
-export {
-  getOwnerArticle,
-  listOwnerArticles,
-  listOwnerTags,
-  InvalidArticleInputError,
-} from "./operations";
-export type { ArticleDocuments, ArticleDraft, ArticleUpdateResult } from "./operations";
+export { InvalidArticleInputError };
+
+export async function getOwnerArticle(env: CloudflareEnv, id: string) {
+  return getArticleById(env, "owner", id);
+}
+
+export async function listOwnerArticles(env: CloudflareEnv, input: ArticleListQuery) {
+  return listArticles(env, "owner", input);
+}
+
+export async function listOwnerTags(env: CloudflareEnv, parent: string | undefined) {
+  const tags = await listTags(env, "owner");
+  if (parent === undefined) return tags;
+  const normalizedParent = canonicalizeTags([parent])[0];
+  if (!normalizedParent) throw new InvalidArticleInputError();
+  const prefix = `${normalizedParent.toLocaleLowerCase("en-US")}/`;
+  return tags.filter((tag) => tag.path.toLocaleLowerCase("en-US").startsWith(prefix));
+}
 
 export async function createArticleFromDraft(env: CloudflareEnv, draft: ArticleDraft) {
   const id = crypto.randomUUID();

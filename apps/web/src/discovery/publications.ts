@@ -1,7 +1,6 @@
 import type { ArticleSummary } from "@my-knowledge/content";
 
-const siteTitle = "my knowledge";
-const siteDescription = "A private-first multilingual knowledge library.";
+import { siteDescription, siteName } from "@/shell/site";
 
 function escapeXml(value: string): string {
   return value
@@ -37,7 +36,7 @@ export function createRssFeed(articles: readonly ArticleSummary[], origin: URL):
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
     "  <channel>",
-    `    <title>${escapeXml(siteTitle)}</title>`,
+    `    <title>${escapeXml(siteName)}</title>`,
     `    <description>${escapeXml(siteDescription)}</description>`,
     `    <link>${escapeXml(homeUrl)}</link>`,
     `    <atom:link href="${escapeXml(feedUrl)}" rel="self" type="application/rss+xml"/>`,
@@ -68,7 +67,7 @@ export function createLlmsText(articles: readonly ArticleSummary[], origin: URL)
     });
 
   return [
-    `# ${siteTitle}`,
+    `# ${siteName}`,
     "",
     `> ${siteDescription}`,
     "",

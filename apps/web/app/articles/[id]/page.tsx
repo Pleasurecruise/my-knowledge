@@ -17,6 +17,7 @@ import { StructuredBlock } from "@/articles/components/structured-block";
 import { getPrincipal } from "@/auth/owner";
 import { getInterfaceI18n } from "@/i18n/server";
 import { interfaceLocales } from "@/i18n/registry";
+import { siteAuthor, siteName } from "@/shell/site";
 
 export async function generateMetadata({ params }: PageProps<"/articles/[id]">): Promise<Metadata> {
   const [{ id }, { env }] = await Promise.all([params, getCloudflareContext({ async: true })]);
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: PageProps<"/articles/[id]">):
       title: edition.title,
       description: edition.summary,
       url: canonical,
-      siteName: "my knowledge",
+      siteName,
       publishedTime: article.createdAt,
       modifiedTime: article.updatedAt,
       tags: article.tags,
@@ -145,6 +146,25 @@ export default async function ArticlePage({ params, searchParams }: PageProps<"/
           markdown={document.body}
         />
         <ArticleAddress id={article.id} />
+        {article.visibility === "public" ? (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "BlogPosting",
+                headline: article.editions.zh.title,
+                description: article.editions.zh.summary,
+                url: new URL(`/articles/${article.id}`, env.BETTER_AUTH_URL).href,
+                inLanguage: "zh-CN",
+                datePublished: article.createdAt,
+                dateModified: article.updatedAt,
+                keywords: article.tags,
+                author: { "@type": "Person", name: siteAuthor },
+              }).replaceAll("<", "\\u003c"),
+            }}
+          />
+        ) : null}
         <ReferencePosition key={`${article.id}:${locale}`} />
       </article>
     </div>

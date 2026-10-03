@@ -1,14 +1,9 @@
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vite-plus/test";
 
-import { authorizedCondition, tagCountQuery } from "@/articles/persistence/query";
+import { tagCountQuery } from "@/articles/persistence/query";
 
-describe("article query authorization", () => {
-  it("adds a visibility predicate only for anonymous reads", () => {
-    expect(authorizedCondition("anonymous")).toBeDefined();
-    expect(authorizedCondition("owner")).toBeUndefined();
-  });
-
+describe("article tag counts", () => {
   it("counts each article once for every hierarchical tag path", () => {
     const database = new DatabaseSync(":memory:");
     database.exec(`
