@@ -17,3 +17,5 @@ Translation draft PATCH requires locale (en/ja), title, summary, body and versio
 Lists default to 20, maximum 100; tags intersect, including descendants. Missing reads: `404`; stale or unavailable mutations return `409` (content updates distinguish missing articles with `404`); invalid input returns `422`.
 
 Owner-session-only `/api/settings/api-key`: status GET, creation POST, rotation PUT. Plaintext appears once; rotation invalidates previous keys. Responses are no-store; digests/timestamps persist.
+
+Discovery: `/.well-known/api-catalog` serves an RFC 9727 linkset (`application/linkset+json`) anchoring `/api/articles` to `/api/openapi.json` (OpenAPI 3.1 generated from the request schemas) and this document. The home page sends matching `Link` headers (`api-catalog`, `service-desc`, `service-doc`, `describedby` → `/llms.txt`). Both are anonymous and static; robots allows the OpenAPI document under `/api/`.
