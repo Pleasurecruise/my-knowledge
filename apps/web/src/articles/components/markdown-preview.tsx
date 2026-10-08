@@ -1,5 +1,3 @@
-"use client";
-
 import { Editor, defaultValueCtx, editorViewOptionsCtx, rootCtx } from "@milkdown/kit/core";
 import { commonmark, codeBlockAttr, imageAttr, imageSchema } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";

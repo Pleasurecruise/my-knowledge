@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@my-knowledge/ui/components/button";
 import { Moon, Sun } from "@my-knowledge/ui/icons";
 import { applyTheme, themeStorageKey, type Theme } from "@my-knowledge/ui/lib/theme";

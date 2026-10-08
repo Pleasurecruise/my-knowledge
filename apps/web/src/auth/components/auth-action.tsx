@@ -1,5 +1,3 @@
-"use client";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@my-knowledge/ui/components/avatar";
 import { Button } from "@my-knowledge/ui/components/button";
 import {

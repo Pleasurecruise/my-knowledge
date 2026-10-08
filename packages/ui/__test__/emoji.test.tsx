@@ -1,5 +1,7 @@
 import { expect, it } from "vite-plus/test";
 import { renderToStaticMarkup } from "react-dom/server";
+
+import { renderMarkdown } from "./render";
 import { Fragment } from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
 import remarkRehype from "remark-rehype";
@@ -44,8 +46,7 @@ it("rejects unsafe image URLs and duplicate shortcodes", () => {
 });
 
 it("uses the selected catalog in the real article renderer", async () => {
-  const { Markdown } = await import("../src/markdown");
-  const view = await Markdown({
+  const view = await renderMarkdown({
     labels: {
       canvas: "Canvas",
       canvasRelationships: "Relationships",

@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, useState, type ComponentProps } from "react";
 import { Copy } from "./icons";
 import { Button } from "./components/button";

@@ -1,4 +1,3 @@
-import type { Element, Root } from "hast";
 import type { MarkdownEmbed } from "@my-knowledge/content";
 import { z } from "zod";
 
@@ -6,7 +5,21 @@ export type DeferredEmbed = Extract<
   MarkdownEmbed,
   { kind: "link" | "github" | "stock" | "twitter" | "articleList" }
 >;
-export type CompiledMarkdown = { tree: Root; deferredEmbeds: DeferredEmbed[] };
+type ArtifactText = { type: "text"; value: string };
+type ArtifactComment = { type: "comment"; value: string };
+export type ArtifactElement = {
+  type: "element";
+  tagName: string;
+  properties: Record<string, string | number | boolean | null | (string | number)[]>;
+  children: (ArtifactElement | ArtifactText | ArtifactComment)[];
+};
+export type CompiledMarkdown = {
+  tree: {
+    type: "root";
+    children: (ArtifactElement | ArtifactText | ArtifactComment | { type: "doctype" })[];
+  };
+  deferredEmbeds: DeferredEmbed[];
+};
 export type MarkdownCache = {
   get(key: string): Promise<string | null>;
   put(key: string, value: string, options: { expirationTtl: number }): Promise<void>;
@@ -14,7 +27,7 @@ export type MarkdownCache = {
 
 const text = z.object({ type: z.literal("text"), value: z.string() });
 const comment = z.object({ type: z.literal("comment"), value: z.string() });
-const element: z.ZodType<Element> = z.lazy(() =>
+export const artifactElementSchema: z.ZodType<ArtifactElement> = z.lazy(() =>
   z.object({
     type: z.literal("element"),
     tagName: z.string(),
@@ -28,7 +41,7 @@ const element: z.ZodType<Element> = z.lazy(() =>
         z.array(z.union([z.string(), z.number()])),
       ]),
     ),
-    children: z.array(z.union([element, text, comment])),
+    children: z.array(z.union([artifactElementSchema, text, comment])),
   }),
 );
 const align = z.enum(["left", "right", "wide", "narrow"]);
@@ -36,7 +49,9 @@ const align = z.enum(["left", "right", "wide", "narrow"]);
 export const compiledMarkdownSchema: z.ZodType<CompiledMarkdown> = z.object({
   tree: z.object({
     type: z.literal("root"),
-    children: z.array(z.union([element, text, comment, z.object({ type: z.literal("doctype") })])),
+    children: z.array(
+      z.union([artifactElementSchema, text, comment, z.object({ type: z.literal("doctype") })]),
+    ),
   }),
   deferredEmbeds: z.array(
     z.discriminatedUnion("kind", [

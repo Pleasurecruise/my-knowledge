@@ -15,7 +15,7 @@ export function ArticleList({
 
   const years = new Map<number, ArticleSummary[]>();
   for (const article of articles) {
-    const year = order === "relevance" ? 0 : new Date(article.updatedAt).getFullYear();
+    const year = order === "relevance" ? 0 : new Date(article.createdAt).getFullYear();
     const entries = years.get(year);
     if (entries) entries.push(article);
     else years.set(year, [article]);
@@ -42,8 +42,8 @@ export function ArticleList({
                       <span className="article-preview-heading">
                         <span className="article-preview-title">{edition.title}</span>
                         <span className="article-visibility">{article.visibility}</span>
-                        <time dateTime={article.updatedAt}>
-                          {articleDate.format(new Date(article.updatedAt))}
+                        <time dateTime={article.createdAt}>
+                          {articleDate.format(new Date(article.createdAt))}
                         </time>
                       </span>
                       <span className="article-preview-summary">{edition.summary}</span>

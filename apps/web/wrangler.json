@@ -1,12 +1,11 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "my-knowledge",
-  "main": "worker.ts",
+  "main": "src/server.ts",
   "compatibility_date": "2026-08-16",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "workers_dev": false,
   "assets": {
-    "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
   "routes": [

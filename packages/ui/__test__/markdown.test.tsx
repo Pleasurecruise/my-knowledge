@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import { extractHeadings, markdownParser } from "@my-knowledge/content";
 
 import { CanvasBlock } from "../src/canvas-block";
-import { Markdown } from "../src/markdown";
+import { renderMarkdown } from "./render";
 import type { StructuredBlockProps } from "../src/structured-block.types";
 
 const labels = {
@@ -31,7 +31,7 @@ function StructuredBlock(props: StructuredBlockProps) {
 describe("Markdown", () => {
   it("keeps nested quotes and code markers out of callout detection", async () => {
     const html = renderToStaticMarkup(
-      await Markdown({
+      await renderMarkdown({
         labels,
         structuredBlock: StructuredBlock,
         markdown: "> > [!TIP] Nested tip.\n\n> `[!NOTE]` is code.\n\n> [!WARNING] Watch this.",
@@ -44,7 +44,7 @@ describe("Markdown", () => {
   });
 
   it("keeps the prototype canvas profiles and shorthand diagrams", async () => {
-    const result = await Markdown({
+    const result = await renderMarkdown({
       labels,
       structuredBlock: StructuredBlock,
       markdown: `~~~embed:architecture
@@ -80,7 +80,7 @@ step: 发布 | 上传产物
     expect(html).not.toContain("Rendering diagram");
   });
   it("preserves structured JSON entities and highlights tilde code fences", async () => {
-    const result = await Markdown({
+    const result = await renderMarkdown({
       labels,
       structuredBlock: StructuredBlock,
       markdown:
@@ -91,7 +91,7 @@ step: 发布 | 上传产物
     expect(html).toContain('data-language="ts"');
   });
   it("renders portable semantics and removes unsafe source HTML", async () => {
-    const element = await Markdown({
+    const element = await renderMarkdown({
       structuredBlock: StructuredBlock,
       labels,
       markdown: `---
@@ -116,7 +116,7 @@ Read [[target-article|the source]].
   });
 
   it("preserves math and maps structured fences to dedicated components", async () => {
-    const element = await Markdown({
+    const element = await renderMarkdown({
       structuredBlock: StructuredBlock,
       labels,
       markdown: `Inline $x^2$.
@@ -135,7 +135,7 @@ graph LR
   });
 
   it("uses the fine-grained Shiki bundle with aliases and dual themes", async () => {
-    const element = await Markdown({
+    const element = await renderMarkdown({
       structuredBlock: StructuredBlock,
       labels,
       markdown: `\`\`\`ts
@@ -155,7 +155,7 @@ echo "ready"
   });
 
   it("preserves literal code entities like my-workspace and escapes unknown languages", async () => {
-    const element = await Markdown({
+    const element = await renderMarkdown({
       structuredBlock: StructuredBlock,
       labels,
       markdown: `Inline \`&lt;main&gt;\`.
@@ -171,7 +171,7 @@ echo "ready"
   });
 
   it("leaves the document title to the article page", async () => {
-    const element = await Markdown({
+    const element = await renderMarkdown({
       structuredBlock: StructuredBlock,
       labels,
       markdown: "## Body section",
@@ -182,7 +182,7 @@ echo "ready"
   });
 
   it("anchors every body heading and wraps wide tables", async () => {
-    const element = await Markdown({
+    const element = await renderMarkdown({
       structuredBlock: StructuredBlock,
       labels,
       markdown: `# Body title
@@ -200,7 +200,7 @@ echo "ready"
   });
 
   it("renders positioned JSON Canvas nodes", async () => {
-    const valid = await Markdown({
+    const valid = await renderMarkdown({
       structuredBlock: StructuredBlock,
       labels,
       markdown: `\`\`\`json-canvas
@@ -215,7 +215,7 @@ echo "ready"
 });
 
 it("renders embed fences without code highlighting or executable SVG content", async () => {
-  const result = await Markdown({
+  const result = await renderMarkdown({
     labels,
     structuredBlock: StructuredBlock,
     markdown: `~~~embed:architecture
@@ -243,7 +243,7 @@ A --> B
 });
 
 it("renders link embeds through the article Markdown entrypoint", async () => {
-  const result = await Markdown({
+  const result = await renderMarkdown({
     labels,
     structuredBlock: StructuredBlock,
     markdown: "```embed:link\nurl: https://example.com/article?a=1&b=2\nalign: right\n```",
@@ -255,7 +255,7 @@ it("renders link embeds through the article Markdown entrypoint", async () => {
 });
 
 it("renders playable media with automatic video previews and explicit poster overrides", async () => {
-  const result = await Markdown({
+  const result = await renderMarkdown({
     labels,
     structuredBlock: StructuredBlock,
     markdown:
@@ -275,7 +275,7 @@ it("renders playable media with automatic video previews and explicit poster ove
 });
 
 it("uses raw audio bytes for GitHub file-view media URLs", async () => {
-  const result = await Markdown({
+  const result = await renderMarkdown({
     labels,
     structuredBlock: StructuredBlock,
     markdown:
@@ -295,7 +295,7 @@ it("shares unique heading anchors with the table of contents for rich and empty 
     "## Scope\n## Scope\n## Scope 2\n## ![Diagram](https://example.com/image.png)\n## 😀\n## ";
   const headings = extractHeadings(markdownParser.parse(markdown));
   const html = renderToStaticMarkup(
-    await Markdown({ labels, markdown, structuredBlock: StructuredBlock }),
+    await renderMarkdown({ labels, markdown, structuredBlock: StructuredBlock }),
   );
   const ids = [...html.matchAll(/<h[1-6] id="([^"]+)"/gu)].map((match) => match[1]);
   expect(ids).toEqual(["scope", "scope-2", "scope-2-2", "diagram", "section", "section-2"]);
@@ -307,7 +307,7 @@ it("keeps frontmatter, math, strikethrough and code headings aligned with the co
     "---\ntitle: Example\nsummary: Example\ntags: []\n---\n## ~~Old~~ $x^2$\n## `&lt;main&gt;`\n\n$$\n# not a heading\n$$\n\nReal\n----";
   const headings = extractHeadings(markdownParser.parse(markdown));
   const html = renderToStaticMarkup(
-    await Markdown({ labels, markdown, structuredBlock: StructuredBlock }),
+    await renderMarkdown({ labels, markdown, structuredBlock: StructuredBlock }),
   );
   const ids = [...html.matchAll(/<h[1-6] id="([^"]+)"/gu)].map((match) => match[1]);
   expect(headings.map((heading) => heading.title)).toEqual(["Old x^2", "&lt;main&gt;", "Real"]);
@@ -317,7 +317,7 @@ it("keeps frontmatter, math, strikethrough and code headings aligned with the co
 
 it("keeps an invalid embed diagnostic inside the block and renders the remaining article", async () => {
   const html = renderToStaticMarkup(
-    await Markdown({
+    await renderMarkdown({
       labels,
       structuredBlock: StructuredBlock,
       markdown: "Before.\n\n```embed:article\nid: removed-target\n```\n\nAfter.",
@@ -347,7 +347,7 @@ it.each([
       ],
     }),
   );
-  const element = await Markdown({
+  const element = await renderMarkdown({
     labels,
     structuredBlock: () => null,
     markdown: `Reading list.\n\n\`\`\`embed:article\n${source}\n\`\`\``,
@@ -368,7 +368,7 @@ it.each([
 
 it("keeps generated footnote headings outside article heading anchors", async () => {
   const html = renderToStaticMarkup(
-    await Markdown({
+    await renderMarkdown({
       labels,
       structuredBlock: StructuredBlock,
       markdown: "## Body\n\nA note[^one].\n\n[^one]: Footnote text.",
@@ -385,7 +385,7 @@ it("keeps generated footnote headings outside article heading anchors", async ()
 
 it("renders empty embed fences as block diagnostics", async () => {
   const html = renderToStaticMarkup(
-    await Markdown({
+    await renderMarkdown({
       labels,
       structuredBlock: StructuredBlock,
       markdown: "Before.\n\n```embed:article\n```\n\nAfter.",
@@ -398,7 +398,7 @@ it("renders empty embed fences as block diagnostics", async () => {
 
 it("preserves heading identities when footnote definitions precede body headings", async () => {
   const html = renderToStaticMarkup(
-    await Markdown({
+    await renderMarkdown({
       labels,
       structuredBlock: StructuredBlock,
       markdown: "[^one]:\n    ## Note heading\n\n## Body heading\n\nA note[^one].",
@@ -410,7 +410,7 @@ it("preserves heading identities when footnote definitions precede body headings
 
 it("does not rewrite wiki-like math annotations into article links", async () => {
   const html = renderToStaticMarkup(
-    await Markdown({
+    await renderMarkdown({
       labels,
       structuredBlock: StructuredBlock,
       markdown: "[[real]] and $[[math-only]]$.",

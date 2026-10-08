@@ -69,7 +69,7 @@ regressed.
   publish, withdraw, and delete Articles from those existing surfaces; there is no owner dashboard.
 - Article metadata, social images, robots, and sitemap use anonymous authorization and never expose
   private titles, tags, timestamps, or bodies.
-- Local tools submit semantic Markdown; the Next.js frontend owns presentation.
+- Local tools submit semantic Markdown; the TanStack Start frontend owns presentation.
 - Project names are concise camelCase. Foreign naming stops at adapters.
 
 ## Engineering guardrails

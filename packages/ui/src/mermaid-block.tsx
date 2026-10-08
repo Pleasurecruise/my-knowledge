@@ -1,5 +1,3 @@
-"use client";
-
 import mermaid from "mermaid";
 import { useCallback, useId } from "react";
 

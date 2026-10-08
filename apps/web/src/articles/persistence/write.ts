@@ -9,7 +9,7 @@ import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
 import { deleteArticleCache } from "./cache";
-import { getArticleRow } from "./document";
+import { readArticleRow } from "./document";
 import { createStoredArticle, deleteStoredArticle, updateStoredArticle } from "./mutation";
 import { articleObjectKey, articleSummary, type ArticleRow } from "./record";
 import type { StoredArticleDocument, WrittenArticleDocument } from "./types";
@@ -97,7 +97,7 @@ export async function createArticle(
   id: string,
   document: ArticleDocumentSet,
 ): Promise<ArticleRow> {
-  const existing = await getArticleRow(env, "owner", id);
+  const existing = await readArticleRow(env, "owner", id);
   if (existing) return existing;
   const chinese = document.editions.zh;
   const timestamp = new Date().toISOString();
@@ -128,12 +128,12 @@ export async function createArticle(
       return id;
     },
     cleanupNewVersion: async () => {
-      if (!written || (await getArticleRow(env, "owner", id))) return;
+      if (!written || (await readArticleRow(env, "owner", id))) return;
       await rollbackDocument(env.KNOWLEDGE_BUCKET, null, written);
       await deleteArticleCache(env.KNOWLEDGE_CACHE, id, document.contentHash, articleLocales);
     },
   });
-  const stored = await getArticleRow(env, "owner", id);
+  const stored = await readArticleRow(env, "owner", id);
   if (!stored) throw new Error(`Created article ${id} is not readable`);
   return stored;
 }
@@ -145,7 +145,7 @@ export async function updateArticle(
   document: ArticleDocumentSet,
   visibility?: Visibility,
 ): Promise<ArticleRow | undefined> {
-  const previous = await getArticleRow(env, "owner", id);
+  const previous = await readArticleRow(env, "owner", id);
   if (!previous || previous.contentHash !== expectedHash) return undefined;
   if (document.contentHash === expectedHash) {
     const updated = await drizzle(env.DB)
@@ -224,7 +224,7 @@ export async function saveArticleTranslation(
   translation: ParsedArticleDocument,
   edit?: { expectedUpdatedAt: string; visibility?: Visibility | undefined },
 ): Promise<ArticleRow | undefined> {
-  const article = await getArticleRow(env, "owner", id);
+  const article = await readArticleRow(env, "owner", id);
   if (!article || article.contentHash !== sourceHash) return;
   const previousTranslation = await drizzle(env.DB)
     .select()
@@ -316,7 +316,7 @@ export async function setArticleVisibility(
   expectedHash: string,
   visibility: "private" | "public",
 ): Promise<ArticleSummary | undefined> {
-  const previous = await getArticleRow(env, "owner", id);
+  const previous = await readArticleRow(env, "owner", id);
   if (!previous || previous.contentHash !== expectedHash) return undefined;
   const updated = await drizzle(env.DB)
     .update(articles)
@@ -342,7 +342,7 @@ export async function deleteArticle(
   id: string,
   expectedHash: string,
 ): Promise<boolean> {
-  const previous = await getArticleRow(env, "owner", id);
+  const previous = await readArticleRow(env, "owner", id);
   if (!previous || previous.contentHash !== expectedHash) return false;
   return deleteStoredArticle({
     hideRow: async () => {

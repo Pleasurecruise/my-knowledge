@@ -1,16 +1,21 @@
-import type { Element, ElementContent } from "hast";
 import type { MarkdownEmbed } from "@my-knowledge/content";
+import type { Tweet } from "react-tweet/api";
 import { layoutArchitecture } from "./architecture";
+import { artifactElementSchema, type ArtifactElement } from "./markdown-artifact";
 
 function element(
   tagName: string,
-  children: ElementContent[],
-  properties: Element["properties"] = {},
-): Element {
+  children: ArtifactElement["children"],
+  properties: ArtifactElement["properties"] = {},
+): ArtifactElement {
   return { type: "element", tagName, properties, children };
 }
 
 export type ArticleCard = { href: string; title: string; description: string };
+
+export type ResolvedEmbed =
+  | { kind: "card"; card: ArtifactElement }
+  | { kind: "tweet"; tweet: Tweet; align: MarkdownEmbed["align"] };
 
 export type CardData =
   | { kind: "articleList"; items: (ArticleCard | null)[] }
@@ -34,7 +39,7 @@ export type CardData =
   | { kind: "stock"; name: string; currency: string; points: { time: number; price: number }[] }
   | { kind: "error"; message: string };
 
-export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): Element {
+export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): ArtifactElement {
   const properties = {
     className: ["markdown-embed", `markdown-embed-${embed.align}`, `markdown-embed-${embed.kind}`],
   };
@@ -539,7 +544,7 @@ export function renderMarkdownEmbed(embed: MarkdownEmbed, data?: CardData): Elem
       );
     }
     case "svg":
-      return element("figure", [embed.tree], {
+      return element("figure", [artifactElementSchema.parse(embed.tree)], {
         className: [...properties.className, `markdown-embed-${embed.profile}`],
       });
   }

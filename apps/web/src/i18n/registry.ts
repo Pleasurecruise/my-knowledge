@@ -113,3 +113,23 @@ export const interfaceLocales: readonly InterfaceLocale[] = [
   { code: "en", label: "English", messages: en },
   { code: "ja", label: "日本語", messages: ja },
 ];
+
+export function resolveInterfaceI18n(stored: string | undefined, acceptLanguage: string | null) {
+  const locale = interfaceLocales.find(({ code }) => code === stored);
+  if (locale) return locale;
+
+  let selected = interfaceLocales.find(({ code }) => code === defaultInterfaceLocale);
+  if (!selected) throw new Error("The default interface locale is not registered");
+  let priority = 0;
+  for (const entry of acceptLanguage?.split(",") ?? []) {
+    const [range, weight] = entry.trim().split(/\s*;\s*q\s*=\s*/iu);
+    const language = range?.split("-")[0]?.toLowerCase();
+    const quality = weight === undefined ? 1 : Number(weight);
+    const candidate = interfaceLocales.find(({ code }) => code.split("-")[0] === language);
+    if (candidate && quality > priority && quality <= 1) {
+      selected = candidate;
+      priority = quality;
+    }
+  }
+  return selected;
+}

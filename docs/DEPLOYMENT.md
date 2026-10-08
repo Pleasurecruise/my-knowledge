@@ -4,7 +4,7 @@ apps/web/wrangler.json owns Worker bindings, assets and domains. Credentials bel
 
 BETTER_AUTH_URL defines the canonical origin. Google requires that origin and /api/auth/callback/google redirect. Local preview uses http://localhost:8787 with matching auth configuration.
 
-pnpm dev and preview rebuild OpenNext and invoke Wrangler. Restart after edits. Avoid next dev: its proxy lacks internal Durable Objects. Preview uses remote storage; tests explicitly use local bindings.
+pnpm dev runs Vite with the Worker, Durable Objects and remote storage in workerd. pnpm preview serves the production build. Browser tests build with `--mode test`, which bundles wrangler.test.json local bindings.
 
 Monitoring redacts query strings.
 

@@ -7,13 +7,13 @@ import {
 } from "@my-knowledge/content";
 import { and, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { cache } from "react";
 
 import { readArticleCache, writeArticleCache } from "./cache";
 import { authorizedCondition } from "./query";
 import { articleObjectKey, articleSummary, type ArticleRow } from "./record";
 import type { Principal } from "@/auth/types";
 import { articles, articleTranslations } from "@/db/schema";
+import { requestCache } from "@/request";
 
 export async function readArticle(env: CloudflareEnv, row: ArticleRow): Promise<Article> {
   const translations = await drizzle(env.DB)
@@ -94,7 +94,7 @@ export async function localizeArticles(
 }
 
 export async function getArticleMetadata(env: CloudflareEnv, id: string) {
-  const row = await getArticleRow(env, "anonymous", decodeURIComponent(id));
+  const row = await getArticleRow(env, "anonymous", id);
   return row ? articleSummary(row) : null;
 }
 
@@ -104,7 +104,7 @@ export async function getArticleEdition(
   id: string,
   requestedLocale: string,
 ) {
-  const row = await getArticleRow(env, principal, decodeURIComponent(id));
+  const row = await getArticleRow(env, principal, id);
   if (!row) return null;
   const translations =
     requestedLocale === "zh"
@@ -123,15 +123,15 @@ export async function getArticleEdition(
   return { article, locale, text: await readArticleText(env, row, locale) };
 }
 
-export const getArticleRow = cache(
-  async (env: CloudflareEnv, principal: Principal, value: string) => {
-    return drizzle(env.DB)
-      .select()
-      .from(articles)
-      .where(and(eq(articles.id, value), authorizedCondition(principal)))
-      .get();
-  },
-);
+export function readArticleRow(env: CloudflareEnv, principal: Principal, value: string) {
+  return drizzle(env.DB)
+    .select()
+    .from(articles)
+    .where(and(eq(articles.id, value), authorizedCondition(principal)))
+    .get();
+}
+
+export const getArticleRow = requestCache(readArticleRow);
 
 export async function getArticleById(env: CloudflareEnv, principal: Principal, id: string) {
   const row = await getArticleRow(env, principal, id);

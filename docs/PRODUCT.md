@@ -1,6 +1,6 @@
 # Product
 
-One personal blog turns writing into durable public articles. Home (`/`) shows chronology; Explore (`/explore`) searches by keyword or tag. Removed list and Graph routes return not found. Search preserves relevance; anonymous article return links retain exploration context. Owner authoring uses existing surfaces; there is no dashboard.
+One personal blog turns writing into durable public articles. Home (`/`) shows chronology by creation time; Explore (`/explore`) searches by keyword or tag. Removed list and Graph routes return not found. Search preserves relevance; anonymous article return links retain exploration context. Owner authoring uses existing surfaces; there is no dashboard.
 
 Every submission starts public after canonical Chinese persistence succeeds. The allowed-email owner may create, edit, publish, withdraw and delete. Keyword search serves every session; no search material is stored.
 

@@ -96,9 +96,7 @@ test("shows recoverable error and not-found pages at reading width", async ({ pa
   expect(errors.length).toBeGreaterThan(0);
   expect(
     errors.every((error) =>
-      /Server Components render|Minified React error #441|500 \(Internal Server Error\)/u.test(
-        error,
-      ),
+      /Canonical zh Markdown is missing|500 \(Internal Server Error\)/u.test(error),
     ),
   ).toBe(true);
   await page.getByRole("link", { name: "返回首页", exact: true }).click();

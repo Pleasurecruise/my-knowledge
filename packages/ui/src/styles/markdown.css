@@ -975,6 +975,18 @@
   line-height: 1.5;
 }
 
+.tweet-card-date a {
+  color: inherit;
+  text-decoration: none;
+  font-size: var(--tweet-info-font-size);
+  line-height: var(--tweet-info-line-height);
+}
+
+.tweet-card-date a:hover {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+}
+
 .tweet-card a:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;

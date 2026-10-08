@@ -252,12 +252,12 @@ test("keeps the two public tabs searchable, localized, and keyboard reachable", 
   expect(removedAlias.headers()["location"]).toBeUndefined();
   const removedAliasHtml = await removedAlias.text();
   expect(removedAliasHtml).toContain('<meta name="robots" content="noindex');
-  expect(removedAliasHtml).toContain("404 · 未找到页面");
+  expect(removedAliasHtml).toContain("404 · Not found");
   expect(removedAliasHtml).not.toContain("Extensible Knowledge Boundaries");
   const privateResponse = await page.request.get("/articles/33333333-3333-4333-8333-333333333333");
   const privatePage = await privateResponse.text();
   expect(privatePage).toContain('<meta name="robots" content="noindex');
-  expect(privatePage).toContain("404 · 未找到页面");
+  expect(privatePage).toContain("404 · Not found");
   expect(privatePage).not.toContain("Private deletion fixture");
 
   await page.goto("/");
@@ -308,11 +308,13 @@ test("prefetches prose links before clicking and keeps navigation in the client"
   const reference = page
     .locator('.markdown-body a[href="/articles/22222222-2222-4222-8222-222222222222"]')
     .first();
-  const requested = page.waitForRequest(
-    (request) =>
-      new URL(request.url()).pathname === "/articles/22222222-2222-4222-8222-222222222222" &&
-      request.headers()["rsc"] === "1",
-  );
+  const requested = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return (
+      url.pathname.startsWith("/_serverFn/") &&
+      url.search.includes("22222222-2222-4222-8222-222222222222")
+    );
+  });
   await reference.hover();
   const prefetch = await requested;
   const response = await prefetch.response();

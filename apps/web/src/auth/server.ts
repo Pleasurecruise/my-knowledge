@@ -1,15 +1,14 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Auth, BetterAuthOptions } from "better-auth";
 import { betterAuth } from "better-auth/minimal";
 import { oneTap } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { drizzle } from "drizzle-orm/d1";
+import { env } from "cloudflare:workers";
 
 import { authBindingsSchema } from "@/auth/bindings";
 import { authSchema } from "@/db/schema";
 
 async function authBuilder(): Promise<Auth> {
-  const { env } = await getCloudflareContext({ async: true });
   const bindings = authBindingsSchema.parse(env);
   const allowedEmail = bindings.ALLOWED_EMAIL.toLowerCase();
   return betterAuth<BetterAuthOptions>({

@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { beforeEach, expect, it, vi } from "vite-plus/test";
 import {
   getArticleEdition,
@@ -20,14 +20,15 @@ const reads = vi.hoisted(() => ({
   write: vi.fn(),
 }));
 
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({
-    env: {
-      DB: {},
-      KNOWLEDGE_CACHE: {},
-      KNOWLEDGE_BUCKET: { get: reads.object },
-    },
-  }),
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    DB: {},
+    KNOWLEDGE_CACHE: {},
+    KNOWLEDGE_BUCKET: { get: reads.object },
+  },
+}));
+vi.mock("@tanstack/react-start/server", () => ({
+  getRequest: () => new Request("https://knowledge.example.com"),
 }));
 vi.mock("drizzle-orm/d1", () => ({
   drizzle: () => ({
@@ -74,7 +75,6 @@ beforeEach(() => {
 });
 
 it("reads anonymous metadata without translations, caches or bodies", async () => {
-  const { env } = await getCloudflareContext({ async: true });
   expect((await getArticleMetadata(env, row.id))?.editions.zh.title).toBe("中文");
   expect(reads.translations).not.toHaveBeenCalled();
   expect(reads.cache).not.toHaveBeenCalled();
@@ -82,7 +82,6 @@ it("reads anonymous metadata without translations, caches or bodies", async () =
 });
 
 it("reads only the selected edition after authorizing the row", async () => {
-  const { env } = await getCloudflareContext({ async: true });
   expect((await getArticleEdition(env, "anonymous", row.id, "en"))?.locale).toBe("en");
   expect(reads.cache).toHaveBeenCalledExactlyOnceWith(
     env.KNOWLEDGE_CACHE,
@@ -96,7 +95,6 @@ it("reads only the selected edition after authorizing the row", async () => {
 
 it("does not access derived or canonical content when D1 denies the row", async () => {
   reads.row.mockResolvedValue(undefined);
-  const { env } = await getCloudflareContext({ async: true });
   expect(await getArticleEdition(env, "anonymous", row.id, "en")).toBeNull();
   expect(await getArticleMetadata(env, row.id)).toBeNull();
   expect(reads.translations).not.toHaveBeenCalled();
@@ -106,7 +104,6 @@ it("does not access derived or canonical content when D1 denies the row", async 
 
 it("falls back to Chinese when the requested current translation is absent", async () => {
   reads.translations.mockResolvedValue([]);
-  const { env } = await getCloudflareContext({ async: true });
   expect((await getArticleEdition(env, "anonymous", row.id, "ja"))?.locale).toBe("zh");
   expect(reads.cache).toHaveBeenCalledExactlyOnceWith(
     env.KNOWLEDGE_CACHE,
@@ -122,7 +119,6 @@ it("bypasses public caches for an owner's private article", async () => {
     customMetadata: { contentHash: row.contentHash },
     text: async () => "---\ntitle: Private\nsummary: Private summary\ntags: []\n---\nBody",
   });
-  const { env } = await getCloudflareContext({ async: true });
   expect((await getArticleEdition(env, "owner", row.id, "zh"))?.text.title).toBe("Private");
   expect(reads.translations).not.toHaveBeenCalled();
   expect(reads.cache).not.toHaveBeenCalled();
@@ -131,7 +127,6 @@ it("bypasses public caches for an owner's private article", async () => {
 });
 
 it("localizes authorized list summaries without reading any bodies", async () => {
-  const { env } = await getCloudflareContext({ async: true });
   const summaries = [articleSummary(row)];
   const localized = await localizeArticles(env, summaries, "en");
   expect(localized[0]?.editions.en).toEqual({ title: "English", summary: "Summary" });
@@ -140,7 +135,6 @@ it("localizes authorized list summaries without reading any bodies", async () =>
   expect(reads.cache).not.toHaveBeenCalled();
 });
 it("omits stale and absent translations and skips translation reads for Chinese", async () => {
-  const { env } = await getCloudflareContext({ async: true });
   const summaries = [articleSummary(row)];
   expect(await localizeArticles(env, summaries, "zh-CN")).toBe(summaries);
   expect(reads.translations).not.toHaveBeenCalled();
@@ -158,7 +152,6 @@ it.each([undefined, { contentHash: "b".repeat(64) }])(
     reads.cache.mockResolvedValue(undefined);
     const body = vi.fn();
     reads.object.mockResolvedValue({ customMetadata, text: body });
-    const { env } = await getCloudflareContext({ async: true });
     await expect(getArticleEdition(env, "anonymous", row.id, "zh")).rejects.toThrow(
       "Article version changed",
     );

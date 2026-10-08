@@ -5,7 +5,6 @@
 @import "./base.css";
 @import "./markdown.css";
 
-@source "../../../../apps/web/app/**/*.{ts,tsx}";
 @source "../../../../apps/web/src/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
 

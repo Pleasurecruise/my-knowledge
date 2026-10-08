@@ -1,5 +1,5 @@
 import { parseArticleDocuments } from "@my-knowledge/content";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { beforeEach, expect, it, vi } from "vite-plus/test";
 import { deleteArticle, updateArticle } from "@/articles/persistence/write";
 import type { ArticleRow } from "@/articles/persistence/record";
@@ -17,22 +17,20 @@ const writes = vi.hoisted(() => ({
   translations: vi.fn(),
   removeRow: vi.fn(),
 }));
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({
-    env: {
-      DB: {},
-      KNOWLEDGE_BUCKET: {
-        get: writes.object,
-        put: writes.put,
-        head: writes.head,
-        delete: writes.removeObject,
-      },
-      KNOWLEDGE_CACHE: { delete: writes.removeCache },
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    DB: {},
+    KNOWLEDGE_BUCKET: {
+      get: writes.object,
+      put: writes.put,
+      head: writes.head,
+      delete: writes.removeObject,
     },
-  }),
+    KNOWLEDGE_CACHE: { delete: writes.removeCache },
+  },
 }));
 vi.mock("@/articles/persistence/document", () => ({
-  getArticleRow: writes.row,
+  readArticleRow: writes.row,
   readArticle: writes.read,
 }));
 vi.mock("drizzle-orm/d1", () => ({
@@ -70,7 +68,6 @@ it.each([undefined, "private"])(
       ...(visibility === undefined ? {} : { visibility }),
     };
     writes.result.mockResolvedValue(updated);
-    const { env } = await getCloudflareContext({ async: true });
     await updateArticle(
       env,
       previous.id,
@@ -109,7 +106,6 @@ it("does not clean caches after a conditional document write loses", async () =>
   });
   writes.put.mockResolvedValue(null);
   const document = await parseArticleDocuments({ zh: markdown.replace("Old body", "New body") });
-  const { env } = await getCloudflareContext({ async: true });
   await expect(updateArticle(env, previous.id, previous.contentHash, document)).rejects.toThrow(
     "Markdown changed while writing",
   );
@@ -124,7 +120,6 @@ it("rejects a canonical object from a different in-flight version before writing
     customMetadata: { contentHash: "b".repeat(64) },
   });
   const document = await parseArticleDocuments({ zh: markdown.replace("Old body", "New body") });
-  const { env } = await getCloudflareContext({ async: true });
   await expect(updateArticle(env, previous.id, previous.contentHash, document)).rejects.toThrow(
     "Article version changed",
   );
@@ -143,7 +138,6 @@ it("reports rollback failure when another writer replaces the canonical object",
   writes.result.mockRejectedValue(new Error("concurrent write"));
   writes.head.mockResolvedValue({ etag: "other-writer" });
   const document = await parseArticleDocuments({ zh: markdown.replace("Old body", "New body") });
-  const { env } = await getCloudflareContext({ async: true });
   await expect(updateArticle(env, previous.id, previous.contentHash, document)).rejects.toThrow(
     "Article update and cleanup both failed",
   );
@@ -166,7 +160,6 @@ it("retries deletion after canonical objects were removed but cache cleanup fail
     .mockRejectedValueOnce(new Error("Cache unavailable"))
     .mockResolvedValue(undefined);
   writes.removeRow.mockResolvedValue({ id: previous.id });
-  const { env } = await getCloudflareContext({ async: true });
   await expect(deleteArticle(env, previous.id, previous.contentHash)).rejects.toThrow(
     "Cache unavailable",
   );
@@ -181,7 +174,6 @@ it("hides an article before a canonical read fails during deletion", async () =>
   writes.row.mockResolvedValue(previous);
   writes.result.mockResolvedValue({ id: previous.id });
   writes.object.mockRejectedValue(new Error("R2 unavailable"));
-  const { env } = await getCloudflareContext({ async: true });
   await expect(deleteArticle(env, previous.id, previous.contentHash)).rejects.toThrow(
     "R2 unavailable",
   );

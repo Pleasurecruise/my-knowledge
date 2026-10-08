@@ -1,17 +1,16 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { getRequestHeaders } from "@tanstack/react-start/server";
 import { getSessionCookie } from "better-auth/cookies";
-import { cache } from "react";
-import { headers } from "next/headers";
+import { env } from "cloudflare:workers";
 
 import { authBindingsSchema } from "@/auth/bindings";
 import { verifyApiKey } from "@/auth/api-key";
 import { createAuth } from "@/auth/server";
 import type { Principal } from "@/auth/types";
+import { requestCache } from "@/request";
 
-export const getPrincipal = cache(async (): Promise<Principal> => {
-  const requestHeaders = await headers();
+export const getPrincipal = requestCache(async (): Promise<Principal> => {
+  const requestHeaders = getRequestHeaders();
   if (!getSessionCookie(requestHeaders)) return "anonymous";
-  const { env } = await getCloudflareContext({ async: true });
   const allowedEmail = authBindingsSchema.shape.ALLOWED_EMAIL.parse(env.ALLOWED_EMAIL);
   const auth = await createAuth();
   const session = await auth.api.getSession({ headers: requestHeaders });

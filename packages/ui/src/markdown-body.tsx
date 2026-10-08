@@ -1,5 +1,3 @@
-"use client";
-
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 export function MarkdownBody({ children }: { children: ReactNode }) {

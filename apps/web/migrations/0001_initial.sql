@@ -9,7 +9,7 @@ CREATE TABLE `articles` (
   `updatedAt` text NOT NULL
 );
 
-CREATE INDEX `articles_visibility_updatedAt_idx` ON `articles` (`visibility`, `updatedAt`);
+CREATE INDEX `articles_visibility_createdAt_idx` ON `articles` (`visibility`, `createdAt`);
 
 CREATE TABLE `articleTranslations` (
   `articleId` text NOT NULL,

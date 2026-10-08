@@ -2,8 +2,11 @@ import { expect, it, vi } from "vite-plus/test";
 
 import { getInterfaceI18n } from "@/i18n/server";
 
-const reads = vi.hoisted(() => ({ cookies: vi.fn(), headers: vi.fn() }));
-vi.mock("next/headers", () => reads);
+const reads = vi.hoisted(() => ({
+  getCookie: vi.fn<() => string | undefined>(),
+  getRequestHeaders: vi.fn<() => Headers>(),
+}));
+vi.mock("@tanstack/react-start/server", () => reads);
 
 it.each([
   [undefined, undefined, "zh-CN"],
@@ -20,8 +23,10 @@ it.each([
   ["en-US", "invalid", "en"],
   ["en-US", "ja", "ja"],
   ["en-US", "zh-CN", "zh-CN"],
-])("selects %s with preference %s as %s", async (language, preference, expected) => {
-  reads.cookies.mockResolvedValue({ get: () => (preference ? { value: preference } : undefined) });
-  reads.headers.mockResolvedValue(new Headers(language ? { "accept-language": language } : {}));
-  expect((await getInterfaceI18n()).code).toBe(expected);
+])("selects %s with preference %s as %s", (language, preference, expected) => {
+  reads.getCookie.mockReturnValue(preference);
+  reads.getRequestHeaders.mockReturnValue(
+    new Headers(language ? { "accept-language": language } : {}),
+  );
+  expect(getInterfaceI18n().code).toBe(expected);
 });

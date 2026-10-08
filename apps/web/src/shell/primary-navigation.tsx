@@ -1,13 +1,11 @@
-"use client";
-
 import { Search, Library } from "@my-knowledge/ui/icons";
 import { IntentLink as Link } from "./intent-link";
-import { usePathname } from "next/navigation";
+import { useLocation } from "@tanstack/react-router";
 
 import type { InterfaceMessages } from "@/i18n/registry";
 
 export function PrimaryNavigation({ messages }: { messages: InterfaceMessages["shell"] }) {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const articlesActive = pathname === "/" || pathname.startsWith("/articles");
 
   return (

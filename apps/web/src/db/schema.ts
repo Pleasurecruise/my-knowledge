@@ -21,7 +21,7 @@ export const articles = sqliteTable(
     createdAt: text("createdAt").notNull(),
     updatedAt: text("updatedAt").notNull(),
   },
-  (table) => [index("articles_visibility_updatedAt_idx").on(table.visibility, table.updatedAt)],
+  (table) => [index("articles_visibility_createdAt_idx").on(table.visibility, table.createdAt)],
 );
 
 export const articleTranslations = sqliteTable(

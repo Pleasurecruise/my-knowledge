@@ -1,5 +1,3 @@
-"use client";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,13 +11,13 @@ import {
 } from "@my-knowledge/ui/components/alert-dialog";
 import { Button } from "@my-knowledge/ui/components/button";
 import { Trash2 } from "@my-knowledge/ui/icons";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import type { DeleteActionProps } from "./delete-action.types";
 
 export function DeleteAction({ id, expectedHash, expectedUpdatedAt, messages }: DeleteActionProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +31,7 @@ export function DeleteAction({ id, expectedHash, expectedUpdatedAt, messages }: 
         body: JSON.stringify({ expectedHash, expectedUpdatedAt }),
       });
       if (response.status === 204) {
-        router.push("/");
+        await navigate({ to: "/" });
         return;
       }
       setError(response.status === 404 ? messages.deleteNotFound : messages.deleteFailed);

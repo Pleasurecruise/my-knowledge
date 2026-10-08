@@ -1,6 +1,6 @@
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, it, vi } from "vite-plus/test";
-import { Markdown } from "../src/markdown";
+import { renderMarkdown } from "./render";
 import { markdownHighlighter } from "../src/markdown-highlighter";
 import { renderMarkdownEmbed } from "../src/markdown-embeds";
 
@@ -23,18 +23,18 @@ it("shares concurrent compilation, separates source/labels, expires and bounds r
   const highlight = vi.spyOn(await markdownHighlighter, "codeToHast");
   const clock = vi.spyOn(Date, "now").mockReturnValue(100_000);
   const input = { labels, structuredBlock, markdown: "## Cached\n\n```ts\nconst shared = 1;\n```" };
-  const results = await Promise.all([Markdown(input), Markdown(input)]);
+  const results = await Promise.all([renderMarkdown(input), renderMarkdown(input)]);
   expect(renderToStaticMarkup(results[0])).toBe(renderToStaticMarkup(results[1]));
   expect(highlight).toHaveBeenCalledTimes(1);
-  await Markdown({ ...input, labels: { ...labels, chart: "图表" } });
-  await Markdown({ ...input, markdown: input.markdown.replace("1;", "2;") });
+  await renderMarkdown({ ...input, labels: { ...labels, chart: "图表" } });
+  await renderMarkdown({ ...input, markdown: input.markdown.replace("1;", "2;") });
   expect(highlight).toHaveBeenCalledTimes(3);
   clock.mockReturnValue(130_001);
-  await Markdown(input);
+  await renderMarkdown(input);
   expect(highlight).toHaveBeenCalledTimes(4);
   for (let index = 0; index < 16; index++)
-    await Markdown({ ...input, markdown: `## Evict ${index}` });
-  await Markdown(input);
+    await renderMarkdown({ ...input, markdown: `## Evict ${index}` });
+  await renderMarkdown(input);
   expect(highlight).toHaveBeenCalledTimes(5);
 });
 
@@ -44,12 +44,12 @@ it("does not retain failed or oversized compilations", async () => {
   highlight.mockImplementationOnce(() => {
     throw new Error("failed compilation");
   });
-  await expect(Markdown(input)).rejects.toThrow("failed compilation");
-  expect(renderToStaticMarkup(await Markdown(input))).toContain("retry");
+  await expect(renderMarkdown(input)).rejects.toThrow("failed compilation");
+  expect(renderToStaticMarkup(await renderMarkdown(input))).toContain("retry");
   expect(highlight).toHaveBeenCalledTimes(2);
   const large = { ...input, markdown: input.markdown + "\n" + "x".repeat(131_073) };
-  await Markdown(large);
-  await Markdown(large);
+  await renderMarkdown(large);
+  await renderMarkdown(large);
   expect(highlight).toHaveBeenCalledTimes(4);
 });
 
@@ -57,7 +57,7 @@ it("re-evaluates authorized cards on a warm compiled body without leaking an ear
   const markdown =
     "## Authorized\n\n```embed:article\nhttps://knowledge.you-find.me/articles/private\n```";
   const render = async (title: string | null) => {
-    const element = await Markdown({
+    const element = await renderMarkdown({
       labels,
       structuredBlock,
       markdown,
@@ -91,7 +91,7 @@ it("reuses a serialized KV artifact after memory expiry and keeps dynamic cards 
   const markdown =
     "## Persistent\n\nMath $x^2$.\n\n```ts\nconst persistent = true;\n```\n\n```embed:article\nhttps://knowledge.you-find.me/articles/private\n```\n\n```embed:architecture\nflowchart LR\nA --> B\n```";
   const render = async (title: string | null) => {
-    const element = await Markdown({
+    const element = await renderMarkdown({
       labels,
       markdown,
       structuredBlock,
@@ -142,10 +142,10 @@ it("separates changed translations, labels and enrichment mode", async () => {
     cache,
     markdown: "English\n\n```ts\nconst translated = true;\n```",
   };
-  await Markdown(input);
-  await Markdown({ ...input, markdown: input.markdown.replace("English", "Japanese") });
-  await Markdown({ ...input, labels: { ...labels, diagram: "图表" } });
-  await Markdown({ ...input, embeds: async (embed) => renderMarkdownEmbed(embed) });
+  await renderMarkdown(input);
+  await renderMarkdown({ ...input, markdown: input.markdown.replace("English", "Japanese") });
+  await renderMarkdown({ ...input, labels: { ...labels, diagram: "图表" } });
+  await renderMarkdown({ ...input, embeds: async (embed) => renderMarkdownEmbed(embed) });
   expect(highlight).toHaveBeenCalledTimes(4);
   expect(values.size).toBe(4);
 });
@@ -157,14 +157,14 @@ it("propagates malformed artifacts and KV failures without silently recompiling"
     get: vi.fn(async (): Promise<string | null> => "{}"),
     put: vi.fn(async () => {}),
   };
-  await expect(Markdown({ ...input, cache })).rejects.toThrow();
+  await expect(renderMarkdown({ ...input, cache })).rejects.toThrow();
   cache.get.mockRejectedValueOnce(new Error("KV read failed"));
-  await expect(Markdown({ ...input, cache })).rejects.toThrow("KV read failed");
+  await expect(renderMarkdown({ ...input, cache })).rejects.toThrow("KV read failed");
   expect(highlight).not.toHaveBeenCalled();
   cache.get.mockResolvedValue(null);
   cache.put.mockRejectedValueOnce(new Error("KV write failed"));
-  await expect(Markdown({ ...input, cache })).rejects.toThrow("KV write failed");
-  await Markdown({ ...input, cache });
+  await expect(renderMarkdown({ ...input, cache })).rejects.toThrow("KV write failed");
+  await renderMarkdown({ ...input, cache });
   expect(cache.put).toHaveBeenCalledTimes(2);
   expect(highlight).toHaveBeenCalledTimes(2);
 });
@@ -180,25 +180,25 @@ it("shares the entire KV operation, retains warm artifacts, expires without rewr
   const clock = vi.spyOn(Date, "now").mockReturnValue(4_000_000);
   const highlight = vi.spyOn(await markdownHighlighter, "codeToHast");
   const input = { labels, structuredBlock, cache, markdown: "```ts\nconst burst = true;\n```" };
-  const results = await Promise.all(Array.from({ length: 8 }, () => Markdown(input)));
+  const results = await Promise.all(Array.from({ length: 8 }, () => renderMarkdown(input)));
   const html = renderToStaticMarkup(results[0]);
   for (const result of results) expect(renderToStaticMarkup(result)).toBe(html);
   expect(cache.get).toHaveBeenCalledTimes(1);
   expect(cache.put).toHaveBeenCalledTimes(1);
   expect(highlight).toHaveBeenCalledTimes(1);
   clock.mockReturnValue(4_029_999);
-  await Markdown(input);
+  await renderMarkdown(input);
   expect(cache.get).toHaveBeenCalledTimes(1);
   clock.mockReturnValue(4_030_001);
-  await Promise.all([Markdown(input), Markdown(input)]);
+  await Promise.all([renderMarkdown(input), renderMarkdown(input)]);
   expect(cache.get).toHaveBeenCalledTimes(2);
   expect(cache.put).toHaveBeenCalledTimes(1);
   expect(highlight).toHaveBeenCalledTimes(1);
   const other = { get: vi.fn(async () => null), put: vi.fn(async () => {}) };
-  await Markdown({ ...input, cache: other });
+  await renderMarkdown({ ...input, cache: other });
   expect(other.get).toHaveBeenCalledTimes(1);
   expect(other.put).toHaveBeenCalledTimes(1);
-  await Markdown({ ...input, cache: null });
+  await renderMarkdown({ ...input, cache: null });
   expect(highlight).toHaveBeenCalledTimes(3);
   expect(cache.get).toHaveBeenCalledTimes(2);
 });

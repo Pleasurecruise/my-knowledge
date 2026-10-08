@@ -1,5 +1,3 @@
-"use client";
-
 import embed from "vega-embed";
 import { useCallback } from "react";
 

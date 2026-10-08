@@ -6,7 +6,7 @@ import {
   serializeArticleDocument,
   markdownParser,
 } from "@my-knowledge/content";
-import { Markdown } from "../src/markdown";
+import { renderMarkdown } from "./render";
 
 const labels = {
   canvas: "Canvas",
@@ -73,7 +73,7 @@ it("separates all nested source examples from the following live dialects", asyn
     children: [],
   }));
   const html = renderToStaticMarkup(
-    await Markdown({
+    await renderMarkdown({
       markdown: document.body,
       labels,
       structuredBlock: () => null,

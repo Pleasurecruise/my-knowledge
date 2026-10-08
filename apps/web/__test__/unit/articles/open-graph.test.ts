@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vite-plus/test";
 import type { ArticleSummary } from "@my-knowledge/content";
-import { GET } from "../../../app/articles/[id]/opengraph-image/route";
+import { renderOpenGraphImage } from "@/routes/articles/$id_/opengraph-image";
 
 const reads = vi.hoisted(() => ({
   metadata: vi.fn<() => Promise<ArticleSummary | null>>(),
@@ -9,15 +9,14 @@ const reads = vi.hoisted(() => ({
   put: vi.fn(),
 }));
 vi.mock("@/articles", () => ({ getArticleMetadata: reads.metadata }));
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: async () => ({
-    env: {
-      BETTER_AUTH_URL: "https://example.com",
-      KNOWLEDGE_CACHE: { get: reads.cache, put: reads.put },
-      ASSETS: { fetch: reads.asset },
-    },
-  }),
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    BETTER_AUTH_URL: "https://example.com",
+    KNOWLEDGE_CACHE: { get: reads.cache, put: reads.put },
+    ASSETS: { fetch: reads.asset },
+  },
 }));
+vi.mock("workers-og", () => ({ ImageResponse: vi.fn() }));
 
 const article: ArticleSummary = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -38,13 +37,13 @@ it("checks visibility before cached images and rejects a withdrawn article", asy
   const request = new Request(
     `https://example.com/articles/example/opengraph-image?v=${article.contentHash}-4`,
   );
-  const params = Promise.resolve({ id: "example" });
-  const publicImage = await GET(request, { params });
+  const params = { id: "example" };
+  const publicImage = await renderOpenGraphImage({ request, params });
   expect(publicImage.status).toBe(200);
   expect(publicImage.headers.get("cache-control")).toBe("no-store");
   expect(reads.metadata).toHaveBeenCalledBefore(reads.cache);
   reads.metadata.mockResolvedValue(null);
-  const withdrawn = await GET(request, { params });
+  const withdrawn = await renderOpenGraphImage({ request, params });
   expect(withdrawn.status).toBe(404);
   expect(reads.cache).toHaveBeenCalledOnce();
   expect(reads.asset).not.toHaveBeenCalled();
@@ -53,10 +52,10 @@ it("checks visibility before cached images and rejects a withdrawn article", asy
 it.each(["old-content-4", `${article.contentHash}-1`, ""])(
   "rejects stale image version %s before cache access",
   async (version) => {
-    const response = await GET(
-      new Request(`https://example.com/articles/example/opengraph-image?v=${version}`),
-      { params: Promise.resolve({ id: "example" }) },
-    );
+    const response = await renderOpenGraphImage({
+      request: new Request(`https://example.com/articles/example/opengraph-image?v=${version}`),
+      params: { id: "example" },
+    });
     expect(response.status).toBe(404);
     expect(reads.cache).not.toHaveBeenCalled();
     expect(reads.asset).not.toHaveBeenCalled();
@@ -66,12 +65,12 @@ it.each(["old-content-4", `${article.contentHash}-1`, ""])(
 it("propagates cache failures instead of disguising them as successful image reads", async () => {
   reads.cache.mockRejectedValue(new Error("KV unavailable"));
   await expect(
-    GET(
-      new Request(
+    renderOpenGraphImage({
+      request: new Request(
         `https://example.com/articles/example/opengraph-image?v=${article.contentHash}-4`,
       ),
-      { params: Promise.resolve({ id: "example" }) },
-    ),
+      params: { id: "example" },
+    }),
   ).rejects.toThrow("KV unavailable");
   expect(reads.asset).not.toHaveBeenCalled();
 });

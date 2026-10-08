@@ -11,10 +11,11 @@ const repositoryCache = vi.hoisted(() => ({
 
 const articleRow = vi.hoisted(() => vi.fn());
 const principal = vi.hoisted(() => vi.fn());
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: vi.fn(async () => ({
-    env: { BETTER_AUTH_URL: "https://knowledge.you-find.me", KNOWLEDGE_CACHE: repositoryCache },
-  })),
+vi.mock("cloudflare:workers", () => ({
+  env: { BETTER_AUTH_URL: "https://knowledge.you-find.me", KNOWLEDGE_CACHE: repositoryCache },
+}));
+vi.mock("@tanstack/react-start/server", () => ({
+  getRequest: () => new Request("https://knowledge.you-find.me"),
 }));
 vi.mock("../../../src/auth/owner", () => ({ getPrincipal: principal }));
 vi.mock("../../../src/articles/persistence/document", () => ({ getArticleRow: articleRow }));

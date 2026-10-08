@@ -1,5 +1,3 @@
-"use client";
-
 import { visibilitySchema } from "@my-knowledge/content";
 import {
   AlertDialog,
@@ -21,18 +19,16 @@ import {
   SelectValue,
 } from "@my-knowledge/ui/components/select";
 import { Code2, Eye, Save, X } from "@my-knowledge/ui/icons";
-import dynamic from "next/dynamic";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 import { articleReturnHref } from "@/articles/navigation";
 import type { ArticleEditorProps } from "./article-editor.types";
 import { DeleteAction } from "./delete-action";
 
-const MarkdownPreview = dynamic(
-  () => import("./markdown-preview").then((module) => module.MarkdownPreview),
-  { ssr: false },
+const MarkdownPreview = lazy(() =>
+  import("./markdown-preview").then((module) => ({ default: module.MarkdownPreview })),
 );
 
 const saveResponseSchema = z.object({ article: z.object({ id: z.string() }) });
@@ -45,11 +41,11 @@ export function ArticleEditor(props: ArticleEditorProps) {
   const initialSummary = props.mode === "edit" ? props.article.summary : "";
   const initialTags = props.mode === "edit" ? props.article.tags : [];
   const initialTitle = props.mode === "edit" ? props.article.title : "";
-  const router = useRouter();
+  const navigate = useNavigate();
   const leaving = useRef(false);
   const saveInFlight = useRef(false);
-  const params = useSearchParams();
-  const source = articleReturnHref(params.get("from") ?? undefined);
+  const { searchStr } = useLocation();
+  const source = articleReturnHref(new URLSearchParams(searchStr).get("from") ?? undefined);
   const context = source === "/" ? "" : `?${new URLSearchParams({ from: source })}`;
   const [title, setTitle] = useState(initialTitle);
   const [summary, setSummary] = useState(initialSummary);
@@ -172,7 +168,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
       setDiscardOpen(true);
       return;
     }
-    router.push(returnHref);
+    void navigate({ href: returnHref });
   }
 
   return (
@@ -331,11 +327,13 @@ export function ArticleEditor(props: ArticleEditorProps) {
           </Button>
         </div>
         {editorMode === "preview" ? (
-          <MarkdownPreview
-            markdown={markdown}
-            label={messages.preview}
-            failure={messages.previewFailed}
-          />
+          <Suspense fallback={null}>
+            <MarkdownPreview
+              markdown={markdown}
+              label={messages.preview}
+              failure={messages.previewFailed}
+            />
+          </Suspense>
         ) : null}
         {editorMode === "source" ? (
           <textarea
@@ -365,7 +363,7 @@ export function ArticleEditor(props: ArticleEditorProps) {
                 leaving.current = true;
                 if (leaveHref && new URL(leaveHref).origin !== location.origin)
                   window.location.assign(leaveHref);
-                else router.push(leaveHref ?? returnHref);
+                else void navigate({ href: leaveHref ?? returnHref });
               }}
               variant="destructive"
             >

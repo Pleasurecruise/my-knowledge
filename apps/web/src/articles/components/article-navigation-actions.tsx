@@ -1,5 +1,3 @@
-"use client";
-
 import { useContext, useEffect, useState } from "react";
 import { ArticleReturnContext } from "./reading-trail";
 import { Share2, Pencil } from "@my-knowledge/ui/icons";

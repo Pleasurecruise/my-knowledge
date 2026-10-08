@@ -1,7 +1,7 @@
 import { expect, it } from "vite-plus/test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { validateMarkdown } from "@my-knowledge/content";
-import { Markdown } from "../src/markdown";
+import { renderMarkdown } from "./render";
 
 const labels = {
   canvas: "Canvas",
@@ -21,7 +21,7 @@ it("compiles complete fences and preserves quoted whitespace", async () => {
   const markdown = `~~~embed:quote\nauthor: A & B\nurl: https://example.com\n---\nFirst\n\n<script>plain text</script>\n\n~~~\n\n~~~embed:diff\n${patch}\n~~~`;
   expect(() => validateMarkdown(markdown)).not.toThrow();
   const html = renderToStaticMarkup(
-    await Markdown({ markdown, labels, structuredBlock: () => null }),
+    await renderMarkdown({ markdown, labels, structuredBlock: () => null }),
   );
   expect(html).toContain("First\n\n&lt;script&gt;plain text&lt;/script&gt;\n</p>");
   expect(html).toContain('cite="https://example.com/"');
@@ -34,14 +34,18 @@ it("rejects an extra blank patch line in submission and stored-body rendering", 
   const markdown = `~~~embed:diff\n${patch}\n\n~~~`;
   expect(() => validateMarkdown(markdown)).toThrow("matching hunk counts");
   const html = renderToStaticMarkup(
-    await Markdown({ markdown, labels, structuredBlock: () => null }),
+    await renderMarkdown({ markdown, labels, structuredBlock: () => null }),
   );
   expect(html).toContain("markdown-block-error");
 });
 
 it("leaves ordinary diff fences as code", async () => {
   const html = renderToStaticMarkup(
-    await Markdown({ markdown: "```diff\n-old\n+new\n```", labels, structuredBlock: () => null }),
+    await renderMarkdown({
+      markdown: "```diff\n-old\n+new\n```",
+      labels,
+      structuredBlock: () => null,
+    }),
   );
   expect(html).not.toContain("markdown-embed-diff");
   expect(html).toContain("<pre");

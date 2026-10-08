@@ -11,7 +11,7 @@ with keyword search.
 
 ## How it works
 
-Next.js runs on Cloudflare Workers through OpenNext. R2 owns Markdown, D1 indexes metadata and
+TanStack Start runs on Cloudflare Workers. R2 owns Markdown, D1 indexes metadata and
 visibility, and KV caches derived data. Local tools produce content; the service validates and publishes it.
 
 ```mermaid
@@ -30,8 +30,7 @@ cp apps/web/.env.example apps/web/.dev.vars
 pnpm dev
 ```
 
-Configure `.dev.vars`, including `BETTER_AUTH_URL=http://localhost:8787`. Preview requires rebuilding
-after edits. See [Deployment](docs/DEPLOYMENT.md) for bindings and secrets.
+Configure `.dev.vars`, including `BETTER_AUTH_URL=http://localhost:8787`. See [Deployment](docs/DEPLOYMENT.md) for bindings and secrets.
 
 ## Integrations
 

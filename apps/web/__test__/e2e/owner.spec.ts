@@ -495,7 +495,7 @@ test("keeps article references one-way when the referring article is withdrawn",
     const withdrawnHtml = await withdrawn.text();
     expect(withdrawnHtml).not.toContain(title);
     expect(withdrawnHtml).not.toContain(`data-article-id="${article.id}"`);
-    expect(withdrawnHtml).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+    expect(withdrawn.status()).toBe(404);
     expect(await (await anonymous.request.get(target)).text()).not.toContain(title);
     await page.goto(target);
     await expect(page.getByRole("link", { name: title, exact: true })).toHaveCount(0);
@@ -824,11 +824,12 @@ test("edits current translations and redirects missing or stale editions to Chin
     const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     try {
       expect((await anonymous.request.get(endpoint)).status()).toBe(401);
-      const html = await (await anonymous.request.get(path)).text();
+      const response = await anonymous.request.get(path);
+      const html = await response.text();
       if (locale === "en") {
         expect(html).not.toContain("Edited en");
         expect(html).not.toContain("中文标题");
-        expect(html).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+        expect(response.status()).toBe(404);
       } else expect(html).toContain("中文标题");
     } finally {
       await anonymous.close();

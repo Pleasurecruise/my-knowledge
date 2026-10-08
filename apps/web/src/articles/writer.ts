@@ -16,7 +16,7 @@ import type {
   ArticleUpdateResult,
 } from "./types";
 import { articleSummary } from "./persistence/record";
-import { readArticle, getArticleRow } from "./persistence/document";
+import { readArticle, readArticleRow } from "./persistence/document";
 import { createArticle, saveArticleTranslation, updateArticle } from "./persistence/write";
 import { deleteArticle, setArticleVisibility } from "./persistence/write";
 
@@ -79,7 +79,7 @@ async function updateArticleFromDraft(
   expectedUpdatedAt: string,
   draft: ArticleDraft & { visibility?: Visibility | undefined },
 ): Promise<ArticleUpdateResult> {
-  const current = await getArticleRow(env, "owner", id);
+  const current = await readArticleRow(env, "owner", id);
   if (!current) return { status: "notFound" };
   if (current.contentHash !== expectedHash || current.updatedAt !== expectedUpdatedAt)
     return { status: "stale" };
@@ -97,7 +97,7 @@ async function updateArticleFromDocuments(
   expectedUpdatedAt: string,
   input: ArticleDocuments,
 ): Promise<ArticleUpdateResult> {
-  const current = await getArticleRow(env, "owner", id);
+  const current = await readArticleRow(env, "owner", id);
   if (!current) return { status: "notFound" };
   if (current.contentHash !== expectedHash || current.updatedAt !== expectedUpdatedAt)
     return { status: "stale" };
@@ -165,7 +165,7 @@ export class ArticleWriter extends DurableObject<CloudflareEnv> {
   ): Promise<ArticleWriteResult<ArticleUpdateResult>> {
     return this.run(async () => {
       if (await this.ctx.storage.get("deleting")) return { status: "stale" };
-      const current = await getArticleRow(this.env, "owner", id);
+      const current = await readArticleRow(this.env, "owner", id);
       if (!current) return { status: "notFound" };
       if (current.contentHash !== hash || current.updatedAt !== updatedAt)
         return { status: "stale" };
@@ -190,7 +190,7 @@ export class ArticleWriter extends DurableObject<CloudflareEnv> {
   setVisibility(id: string, hash: string, updatedAt: string, visibility: Visibility) {
     return this.run(async () => {
       if (await this.ctx.storage.get("deleting")) return undefined;
-      const row = await getArticleRow(this.env, "owner", id);
+      const row = await readArticleRow(this.env, "owner", id);
       if (!row || row.contentHash !== hash || row.updatedAt !== updatedAt) return undefined;
       return setArticleVisibility(this.env, id, hash, visibility);
     });
@@ -198,7 +198,7 @@ export class ArticleWriter extends DurableObject<CloudflareEnv> {
 
   delete(id: string, hash: string, updatedAt: string) {
     return this.run(async () => {
-      const row = await getArticleRow(this.env, "owner", id);
+      const row = await readArticleRow(this.env, "owner", id);
       if (!row || row.contentHash !== hash || row.updatedAt !== updatedAt) return false;
       // Retained on cleanup failure and across actor restarts; only deletion may resume.
       await this.ctx.storage.put("deleting", true);

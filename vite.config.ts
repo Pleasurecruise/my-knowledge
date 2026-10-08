@@ -1,8 +1,24 @@
 import { defineConfig } from "vite-plus";
 
-const generated = [".next/**", ".open-next/**", "apps/web/.wrangler/**", ".agents/**"];
+const generated = [
+  "apps/web/dist/**",
+  "apps/web/.tanstack/**",
+  "apps/web/.wrangler/**",
+  "apps/web/src/routeTree.gen.ts",
+  ".agents/**",
+];
 
 export default defineConfig({
+  plugins: [
+    {
+      name: "wasm-module",
+      enforce: "pre",
+      load(id) {
+        if (id.endsWith(".wasm"))
+          return `import { readFileSync } from "node:fs";\nexport default new WebAssembly.Module(readFileSync(${JSON.stringify(id)}));`;
+      },
+    },
+  ],
   resolve: {
     alias: {
       "@": new URL("./apps/web/src", import.meta.url).pathname,
@@ -43,7 +59,7 @@ export default defineConfig({
   },
   test: {
     include: ["**/*.test.ts", "**/*.test.tsx"],
-    server: { deps: { inline: ["react-tweet"] } },
+    server: { deps: { inline: ["react-tweet", "workers-og"] } },
   },
   run: {
     cache: true,

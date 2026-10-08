@@ -1,5 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { ImageResponse } from "next/og";
+import { ImageResponse } from "workers-og";
 import { expect, it } from "vite-plus/test";
 import {
   ArticleOpenGraphCard,

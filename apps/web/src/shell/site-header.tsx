@@ -1,8 +1,6 @@
-"use client";
-
 import { Button } from "@my-knowledge/ui/components/button";
 import { ChevronLeft } from "@my-knowledge/ui/icons";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useLocation } from "@tanstack/react-router";
 import { useId, useRef, useState, type ReactNode } from "react";
 
 import { authClient } from "@/auth/client";
@@ -24,9 +22,8 @@ export function SiteHeader({
 }) {
   const { data: session, isPending } = authClient.useSession();
   const owner = !isPending && Boolean(session);
-  const pathname = usePathname();
-  const query = useSearchParams();
-  const location = `${pathname}?${query}`;
+  const { pathname, searchStr } = useLocation();
+  const location = `${pathname}${searchStr}`;
   const [openedAt, setOpenedAt] = useState<string | null>(null);
   const expanded = openedAt === location;
   const controlsId = useId();

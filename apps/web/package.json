@@ -4,37 +4,40 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm preview",
-    "build": "pnpm types && next build --webpack",
-    "build:worker": "opennextjs-cloudflare build",
-    "preview": "opennextjs-cloudflare build && wrangler dev --config wrangler.json",
+    "dev": "vp dev",
+    "build": "pnpm types && vp build",
+    "build:test": "pnpm types && vp build --mode test",
+    "preview": "pnpm build && vp preview",
     "seed:local": "node __test__/scripts/seed-local.ts",
     "test:mcp": "node __test__/scripts/mcp-contract.ts http://localhost:8787/api/mcp",
-    "dry-run": "wrangler deploy --dry-run --config wrangler.json",
+    "dry-run": "wrangler deploy --dry-run",
     "check:database": "node scripts/check-database.ts",
-    "deploy": "pnpm check:database --remote && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "types": "wrangler types node_modules/.wrangler-types.d.ts --env-interface CloudflareEnv && next typegen"
+    "deploy": "pnpm check:database --remote && pnpm build && wrangler deploy",
+    "types": "wrangler types node_modules/.wrangler-types.d.ts --env-interface CloudflareEnv"
   },
   "dependencies": {
     "@milkdown/kit": "7.22.2",
-    "@modelcontextprotocol/server": "2.1.0",
+    "@modelcontextprotocol/server": "2.3.1",
     "@my-knowledge/content": "workspace:*",
     "@my-knowledge/ui": "workspace:*",
-    "better-auth": "1.7.6",
+    "@tanstack/react-router": "1.170.41",
+    "@tanstack/react-start": "1.168.60",
+    "better-auth": "1.7.7",
     "drizzle-orm": "0.45.3",
     "hast-util-from-html": "2.0.3",
-    "katex": "0.18.9",
-    "next": "16.3.6",
+    "katex": "0.19.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-tweet": "3.3.1",
+    "workers-og": "0.0.27",
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "1.20.6",
-    "@tailwindcss/postcss": "4.3.3",
-    "postcss": "8.5.28",
+    "@cloudflare/vite-plugin": "1.63.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@vitejs/plugin-react": "6.1.2",
     "tailwindcss": "4.3.3",
-    "wrangler": "4.140.0"
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.1.0",
+    "wrangler": "4.148.0"
   }
 }

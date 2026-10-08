@@ -4,7 +4,7 @@ Tests live in package-owned `__test__` directories: pure unit rules, Worker/stor
 
 Required checks are `pnpm check`, `pnpm test`, `pnpm build`, and `pnpm dry-run`, plus relevant contracts and browser suites. Unit coverage includes document normalization, unsafe inputs, dialect validation, unique heading/TOC parity, translations, tags, hashes, and authorization. Integration coverage proves mutation order, stale writes, cleanup, and fresh migrations.
 
-Playwright runs the generated OpenNext Worker with local-only test bindings, freshly rebuilt disposable fixture storage, one worker and isolated anonymous/owner contexts. Owner sessions use real Better Auth signing and matching local D1 fixtures. Check phone/desktop, light/dark, reduced motion, languages, accessibility, overflow, screenshots, and unexpected console errors. Rich-block tests must verify usable geometry, not merely SVG existence.
+Playwright runs the generated Worker with local-only test bindings, freshly rebuilt disposable fixture storage, one worker and isolated anonymous/owner contexts. Owner sessions use real Better Auth signing and matching local D1 fixtures. Check phone/desktop, light/dark, reduced motion, languages, accessibility, overflow, screenshots, and unexpected console errors. Rich-block tests must verify usable geometry, not merely SVG existence.
 
 Provider changes also require an uncached live request through the generated Worker. Keep synthetic IP headers off external requests. Successful remote cleanup and Google OAuth remain account-dependent release gates. Preserve failure traces and report configured skips honestly. CI checks and dry-runs do not deploy.
 

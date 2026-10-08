@@ -1,44 +1,58 @@
-"use client";
+import type { StructuredBlockProps } from "@my-knowledge/ui/structured-block.types";
+import { ClientOnly } from "@tanstack/react-router";
+import { createClientOnlyFn } from "@tanstack/react-start";
+import { lazy, Suspense, type ReactNode } from "react";
 
-import type {
-  CanvasBlockProps,
-  MermaidBlockProps,
-  StructuredBlockProps,
-  VegaBlockProps,
-} from "@my-knowledge/ui/structured-block.types";
-import dynamic from "next/dynamic";
+const MermaidBlock = lazy(
+  createClientOnlyFn(() =>
+    import("@my-knowledge/ui/mermaid-block").then((module) => ({ default: module.MermaidBlock })),
+  ),
+);
+const VegaBlock = lazy(
+  createClientOnlyFn(() =>
+    import("@my-knowledge/ui/vega-block").then((module) => ({ default: module.VegaBlock })),
+  ),
+);
+const CanvasBlock = lazy(
+  createClientOnlyFn(() =>
+    import("@my-knowledge/ui/canvas-block").then((module) => ({ default: module.CanvasBlock })),
+  ),
+);
 
-const MermaidBlock = dynamic<MermaidBlockProps>(
-  () => import("@my-knowledge/ui/mermaid-block").then((module) => module.MermaidBlock),
-  { ssr: false },
-);
-const VegaBlock = dynamic<VegaBlockProps>(
-  () => import("@my-knowledge/ui/vega-block").then((module) => module.VegaBlock),
-  { ssr: false },
-);
-const CanvasBlock = dynamic<CanvasBlockProps>(
-  () => import("@my-knowledge/ui/canvas-block").then((module) => module.CanvasBlock),
-  { ssr: false },
-);
+function Deferred({ children }: { children: ReactNode }) {
+  return (
+    <ClientOnly>
+      <Suspense fallback={null}>{children}</Suspense>
+    </ClientOnly>
+  );
+}
 
 export function StructuredBlock(props: StructuredBlockProps) {
   if (props.language === "mermaid")
     return (
-      <MermaidBlock
-        diagram={props.diagram}
-        renderingDiagram={props.renderingDiagram}
-        source={props.source}
-      />
+      <Deferred>
+        <MermaidBlock
+          diagram={props.diagram}
+          renderingDiagram={props.renderingDiagram}
+          source={props.source}
+        />
+      </Deferred>
     );
   if (props.language === "json-canvas")
     return (
-      <CanvasBlock
-        canvas={props.canvas}
-        canvasRelationships={props.canvasRelationships}
-        canvasViewport={props.canvasViewport}
-        source={props.source}
-        spatialView={props.spatialView}
-      />
+      <Deferred>
+        <CanvasBlock
+          canvas={props.canvas}
+          canvasRelationships={props.canvasRelationships}
+          canvasViewport={props.canvasViewport}
+          source={props.source}
+          spatialView={props.spatialView}
+        />
+      </Deferred>
     );
-  return <VegaBlock chart={props.chart} source={props.source} />;
+  return (
+    <Deferred>
+      <VegaBlock chart={props.chart} source={props.source} />
+    </Deferred>
+  );
 }

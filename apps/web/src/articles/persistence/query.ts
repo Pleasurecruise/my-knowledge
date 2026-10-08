@@ -9,10 +9,10 @@ import { articles } from "@/db/schema";
 
 import { articleSummary, type ArticleRow } from "./record";
 
-const cursorSchema = z.object({ updatedAt: z.string(), id: z.string() });
+const cursorSchema = z.object({ createdAt: z.string(), id: z.string() });
 
 function encodeCursor(row: ArticleRow): string {
-  return btoa(JSON.stringify({ updatedAt: row.updatedAt, id: row.id }));
+  return btoa(JSON.stringify({ createdAt: row.createdAt, id: row.id }));
 }
 
 function decodeCursor(cursor: string) {
@@ -53,8 +53,8 @@ export async function listArticles(
   if (input.cursor) {
     const cursor = decodeCursor(input.cursor);
     const older = or(
-      lt(articles.updatedAt, cursor.updatedAt),
-      and(eq(articles.updatedAt, cursor.updatedAt), lt(articles.id, cursor.id)),
+      lt(articles.createdAt, cursor.createdAt),
+      and(eq(articles.createdAt, cursor.createdAt), lt(articles.id, cursor.id)),
     );
     if (older) filters.push(older);
   }
@@ -63,7 +63,7 @@ export async function listArticles(
     .select()
     .from(articles)
     .where(filters.length > 0 ? and(...filters) : undefined)
-    .orderBy(desc(articles.updatedAt), desc(articles.id))
+    .orderBy(desc(articles.createdAt), desc(articles.id))
     .limit(input.limit + 1);
   const pageRows = rows.slice(0, input.limit);
   const next = rows.length > input.limit ? pageRows.at(-1) : undefined;
@@ -78,7 +78,7 @@ export async function listPublicArticleSummaries(env: CloudflareEnv): Promise<Ar
     .select()
     .from(articles)
     .where(and(eq(articles.visibility, "public"), discoverableCondition))
-    .orderBy(desc(articles.updatedAt), desc(articles.id));
+    .orderBy(desc(articles.createdAt), desc(articles.id));
   return rows.map((row) => articleSummary(row));
 }
 
@@ -101,7 +101,7 @@ export async function searchArticles(
     .select()
     .from(articles)
     .where(and(authorizedCondition(principal), discoverableCondition, matches))
-    .orderBy(desc(articles.updatedAt), desc(articles.id))
+    .orderBy(desc(articles.createdAt), desc(articles.id))
     .limit(limit);
   return rows.map((row) => articleSummary(row));
 }
