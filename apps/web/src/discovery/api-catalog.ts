@@ -19,7 +19,7 @@ export function createApiCatalog(origin: URL) {
   return {
     linkset: [
       {
-        anchor: new URL("/api/articles", origin).href,
+        anchor: new URL("/api", origin).href,
         "service-desc": [
           {
             href: new URL("/api/openapi.json", origin).href,
@@ -52,19 +52,22 @@ export function createOpenApiDocument(origin: URL) {
     info: { title: `${siteName} API`, version: "1.0.0", description: siteDescription },
     externalDocs: { url: apiDocumentationUrl },
     servers: [{ url: origin.origin }],
-    security: [{ bearer: [] }],
-    components: { securitySchemes: { bearer: { type: "http", scheme: "bearer" } } },
+    security: [{ bearerAuth: [] }],
+    components: { securitySchemes: { bearerAuth: { type: "http", scheme: "bearer" } } },
     paths: {
       "/api/articles": {
         get: {
           operationId: "listArticles",
           summary: "List article summaries",
+          description:
+            "With search, matches titles, summaries, and tags and returns up to limit results with a null nextCursor.",
           parameters: [
+            { name: "search", in: "query", schema: query.properties?.search },
             { name: "visibility", in: "query", schema: query.properties?.visibility },
             {
-              name: "tag",
+              name: "tags",
               in: "query",
-              explode: true,
+              description: "Comma-separated tags; at most five, matched with descendants.",
               schema: query.properties?.tags,
             },
             { name: "cursor", in: "query", schema: query.properties?.cursor },
@@ -78,7 +81,7 @@ export function createOpenApiDocument(origin: URL) {
                   schema: z.toJSONSchema(
                     z.object({
                       articles: z.array(articleSummarySchema),
-                      cursor: z.string().optional(),
+                      nextCursor: z.string().nullable(),
                     }),
                   ),
                 },
@@ -140,6 +143,27 @@ export function createOpenApiDocument(origin: URL) {
             "401": unauthorized,
             "409": { description: "Article changed or was not found" },
             "422": { description: "Invalid article deletion" },
+          },
+        },
+      },
+      "/api/tags": {
+        get: {
+          operationId: "listTags",
+          summary: "List hierarchical tag paths with article counts",
+          parameters: [{ name: "parent", in: "query", schema: { type: "string" } }],
+          responses: {
+            "200": {
+              description: "Tag counts",
+              content: {
+                "application/json": {
+                  schema: z.toJSONSchema(
+                    z.object({ tags: z.array(z.object({ path: z.string(), count: z.number() })) }),
+                  ),
+                },
+              },
+            },
+            "401": unauthorized,
+            "422": { description: "Invalid tag query" },
           },
         },
       },

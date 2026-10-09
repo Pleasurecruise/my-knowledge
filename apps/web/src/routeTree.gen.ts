@@ -18,6 +18,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known/api-catalog'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as ApiOpenapiDotjsonRouteImport } from './routes/api/openapi[.]json'
+import { Route as ApiTagsRouteImport } from './routes/api/tags'
 import { Route as ArticlesIdRouteImport } from './routes/articles/$id'
 import { Route as ArticlesNewRouteImport } from './routes/articles/new'
 import { Route as ApiArticlesIndexRouteImport } from './routes/api/articles/index'
@@ -71,6 +72,11 @@ const ApiOpenapiDotjsonRoute = ApiOpenapiDotjsonRouteImport.update({
   path: '/api/openapi.json',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTagsRoute = ApiTagsRouteImport.update({
+  id: '/api/tags',
+  path: '/api/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArticlesIdRoute = ArticlesIdRouteImport.update({
   id: '/articles/$id',
   path: '/articles/$id',
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/api/mcp': typeof ApiMcpRoute
   '/api/openapi.json': typeof ApiOpenapiDotjsonRoute
+  '/api/tags': typeof ApiTagsRoute
   '/articles/$id': typeof ArticlesIdRoute
   '/articles/new': typeof ArticlesNewRoute
   '/api/articles/$id': typeof ApiArticlesIdRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/api/mcp': typeof ApiMcpRoute
   '/api/openapi.json': typeof ApiOpenapiDotjsonRoute
+  '/api/tags': typeof ApiTagsRoute
   '/articles/$id': typeof ArticlesIdRoute
   '/articles/new': typeof ArticlesNewRoute
   '/api/articles/$id': typeof ApiArticlesIdRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/api/mcp': typeof ApiMcpRoute
   '/api/openapi.json': typeof ApiOpenapiDotjsonRoute
+  '/api/tags': typeof ApiTagsRoute
   '/articles/$id': typeof ArticlesIdRoute
   '/articles/new': typeof ArticlesNewRoute
   '/api/articles/$id': typeof ApiArticlesIdRoute
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
     | '/.well-known/api-catalog'
     | '/api/mcp'
     | '/api/openapi.json'
+    | '/api/tags'
     | '/articles/$id'
     | '/articles/new'
     | '/api/articles/$id'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/.well-known/api-catalog'
     | '/api/mcp'
     | '/api/openapi.json'
+    | '/api/tags'
     | '/articles/$id'
     | '/articles/new'
     | '/api/articles/$id'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/.well-known/api-catalog'
     | '/api/mcp'
     | '/api/openapi.json'
+    | '/api/tags'
     | '/articles/$id'
     | '/articles/new'
     | '/api/articles/$id'
@@ -230,6 +242,7 @@ export interface RootRouteChildren {
   DotwellKnownApiCatalogRoute: typeof DotwellKnownApiCatalogRoute
   ApiMcpRoute: typeof ApiMcpRoute
   ApiOpenapiDotjsonRoute: typeof ApiOpenapiDotjsonRoute
+  ApiTagsRoute: typeof ApiTagsRoute
   ArticlesIdRoute: typeof ArticlesIdRoute
   ArticlesNewRoute: typeof ArticlesNewRoute
   ApiArticlesIdRoute: typeof ApiArticlesIdRoute
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOpenapiDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tags': {
+      id: '/api/tags'
+      path: '/api/tags'
+      fullPath: '/api/tags'
+      preLoaderRoute: typeof ApiTagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/articles/$id': {
       id: '/articles/$id'
       path: '/articles/$id'
@@ -366,6 +386,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownApiCatalogRoute: DotwellKnownApiCatalogRoute,
   ApiMcpRoute: ApiMcpRoute,
   ApiOpenapiDotjsonRoute: ApiOpenapiDotjsonRoute,
+  ApiTagsRoute: ApiTagsRoute,
   ArticlesIdRoute: ArticlesIdRoute,
   ArticlesNewRoute: ArticlesNewRoute,
   ApiArticlesIdRoute: ApiArticlesIdRoute,

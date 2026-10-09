@@ -5,11 +5,11 @@ import { createApiCatalog, createOpenApiDocument } from "@/discovery/api-catalog
 describe("API discovery", () => {
   const origin = new URL("https://knowledge.example");
 
-  it("links the article API to its OpenAPI description and documentation", () => {
+  it("links the API to its OpenAPI description and documentation", () => {
     expect(createApiCatalog(origin)).toEqual({
       linkset: [
         {
-          anchor: "https://knowledge.example/api/articles",
+          anchor: "https://knowledge.example/api",
           "service-desc": [
             {
               href: "https://knowledge.example/api/openapi.json",
@@ -47,5 +47,6 @@ describe("API discovery", () => {
     expect(
       document.paths["/api/articles/{id}"].delete.requestBody.content["application/json"].schema,
     ).toMatchObject({ required: ["expectedHash", "expectedUpdatedAt"] });
+    expect(Object.keys(document.paths["/api/tags"])).toEqual(["get"]);
   });
 });

@@ -9,7 +9,7 @@ export { ApiKeyDurableObject } from "./auth/api-key-object";
 const discoveryLinks = [
   '</.well-known/api-catalog>; rel="api-catalog"',
   '</api/openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json"',
-  '<https://github.com/Pleasurecruise/my-knowledge/blob/main/docs/API.md>; rel="service-doc"',
+  '<https://github.com/Pleasurecruise/my-knowledge/blob/main/docs/API.md>; rel="service-doc"; type="text/html"',
   '</llms.txt>; rel="describedby"; type="text/plain"',
 ].join(", ");
 

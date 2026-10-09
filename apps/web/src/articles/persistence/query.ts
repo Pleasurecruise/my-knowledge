@@ -39,7 +39,7 @@ export async function listArticles(
   if (authorized) filters.push(authorized);
   if (input.visibility) {
     if (principal === "anonymous" && input.visibility === "private")
-      return { articles: [], cursor: undefined };
+      return { articles: [], nextCursor: null };
     filters.push(eq(articles.visibility, input.visibility));
   }
   for (const tag of canonicalizeTags(input.tags)) {
@@ -69,7 +69,7 @@ export async function listArticles(
   const next = rows.length > input.limit ? pageRows.at(-1) : undefined;
   return {
     articles: pageRows.map((row) => articleSummary(row)),
-    cursor: next ? encodeCursor(next) : undefined,
+    nextCursor: next ? encodeCursor(next) : null,
   };
 }
 

@@ -47,6 +47,10 @@ describe("public discovery serialization", () => {
 
     expect(text).toContain("# my knowledge");
     expect(text).toContain(
+      "- [REST API](https://knowledge.example/api/openapi.json): https://knowledge.example/api for articles",
+    );
+    expect(text.indexOf("## API")).toBeLessThan(text.indexOf("## Articles"));
+    expect(text).toContain(
       "- [XML <与> \\[Markdown\\]](https://knowledge.example/articles/6d4f2e69-80ac-4ba5-94b1-6f83d8d5cf1b): 第一行 & details 第二行",
     );
     expect(text).not.toContain("Private title");

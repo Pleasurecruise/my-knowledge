@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { env } from "cloudflare:workers";
 import { z } from "zod";
 
+import { searchArticles } from "@/articles";
 import {
   createArticleFromDocuments,
   createArticleFromDraft,
@@ -19,11 +20,14 @@ async function listArticles({ request }: { request: Request }) {
     );
   }
   const url = new URL(request.url);
-  const query = articleListQuerySchema.safeParse({
-    ...Object.fromEntries(url.searchParams.entries()),
-    tags: url.searchParams.getAll("tag"),
-  });
+  const query = articleListQuerySchema.safeParse(Object.fromEntries(url.searchParams.entries()));
   if (!query.success) return Response.json({ error: "Invalid article query" }, { status: 422 });
+  if (query.data.search !== undefined) {
+    return Response.json({
+      articles: await searchArticles(env, "owner", query.data.search, query.data.limit),
+      nextCursor: null,
+    });
+  }
   return Response.json(
     await listOwnerArticles(env, {
       visibility: query.data.visibility,

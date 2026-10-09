@@ -23,8 +23,18 @@ export const articleCreateSchema = z.union([
 ]);
 
 export const articleListQuerySchema = z.object({
+  search: z.string().trim().min(1).max(2_000).optional(),
   visibility: z.enum(["private", "public"]).optional(),
-  tags: z.array(z.string().min(1)).max(5),
+  tags: z
+    .string()
+    .default("")
+    .transform((value) =>
+      value
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.string().min(1)).max(5)),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

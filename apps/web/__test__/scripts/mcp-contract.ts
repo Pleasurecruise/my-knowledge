@@ -29,15 +29,24 @@ const detailSchema = articleSchema.extend({
 });
 const pageSchema = z.strictObject({
   articles: z.array(articleSchema),
-  cursor: z.string().optional(),
+  nextCursor: z.string().nullable(),
+});
+const searchSchema = z.strictObject({
+  type: z.literal("article-search-results"),
+  query: z.string(),
+  articles: z.array(articleSchema),
 });
 const toolResultSchema = z.object({ isError: z.boolean().optional() });
 const articleListResultSchema = toolResultSchema.extend({ structuredContent: pageSchema });
-const articleResultSchema = toolResultSchema.extend({ structuredContent: detailSchema });
+const articleResultSchema = toolResultSchema.extend({
+  structuredContent: z.strictObject({ article: detailSchema }),
+});
 const tagListResultSchema = toolResultSchema.extend({
   structuredContent: z.object({ tags: z.array(z.object({ path: z.string(), count: z.number() })) }),
 });
-const visibilityResultSchema = toolResultSchema.extend({ structuredContent: articleSchema });
+const visibilityResultSchema = toolResultSchema.extend({
+  structuredContent: z.strictObject({ article: articleSchema }),
+});
 
 const unauthorized = await fetch(endpoint, {
   method: "POST",
@@ -134,28 +143,28 @@ const toolsBody = z
 assert.deepEqual(
   toolsBody.result.tools.map((tool) => tool.name),
   [
-    "createArticle",
-    "getArticle",
-    "listArticles",
-    "updateArticle",
-    "deleteArticle",
-    "searchArticles",
-    "listTags",
-    "setVisibility",
+    "create_article",
+    "get_article",
+    "list_articles",
+    "update_article",
+    "delete_article",
+    "search_articles",
+    "list_tags",
+    "set_visibility",
   ],
 );
-const searchTool = toolsBody.result.tools.find((tool) => tool.name === "searchArticles");
+const searchTool = toolsBody.result.tools.find((tool) => tool.name === "search_articles");
 if (!searchTool) throw new Error("searchArticles was not discovered");
 assert.deepEqual(Object.keys(searchTool.inputSchema.properties).sort(), ["limit", "query"]);
 assert.match(searchTool.description, /keyword/u);
-const deleteTool = toolsBody.result.tools.find((tool) => tool.name === "deleteArticle");
+const deleteTool = toolsBody.result.tools.find((tool) => tool.name === "delete_article");
 if (!deleteTool) throw new Error("deleteArticle was not discovered");
 assert.equal(deleteTool.annotations.destructiveHint, true);
-const createTool = toolsBody.result.tools.find((tool) => tool.name === "createArticle");
+const createTool = toolsBody.result.tools.find((tool) => tool.name === "create_article");
 if (!createTool) throw new Error("createArticle was not discovered");
 assert.deepEqual(createTool.inputSchema.required, ["document"]);
 assert.match(createTool.description, /complete semantic Chinese Markdown document/u);
-const updateTool = toolsBody.result.tools.find((tool) => tool.name === "updateArticle");
+const updateTool = toolsBody.result.tools.find((tool) => tool.name === "update_article");
 if (!updateTool) throw new Error("updateArticle was not discovered");
 assert.deepEqual(updateTool.inputSchema.required, [
   "id",
@@ -169,7 +178,7 @@ const restEndpoint = `${origin}/api/articles`;
 const unauthorizedRest = await fetch(restEndpoint);
 assert.equal(unauthorizedRest.status, 401);
 assert.equal(unauthorizedRest.headers.get("www-authenticate"), "Bearer");
-const restList = await fetch(`${restEndpoint}?tag=engineering&limit=10`, {
+const restList = await fetch(`${restEndpoint}?tags=engineering&limit=10`, {
   headers: { authorization: `Bearer ${apiKey}` },
 });
 assert.equal(restList.status, 200, await restList.clone().text());
@@ -182,8 +191,8 @@ const restArticle = await fetch(`${restEndpoint}/${fixtureId}`, {
   headers: { authorization: `Bearer ${apiKey}` },
 });
 assert.equal(restArticle.status, 200, await restArticle.clone().text());
-z.object({ article: articleResultSchema.shape.structuredContent }).parse(await restArticle.json());
-const listed = await callTool(4, "listArticles", { limit: 10 }, articleListResultSchema);
+articleResultSchema.shape.structuredContent.parse(await restArticle.json());
+const listed = await callTool(4, "list_articles", { limit: 10 }, articleListResultSchema);
 assert.deepEqual(
   listed.structuredContent.articles.map((article) => article.id),
   [
@@ -195,13 +204,13 @@ assert.deepEqual(
 const firstArticle = listed.structuredContent.articles.at(0);
 if (!firstArticle) throw new Error("The article fixture list is empty");
 assert.equal(firstArticle.visibility, "private");
-const fetched = await callTool(5, "getArticle", { id: fixtureId }, articleResultSchema);
-const chineseEdition = fetched.structuredContent.editions.zh;
+const fetched = await callTool(5, "get_article", { id: fixtureId }, articleResultSchema);
+const chineseEdition = fetched.structuredContent.article.editions.zh;
 if (!chineseEdition) throw new Error("The Chinese fixture edition is missing");
-const japaneseEdition = fetched.structuredContent.editions.ja;
+const japaneseEdition = fetched.structuredContent.article.editions.ja;
 if (!japaneseEdition) throw new Error("The Japanese fixture edition is missing");
 assert.equal(japaneseEdition.title, "拡張可能な知識の境界");
-const tags = await callTool(6, "listTags", {}, tagListResultSchema);
+const tags = await callTool(6, "list_tags", {}, tagListResultSchema);
 // Other browser journeys create daily articles; isolate the frozen fixture tags.
 const fixtureTags = tags.structuredContent.tags.filter(
   (tag) => tag.path !== "daily" && !tag.path.startsWith("daily/"),
@@ -228,11 +237,9 @@ assert.deepEqual(Object.fromEntries(fixtureTags.map((tag) => [tag.path, tag.coun
 
 const searched = await callTool(
   20,
-  "searchArticles",
+  "search_articles",
   { query: "testing/privacy" },
-  toolResultSchema.extend({
-    structuredContent: z.strictObject({ articles: z.array(articleSchema) }),
-  }),
+  toolResultSchema.extend({ structuredContent: searchSchema }),
 );
 assert.deepEqual(
   searched.structuredContent.articles.map(({ id }) => id),
@@ -241,9 +248,9 @@ assert.deepEqual(
 assert.equal(searched.structuredContent.articles[0]?.visibility, "private");
 const emptySearch = await callTool(
   21,
-  "searchArticles",
+  "search_articles",
   { query: "no-such-contract-article" },
-  articleListResultSchema,
+  toolResultSchema.extend({ structuredContent: searchSchema }),
 );
 assert.deepEqual(emptySearch.structuredContent.articles, []);
 
@@ -262,11 +269,11 @@ const createdResponse = await fetch(restEndpoint, {
 assert.equal(createdResponse.status, 201, await createdResponse.clone().text());
 const created = z.strictObject({ article: detailSchema }).parse(await createdResponse.json());
 assert.equal(created.article.visibility, "public");
-const reread = await callTool(22, "getArticle", { id: created.article.id }, articleResultSchema);
-assert.deepEqual(reread.structuredContent, created.article);
+const reread = await callTool(22, "get_article", { id: created.article.id }, articleResultSchema);
+assert.deepEqual(reread.structuredContent.article, created.article);
 const changed = await callTool(
   23,
-  "updateArticle",
+  "update_article",
   {
     id: created.article.id,
     expectedHash: created.article.contentHash,
@@ -278,11 +285,11 @@ const changed = await callTool(
   },
   articleResultSchema,
 );
-assert.deepEqual(Object.keys(changed.structuredContent.editions), ["zh"]);
+assert.deepEqual(Object.keys(changed.structuredContent.article.editions), ["zh"]);
 const detailResponse = await fetch(`${restEndpoint}/${created.article.id}`, { headers });
 assert.equal(detailResponse.status, 200);
 const detail = z.strictObject({ article: detailSchema }).parse(await detailResponse.json());
-assert.deepEqual(detail.article, changed.structuredContent);
+assert.deepEqual(detail.article, changed.structuredContent.article);
 const visibilityResponse = await fetch(`${restEndpoint}/${created.article.id}`, {
   method: "PATCH",
   headers,
@@ -298,7 +305,7 @@ const visibility = z
   .parse(await visibilityResponse.json());
 assert.equal(visibility.article.visibility, "private");
 assert.notEqual(visibility.article.updatedAt, detail.article.updatedAt);
-const pageResponse = await fetch(`${restEndpoint}?tag=daily/contract&limit=1`, { headers });
+const pageResponse = await fetch(`${restEndpoint}?tags=daily/contract&limit=1`, { headers });
 assert.equal(pageResponse.status, 200);
 const page = pageSchema.parse(await pageResponse.json());
 assert.deepEqual(page.articles, [visibility.article]);
@@ -331,10 +338,10 @@ if (output)
 
 const staleUpdate = await callTool(
   7,
-  "updateArticle",
+  "update_article",
   {
     id: fixtureId,
-    expectedUpdatedAt: fetched.structuredContent.updatedAt,
+    expectedUpdatedAt: fetched.structuredContent.article.updatedAt,
     expectedHash: "0".repeat(64),
     document: chineseEdition.markdown,
   },
@@ -343,10 +350,10 @@ const staleUpdate = await callTool(
 assert.equal(staleUpdate.isError, true);
 const stale = await callTool(
   8,
-  "setVisibility",
+  "set_visibility",
   {
     id: fixtureId,
-    expectedUpdatedAt: fetched.structuredContent.updatedAt,
+    expectedUpdatedAt: fetched.structuredContent.article.updatedAt,
     expectedHash: "0".repeat(64),
     visibility: "private",
   },
@@ -355,16 +362,16 @@ const stale = await callTool(
 assert.equal(stale.isError, true);
 const hidden = await callTool(
   9,
-  "setVisibility",
+  "set_visibility",
   {
     id: fixtureId,
-    expectedUpdatedAt: fetched.structuredContent.updatedAt,
-    expectedHash: fetched.structuredContent.contentHash,
+    expectedUpdatedAt: fetched.structuredContent.article.updatedAt,
+    expectedHash: fetched.structuredContent.article.contentHash,
     visibility: "private",
   },
   visibilityResultSchema,
 );
-assert.equal(hidden.structuredContent.visibility, "private");
+assert.equal(hidden.structuredContent.article.visibility, "private");
 const privatePage = await fetch(`${origin}/articles/11111111-1111-4111-8111-111111111111`).then(
   (response) => response.text(),
 );
@@ -372,16 +379,16 @@ assert.match(privatePage, /<meta name="robots" content="noindex/u);
 assert.doesNotMatch(privatePage, /可扩展的知识边界/u);
 const restored = await callTool(
   10,
-  "setVisibility",
+  "set_visibility",
   {
     id: fixtureId,
-    expectedUpdatedAt: hidden.structuredContent.updatedAt,
-    expectedHash: fetched.structuredContent.contentHash,
+    expectedUpdatedAt: hidden.structuredContent.article.updatedAt,
+    expectedHash: fetched.structuredContent.article.contentHash,
     visibility: "public",
   },
   visibilityResultSchema,
 );
-assert.equal(restored.structuredContent.visibility, "public");
+assert.equal(restored.structuredContent.article.visibility, "public");
 
 async function legacyRequest(method: string, params: object, id?: number) {
   return fetch(endpoint, {
@@ -435,10 +442,10 @@ assert.deepEqual(
 );
 const legacyArticle = articleResultSchema.parse(
   await legacyResult(
-    await legacyRequest("tools/call", { name: "getArticle", arguments: { id: fixtureId } }, 13),
+    await legacyRequest("tools/call", { name: "get_article", arguments: { id: fixtureId } }, 13),
   ),
 );
-assert.equal(legacyArticle.structuredContent.id, fixtureId);
+assert.equal(legacyArticle.structuredContent.article.id, fixtureId);
 assert.equal(legacyArticle.isError, undefined);
 
 const session = await fetch(endpoint, {

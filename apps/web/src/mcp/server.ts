@@ -28,7 +28,7 @@ function serverFor(env: CloudflareEnv) {
   );
 
   server.registerTool(
-    "createArticle",
+    "create_article",
     {
       description:
         "Validate and store one complete semantic Chinese Markdown document as a public article. The document must contain ordered title, summary, and tags frontmatter followed by the article body.",
@@ -44,7 +44,7 @@ function serverFor(env: CloudflareEnv) {
   );
 
   server.registerTool(
-    "getArticle",
+    "get_article",
     {
       description: "Read one owner-authorized article.",
       inputSchema: getArticleInput,
@@ -59,7 +59,7 @@ function serverFor(env: CloudflareEnv) {
   );
 
   server.registerTool(
-    "listArticles",
+    "list_articles",
     {
       description: "List compact owner-authorized article summaries with opaque pagination.",
       inputSchema: listArticlesInput,
@@ -74,7 +74,7 @@ function serverFor(env: CloudflareEnv) {
   );
 
   server.registerTool(
-    "updateArticle",
+    "update_article",
     {
       description: "Replace the canonical Chinese Markdown using optimistic concurrency.",
       inputSchema: updateArticleInput,
@@ -89,7 +89,7 @@ function serverFor(env: CloudflareEnv) {
   );
 
   server.registerTool(
-    "deleteArticle",
+    "delete_article",
     {
       description: "Delete an article after making it private and cleaning every derived store.",
       inputSchema: deleteArticleInput,
@@ -104,7 +104,7 @@ function serverFor(env: CloudflareEnv) {
   );
 
   server.registerTool(
-    "searchArticles",
+    "search_articles",
     {
       description:
         "Search authorized Chinese titles, summaries and tags by keyword; returns article summaries, newest first.",
@@ -120,7 +120,7 @@ function serverFor(env: CloudflareEnv) {
   );
 
   server.registerTool(
-    "listTags",
+    "list_tags",
     {
       description: "List the owner's hierarchical tag paths and article counts.",
       inputSchema: listTagsInput,
@@ -135,7 +135,7 @@ function serverFor(env: CloudflareEnv) {
   );
 
   server.registerTool(
-    "setVisibility",
+    "set_visibility",
     {
       description: "Explicitly change an article between private and public.",
       inputSchema: setVisibilityInput,

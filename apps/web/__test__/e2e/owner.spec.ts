@@ -270,7 +270,7 @@ test("shares the generated Bearer credential across REST and MCP", async ({
     .object({ apiKey: z.string() })
     .parse(await (await request.put("/api/settings/api-key")).json());
   const authorization = `Bearer ${credential.apiKey}`;
-  const rest = await request.get("/api/articles?tag=engineering&limit=10", {
+  const rest = await request.get("/api/articles?tags=engineering&limit=10", {
     headers: { authorization },
   });
   expect(rest.status()).toBe(200);
@@ -281,6 +281,18 @@ test("shares the generated Bearer credential across REST and MCP", async ({
     "11111111-1111-4111-8111-111111111111",
     "22222222-2222-4222-8222-222222222222",
   ]);
+  const searched = z.object({ articles: z.array(z.object({ id: z.string() })) }).parse(
+    await (
+      await request.get("/api/articles?search=engineering&limit=10", {
+        headers: { authorization },
+      })
+    ).json(),
+  );
+  expect(searched.articles.map(({ id }) => id)).toEqual(restBody.articles.map(({ id }) => id));
+  const tags = z
+    .object({ tags: z.array(z.object({ path: z.string(), count: z.number() })) })
+    .parse(await (await request.get("/api/tags", { headers: { authorization } })).json());
+  expect(tags.tags.map(({ path }) => path)).toContain("engineering");
 
   const mcp = await request.post("/api/mcp", {
     headers: {

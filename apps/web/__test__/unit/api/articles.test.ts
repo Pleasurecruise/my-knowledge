@@ -17,14 +17,11 @@ describe("article REST contract", () => {
     expect(articles.visibility.default).toBe("public");
   });
 
-  it("parses bounded pagination and repeated hierarchical tags", () => {
+  it("parses bounded pagination and comma-separated hierarchical tags", () => {
     const url = new URL(
-      "https://example.com/api/articles?visibility=private&tag=engineering&tag=testing/privacy&limit=50&cursor=next",
+      "https://example.com/api/articles?visibility=private&tags=engineering,testing/privacy&limit=50&cursor=next",
     );
-    const parsed = articleListQuerySchema.safeParse({
-      ...Object.fromEntries(url.searchParams.entries()),
-      tags: url.searchParams.getAll("tag"),
-    });
+    const parsed = articleListQuerySchema.safeParse(Object.fromEntries(url.searchParams.entries()));
     expect(parsed.success && parsed.data).toEqual({
       visibility: "private",
       tags: ["engineering", "testing/privacy"],

@@ -9,7 +9,7 @@ export type ArticleListQuery = {
 
 export type ArticlePage = {
   articles: ArticleSummary[];
-  cursor: string | undefined;
+  nextCursor: string | null;
 };
 
 export type TagCount = {

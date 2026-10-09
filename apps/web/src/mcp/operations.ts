@@ -43,7 +43,7 @@ export async function createArticleOperation(
   env: CloudflareEnv,
   input: z.infer<typeof createArticleInput>,
 ) {
-  return result(await createArticleFromDocuments(env, { zh: input.document }));
+  return result({ article: await createArticleFromDocuments(env, { zh: input.document }) });
 }
 
 export const getArticleInput = z.object({ id: z.string().uuid() });
@@ -53,7 +53,7 @@ export async function getArticleOperation(
   input: z.infer<typeof getArticleInput>,
 ) {
   const article = await getOwnerArticle(env, input.id);
-  return article ? result(article) : notFound();
+  return article ? result({ article }) : notFound();
 }
 
 export const listArticlesInput = z.object({
@@ -104,7 +104,7 @@ export async function updateArticleOperation(
       content: [{ type: "text", text: "Article changed while saving" }],
     } satisfies McpError;
   }
-  return result(updated.article);
+  return result({ article: updated.article });
 }
 
 export const deleteArticleInput = z.object({
@@ -118,7 +118,7 @@ export async function deleteArticleOperation(
   input: z.infer<typeof deleteArticleInput>,
 ) {
   return (await deleteArticle(env, input.id, input.expectedHash, input.expectedUpdatedAt))
-    ? result({ deleted: true })
+    ? result({ id: input.id, deleted: true })
     : ({
         isError: true,
         content: [{ type: "text", text: "Article changed or was not found" }],
@@ -134,7 +134,11 @@ export async function searchArticlesOperation(
   env: CloudflareEnv,
   input: z.infer<typeof searchArticlesInput>,
 ) {
-  return result({ articles: await searchArticles(env, "owner", input.query, input.limit) });
+  return result({
+    type: "article-search-results",
+    query: input.query,
+    articles: await searchArticles(env, "owner", input.query, input.limit),
+  });
 }
 
 export const listTagsInput = z.object({ parent: z.string().min(1).optional() });
@@ -162,7 +166,7 @@ export async function setVisibilityOperation(
     input.visibility,
   );
   return article
-    ? result(article)
+    ? result({ article })
     : ({
         isError: true,
         content: [{ type: "text", text: "Article changed or was not found" }],

@@ -7,7 +7,7 @@ export const Route = createFileRoute("/robots.txt")({
       GET: () =>
         new Response(
           [
-            "User-Agent: *",
+            "User-agent: *",
             "Allow: /",
             "Allow: /api/openapi.json",
             "Disallow: /api/",
