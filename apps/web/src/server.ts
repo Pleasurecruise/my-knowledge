@@ -55,6 +55,7 @@ export default {
     if (version === null) return render(request, url);
     const key = new URL(url);
     key.searchParams.set("__version", version);
+    key.searchParams.set("__deployment", env.CF_VERSION_METADATA.id);
     key.searchParams.set(
       "__locale",
       resolveInterfaceI18n(undefined, request.headers.get("accept-language")).code,

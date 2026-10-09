@@ -11,7 +11,6 @@ import { articleReturnHref } from "@/articles/navigation";
 import { ArticleAddress } from "@/articles/components/article-address";
 import { ArticleHeader } from "@/articles/components/article-header";
 import { ArticleLink } from "@/articles/components/article-link";
-import { ArticleLoading } from "@/articles/components/loading";
 import { ArticleNavigationActions } from "@/articles/components/article-navigation-actions";
 import { articleOpenGraphVersion } from "@/articles/components/article-open-graph-card";
 import type { ExistingArticleEditor } from "@/articles/components/article-editor.types";
@@ -129,6 +128,8 @@ const getArticlePage = createServerFn({ method: "GET" })
 export const Route = createFileRoute("/articles/$id")({
   validateSearch: articleSearchSchema,
   loaderDeps: ({ search }) => search,
+  staleTime: Infinity,
+  preloadStaleTime: Infinity,
   loader: async ({ params, deps }) => {
     const [metadata, page] = await Promise.all([
       getArticleMetadataTags({ data: { id: params.id } }),
@@ -173,9 +174,6 @@ export const Route = createFileRoute("/articles/$id")({
       links: [{ rel: "canonical", href: metadata.canonical }],
     };
   },
-  pendingComponent: ArticleLoading,
-  pendingMs: 0,
-  pendingMinMs: 0,
   component: ArticlePage,
 });
 

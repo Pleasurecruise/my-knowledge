@@ -72,6 +72,46 @@ test("uses readable article typography without decorative icons", async ({ page 
   expect(accessibility.violations).toEqual([]);
 });
 
+test("keeps the list visible while an article loads and restores its position", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/");
+  const firstArticle = page.locator(".article-preview").first();
+  await expect(firstArticle).toBeVisible();
+  await page.evaluate(() => {
+    document.documentElement.style.minHeight = "2400px";
+    window.scrollTo({ top: 100, behavior: "instant" });
+  });
+  const initialTop = await firstArticle.evaluate((link) => link.getBoundingClientRect().top);
+  let delayed = false;
+  await page.route("**/_serverFn/**", async (route) => {
+    if (!delayed) {
+      delayed = true;
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    }
+    await route.continue();
+  });
+
+  const request = page.waitForRequest((request) =>
+    new URL(request.url()).pathname.startsWith("/_serverFn/"),
+  );
+  await firstArticle.click();
+  await request;
+  await page.waitForTimeout(300);
+  await expect(page.locator(".article-list")).toBeVisible();
+  await expect(page.locator(".site-shell")).toBeVisible();
+  expect(await firstArticle.evaluate((link) => link.getBoundingClientRect().top)).toBe(initialTop);
+  await page.screenshot({ path: testInfo.outputPath("list-during-article-load.png") });
+  await expect(page.locator(".article-reading-page")).toBeVisible();
+  await page.unroute("**/_serverFn/**");
+  await page.locator(".article-return").click();
+  await expect(page.locator(".article-list")).toBeVisible();
+  await expect
+    .poll(() => firstArticle.evaluate((link) => link.getBoundingClientRect().top))
+    .toBe(initialTop);
+  await page.screenshot({ path: testInfo.outputPath("list-after-article-return.png") });
+});
+
 test("prompts through Google One Tap without a login button or duplicated archive", async ({
   page,
 }, testInfo) => {

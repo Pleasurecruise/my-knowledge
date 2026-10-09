@@ -5,9 +5,10 @@ import { routeTree } from "./routeTree.gen";
 export function getRouter() {
   return createRouter({
     routeTree,
-    defaultGcTime: 0,
+    defaultStaleTime: 60_000,
     scrollRestoration: true,
     scrollRestorationBehavior: "instant",
+    getScrollRestorationKey: (location) => location.href,
     parseSearch: (search) => Object.fromEntries(new URLSearchParams(search)),
     stringifySearch: (search) => {
       const params = new URLSearchParams();

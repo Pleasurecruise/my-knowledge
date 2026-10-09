@@ -556,10 +556,6 @@ button,
   transform: rotate(180deg);
 }
 
-.site-shell[hidden] + main .page-loading {
-  padding-top: 4.5rem;
-}
-
 body:has(.home-footer) {
   display: flex;
   flex-direction: column;

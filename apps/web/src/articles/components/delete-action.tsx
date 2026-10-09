@@ -11,13 +11,14 @@ import {
 } from "@my-knowledge/ui/components/alert-dialog";
 import { Button } from "@my-knowledge/ui/components/button";
 import { Trash2 } from "@my-knowledge/ui/icons";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 
 import type { DeleteActionProps } from "./delete-action.types";
 
 export function DeleteAction({ id, expectedHash, expectedUpdatedAt, messages }: DeleteActionProps) {
   const navigate = useNavigate();
+  const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +32,7 @@ export function DeleteAction({ id, expectedHash, expectedUpdatedAt, messages }: 
         body: JSON.stringify({ expectedHash, expectedUpdatedAt }),
       });
       if (response.status === 204) {
+        router.clearCache();
         await navigate({ to: "/" });
         return;
       }
