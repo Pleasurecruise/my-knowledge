@@ -9,7 +9,30 @@ import {
   articleOpenGraphVersion,
 } from "@/articles/components/article-open-graph-card";
 
-let coverFont: ArrayBuffer | undefined;
+let coverBase: string | undefined;
+
+// Old UA so Google Fonts returns ttf, the only format the renderer can parse.
+const TTF_USER_AGENT =
+  "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_4; en-us) AppleWebKit/533.18.1 (KHTML, like Gecko) Version/5.0.2 Safari/533.18.5";
+const FONT_TTL = 60 * 60 * 24 * 30;
+
+/** LXGW WenKai, subset to the characters on this card. */
+async function loadFont(text: string): Promise<ArrayBuffer> {
+  const chars = Array.from(new Set(text)).sort().join("");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(chars));
+  const cacheKey = `og-font/${Buffer.from(digest).toString("hex").slice(0, 16)}`;
+  const cached = await env.KNOWLEDGE_CACHE.get(cacheKey, "arrayBuffer");
+  if (cached) return cached;
+  const css = await fetch(
+    `https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&text=${encodeURIComponent(chars)}`,
+    { headers: { "User-Agent": TTF_USER_AGENT } },
+  ).then((response) => response.text());
+  const source = /src:\s*url\((?<url>[^)]+)\)/.exec(css)?.groups?.url;
+  if (!source) throw new Error("Open Graph font could not be loaded");
+  const font = await fetch(source).then((response) => response.arrayBuffer());
+  await env.KNOWLEDGE_CACHE.put(cacheKey, font, { expirationTtl: FONT_TTL });
+  return font;
+}
 
 export async function renderOpenGraphImage({
   request,
@@ -26,11 +49,11 @@ export async function renderOpenGraphImage({
   const headers = { "Content-Type": "image/png", "Cache-Control": "no-store" };
   const cached = await env.KNOWLEDGE_CACHE.get(cacheKey, "arrayBuffer");
   if (cached) return new Response(cached, { headers });
-  if (!coverFont) {
-    if (!env.ASSETS) throw new Error("Static asset binding is required for Open Graph fonts");
-    const response = await env.ASSETS.fetch(new URL("/fonts/knowledge-og.woff", request.url));
-    if (!response.ok) throw new Error("Open Graph font could not be loaded");
-    coverFont = await response.arrayBuffer();
+  if (!coverBase) {
+    if (!env.ASSETS) throw new Error("Static asset binding is required for the Open Graph base");
+    const response = await env.ASSETS.fetch(new URL("/og-base.jpg", request.url));
+    if (!response.ok) throw new Error("Open Graph base could not be loaded");
+    coverBase = `data:image/jpeg;base64,${Buffer.from(await response.arrayBuffer()).toString("base64")}`;
   }
 
   const date = new Intl.DateTimeFormat("zh-CN", {
@@ -40,14 +63,17 @@ export async function renderOpenGraphImage({
   }).format(new Date(article.createdAt));
 
   const rendered = new ImageResponse(
-    ArticleOpenGraphCard({
-      date,
-      domain: new URL(env.BETTER_AUTH_URL).hostname,
-      title: article.editions.zh.title,
-    }),
+    ArticleOpenGraphCard({ base: coverBase, date, title: article.editions.zh.title }),
     {
       ...articleOpenGraphSize,
-      fonts: [{ name: "Knowledge", data: coverFont, weight: 500, style: "normal" }],
+      fonts: [
+        {
+          name: "Knowledge",
+          data: await loadFont(`${date}${article.editions.zh.title}…`),
+          weight: 400,
+          style: "normal",
+        },
+      ],
       headers,
     },
   );

@@ -7,7 +7,8 @@ import {
 } from "@/articles/components/article-open-graph-card";
 
 it("renders multilingual and long titles with the supplied local font", async () => {
-  const font = await readFile(new URL("../../../public/fonts/knowledge-og.woff", import.meta.url));
+  const font = await readFile(new URL("../../fixtures/og-font.woff", import.meta.url));
+  const base = await readFile(new URL("../../../public/og-base.jpg", import.meta.url));
   const output = process.env.OG_EVIDENCE;
   if (output) await mkdir(output, { recursive: true });
   for (const { name, title } of [
@@ -21,14 +22,18 @@ it("renders multilingual and long titles with the supplied local font", async ()
     { name: "japanese", title: "音と言葉のあいだに、新しいつながりを見つける" },
   ]) {
     const response = new ImageResponse(
-      ArticleOpenGraphCard({ title, date: "2026年9月12日", domain: "knowledge.you-find.me" }),
+      ArticleOpenGraphCard({
+        title,
+        date: "2026年9月12日",
+        base: `data:image/jpeg;base64,${base.toString("base64")}`,
+      }),
       {
         ...articleOpenGraphSize,
         fonts: [
           {
             name: "Knowledge",
             data: font.buffer.slice(font.byteOffset, font.byteOffset + font.byteLength),
-            weight: 500,
+            weight: 400,
             style: "normal",
           },
         ],
